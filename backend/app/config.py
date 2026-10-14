@@ -32,7 +32,11 @@ class Config:
 
     @property
     def risk_terms_path(self) -> Path:
-        return self.data_dir / "risk_terms.json"
+        # cópia em data_dir permite editar os termos sem recompilar
+        copia = self.data_dir / "risk_terms.json"
+        if copia.exists():
+            return copia
+        return Path(__file__).parent / "risk_terms.json"
 
 
 def load_config(data_dir: Path | None = None) -> Config:
