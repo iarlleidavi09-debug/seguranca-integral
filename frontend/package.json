@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite --config vite.aluno.config.ts --host 127.0.0.1",
-    "test": "vitest run --config vite.aluno.config.ts",
+    "test": "vitest run --config vite.aluno.config.ts && vitest run --config vite.coord.config.ts",
     "build:aluno": "tsc --noEmit && vite build --config vite.aluno.config.ts",
-    "test:navegador": "node verificacao/navegador.mjs"
+    "test:navegador": "node verificacao/navegador.mjs",
+    "dev:coord": "vite --config vite.coord.config.ts --host 127.0.0.1 --open coordenacao.html",
+    "build:coord": "tsc --noEmit && vite build --config vite.coord.config.ts"
   },
   "dependencies": {
     "@fontsource/atkinson-hyperlegible": "^5.2.8",

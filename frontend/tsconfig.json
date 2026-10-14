@@ -10,5 +10,6 @@
     "skipLibCheck": true,
     "allowImportingTsExtensions": true
   },
-  "include": ["src", "vite.aluno.config.ts"]
+  "include": ["src", "vite.aluno.config.ts", "vite.coord.config.ts"],
+  "exclude": ["src/shared/csp.test.ts"]
 }

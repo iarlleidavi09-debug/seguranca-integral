@@ -9,7 +9,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
-    include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+    include: ['src/aluno/**/*.test.ts', 'src/aluno/**/*.test.tsx', 'src/shared/**/*.test.ts'],
     clearMocks: true,
   },
 });

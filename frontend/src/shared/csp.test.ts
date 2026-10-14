@@ -25,7 +25,7 @@ describe('Compatibilidade com a CSP do servidor', () => {
     for (const arquivo of fonte) expect(readFileSync(arquivo, 'utf8'), arquivo).not.toMatch(padrao);
   });
   it('o index.html de origem e o gerado não têm script nem estilo inline', () => {
-    for (const caminho of ['index.html', '../backend/app/static/aluno/index.html']) {
+    for (const caminho of ['index.html', 'coordenacao.html', '../backend/app/static/aluno/index.html', '../backend/app/static/coordenacao/index.html']) {
       if (!existsSync(caminho)) continue;
       const html = readFileSync(caminho, 'utf8');
       expect(html, caminho).not.toMatch(/<style\b|\sstyle=|<script\b(?![^>]*\bsrc=)|https?:\/\//i);
