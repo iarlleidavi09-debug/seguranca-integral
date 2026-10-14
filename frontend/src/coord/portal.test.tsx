@@ -91,8 +91,10 @@ describe('Entrada', () => {
 
   it('entra com JSON, mostra a fila e sai pelo botão', async () => {
     const user = userEvent.setup();
+    let entrou = false;
     servidor({
-      'GET /api/eu': () => ({ status: 401 }), 'POST /api/login': logado,
+      'GET /api/eu': () => (entrou ? { corpo: { id: 7, nome: 'Marina' } } : { status: 401 }),
+      'POST /api/login': () => { entrou = true; return { corpo: { nome: 'Marina' } }; },
       'GET /api/casos': () => ({ corpo: { casos: [] } }), 'POST /api/logout': () => ({ corpo: { ok: true } }),
     });
     render(<App />);
@@ -103,6 +105,7 @@ describe('Entrada', () => {
     const login = chamadasA('POST', '/api/login')[0];
     expect(login.init?.headers).toEqual({ 'Content-Type': 'application/json' });
     expect(login.corpo).toEqual({ nome: 'Marina', senha: 'uma-senha-longa' });
+    expect(chamadasA('GET', '/api/eu')).toHaveLength(2);
     await user.click(screen.getByRole('button', { name: 'Sair' }));
     expect(await screen.findByLabelText('Senha')).toBeInTheDocument();
     expect(chamadasA('POST', '/api/logout')[0].init?.headers).toEqual({ 'Content-Type': 'application/json' });

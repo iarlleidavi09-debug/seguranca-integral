@@ -15,3 +15,5 @@ ledger*.md
 backend/app/static/
 frontend/verificacao/capturas*/
 frontend/verificacao/resultado.json
+
+frontend/verificacao/resultado-coord.json

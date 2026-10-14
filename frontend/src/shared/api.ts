@@ -114,7 +114,11 @@ async function coord<T>(metodo: 'GET' | 'POST' | 'DELETE', caminho: string, corp
 const id = (valor: number) => encodeURIComponent(String(valor));
 
 export const urlAnexo = (casoId: number, anexoId: number) => `/api/casos/${id(casoId)}/anexos/${id(anexoId)}`;
-export const entrar = (nome: string, senha: string) => coord<Usuario>('POST', '/api/login', { nome, senha });
+// O login só devolve o nome; o id (para não desativar a própria conta) vem de /api/eu.
+export async function entrar(nome: string, senha: string): Promise<Usuario> {
+  await coord<{ nome: string }>('POST', '/api/login', { nome, senha });
+  return quemSou();
+}
 export const sair = () => coord<{ ok: boolean }>('POST', '/api/logout');
 export const quemSou = () => coord<Usuario>('GET', '/api/eu');
 export async function listarCasos(status: string, tipo: string, sinal?: AbortSignal): Promise<CasoFila[]> {
