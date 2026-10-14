@@ -17,3 +17,14 @@ def conn(config):
     c = connect(config)
     yield c
     c.close()
+
+
+@pytest.fixture
+def student_client(config):
+    """Cliente de teste do portal do aluno, com banco novo e limites folgados."""
+    from app import create_student_app
+
+    app = create_student_app(
+        config, limites={"denuncias": (1000, 600), "consultas": (1000, 600)}
+    )
+    return app.test_client()

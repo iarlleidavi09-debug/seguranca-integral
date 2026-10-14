@@ -1,0 +1,175 @@
+"""Rotas do portal do aluno (porta 3000)."""
+from __future__ import annotations
+
+import re
+import unicodedata
+from contextlib import closing
+from pathlib import Path
+
+from flask import Blueprint, current_app, jsonify, request, send_from_directory
+
+from . import casos
+from .db import connect
+from .security import ip_do_cliente
+from .uploads import MAX_BYTES, MAX_POR_CASO, AnexoInvalido, salvar_anexo
+
+bp = Blueprint("aluno", __name__)
+
+ERRO_CODIGO = ({"erro": "codigo nao encontrado"}, 404)
+RELATO_MIN, RELATO_MAX = 10, 5000
+TEXTO_MAX = 2000
+CAMPO_MAX = 200
+VERDADEIROS = {"true", "1", "on", "sim", "yes"}
+
+
+def _erro(msg: str, status: int = 400):
+    return jsonify({"erro": msg}), status
+
+
+def _bool(valor, padrao: bool) -> bool:
+    if valor is None or valor == "":
+        return padrao
+    return str(valor).strip().lower() in VERDADEIROS
+
+
+def _nome_seguro(nome: str | None) -> str:
+    """Nome original do arquivo reduzido a texto simples para a resposta."""
+    limpo = "".join(
+        c for c in (nome or "") if unicodedata.category(c)[0] != "C"
+    ).strip()
+    return limpo[:100] or "arquivo"
+
+
+def _limpo(valor, maximo: int = CAMPO_MAX) -> str | None:
+    if not isinstance(valor, str):
+        return None
+    valor = valor.strip()
+    return valor[:maximo] or None
+
+
+def _limite_estourado(nome: str) -> bool:
+    limitador = current_app.extensions["limitadores"][nome]
+    return not limitador.permitir(ip_do_cliente(request))
+
+
+@bp.get("/api/saude")
+def saude():
+    return jsonify({"ok": True})
+
+
+@bp.post("/api/denuncias")
+def criar_denuncia():
+    if _limite_estourado("denuncias"):
+        return _erro("muitos envios, tente mais tarde", 429)
+    form = request.form
+    tipo = form.get("tipo", "")
+    relato = (form.get("relato") or "").strip()
+    anonimo = _bool(form.get("anonimo"), True)
+    nome = _limpo(form.get("nome"))
+    if tipo not in casos.TIPOS:
+        return _erro("tipo invalido")
+    if not RELATO_MIN <= len(relato) <= RELATO_MAX:
+        return _erro("relato deve ter de 10 a 5000 caracteres")
+    if not anonimo and not nome:
+        return _erro("nome obrigatorio")
+    arquivos = [
+        f for f in request.files.getlist("anexos[]") + request.files.getlist("anexos")
+        if f.filename or f.content_length
+    ]
+    if len(arquivos) > MAX_POR_CASO:
+        return _erro("no maximo 5 anexos")
+
+    config = current_app.config["SI_CONFIG"]
+    salvos, recusados = [], []
+    for arq in arquivos:
+        # le no maximo MAX_BYTES + 1: arquivo grande nunca e carregado inteiro
+        dados = arq.stream.read(MAX_BYTES + 1)
+        try:
+            salvos.append(salvar_anexo(config, dados))
+        except AnexoInvalido as erro:
+            recusados.append({"nome": _nome_seguro(arq.filename), "motivo": erro.motivo})
+
+    try:
+        with closing(connect(config)) as conn:
+            codigo = casos.criar_caso(
+                conn, config,
+                {
+                    "tipo": tipo, "relato": relato,
+                    "quando": _limpo(form.get("quando")),
+                    "onde": _limpo(form.get("onde")),
+                    "em_andamento": _bool(form.get("em_andamento"), False),
+                    "anonimo": anonimo, "nome": nome,
+                    "turma": _limpo(form.get("turma"), 50),
+                },
+                salvos,
+            )
+    except Exception:
+        # sem caso gravado, os arquivos ficariam órfãos em disco
+        for a in salvos:
+            (config.uploads_dir / a.nome_interno).unlink(missing_ok=True)
+        raise
+    corpo = {"codigo": codigo}
+    if recusados:
+        corpo["anexos_recusados"] = recusados
+    return jsonify(corpo), 201
+
+
+def _json_dict() -> dict:
+    dados = request.get_json(silent=True)
+    return dados if isinstance(dados, dict) else {}
+
+
+@bp.post("/api/acompanhar")
+def acompanhar():
+    if _limite_estourado("consultas"):
+        return _erro("muitas consultas, tente mais tarde", 429)
+    config = current_app.config["SI_CONFIG"]
+    with closing(connect(config)) as conn:
+        caso = casos.caso_por_codigo(conn, config, _json_dict().get("codigo"))
+        if caso is None:
+            return jsonify(ERRO_CODIGO[0]), ERRO_CODIGO[1]
+        msgs = casos.listar_mensagens(conn, caso["id"])
+        return jsonify({
+            "status": caso["status"],
+            "mensagens": [
+                {"autor": m["autor"], "texto": m["texto"], "criado_em": m["criado_em"]}
+                for m in msgs
+            ],
+        })
+
+
+@bp.post("/api/acompanhar/mensagens")
+def enviar_mensagem():
+    if _limite_estourado("consultas"):
+        return _erro("muitas consultas, tente mais tarde", 429)
+    config = current_app.config["SI_CONFIG"]
+    dados = _json_dict()
+    with closing(connect(config)) as conn:
+        caso = casos.caso_por_codigo(conn, config, dados.get("codigo"))
+        if caso is None:
+            return jsonify(ERRO_CODIGO[0]), ERRO_CODIGO[1]
+        texto = dados.get("texto")
+        if not isinstance(texto, str) or not 1 <= len(texto.strip()) <= TEXTO_MAX:
+            return _erro("mensagem deve ter de 1 a 2000 caracteres")
+        casos.adicionar_mensagem(conn, caso["id"], "aluno", texto.strip())
+        casos.registrar_evento(conn, caso["id"], "mensagem_aluno", None, "")
+    return jsonify({"ok": True}), 201
+
+
+@bp.route("/api/", defaults={"resto": ""})
+@bp.route("/api/<path:resto>", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
+def api_desconhecida(resto):
+    return jsonify({"erro": "nao encontrado"}), 404
+
+
+@bp.get("/", defaults={"caminho": ""})
+@bp.get("/<path:caminho>")
+def spa(caminho):
+    """Serve o build do portal; qualquer rota não-API cai no index.html."""
+    pasta: Path = current_app.config["SI_STATIC"]
+    if not (pasta / "index.html").is_file():
+        return jsonify({"erro": "nao encontrado"}), 404
+    alvo = (pasta / caminho).resolve()
+    if caminho and alvo.is_file() and pasta.resolve() in alvo.parents:
+        return send_from_directory(pasta, caminho)
+    return send_from_directory(pasta, "index.html")
