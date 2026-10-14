@@ -1,6 +1,10 @@
 """Testes do backup diário e da limpeza de backups antigos."""
+import os
 import sqlite3
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+import pytest
 
 from app.backup import fazer_backup, limpar_antigos
 from app.casos import criar_caso
@@ -66,3 +70,55 @@ def test_limpar_remove_mais_de_7_dias(config):
 
 def test_limpar_sem_pasta_de_backups(config):
     assert limpar_antigos(config, AGORA) == 0
+
+
+def test_backup_restaura_old_orfao_antes_de_refazer(conn, config):
+    carregar_simulacao(conn, config, quantidade=2)
+    pasta = fazer_backup(config, AGORA)
+    # simula queda entre os dois renames: só existe .old, sem a pasta final
+    pasta.rename(config.backups_dir / ".old-2026-10-14")
+    assert not pasta.exists()
+    # banco vazio de novo; o backup novo substitui o restaurado
+    conn.execute("DELETE FROM casos")
+    conn.commit()
+    fazer_backup(config, AGORA)
+    assert _contar(pasta / "seguranca.db") == 0
+    assert [p.name for p in config.backups_dir.iterdir()] == ["2026-10-14"]
+
+
+def test_backup_restaura_old_se_o_rename_final_falha(conn, config, monkeypatch):
+    carregar_simulacao(conn, config, quantidade=2)
+    pasta = fazer_backup(config, AGORA)
+    conn.execute("DELETE FROM casos")
+    conn.commit()
+    original = Path.rename
+
+    def falha(self, alvo):
+        if self.name.startswith(".tmp-"):
+            raise OSError("falha simulada")
+        return original(self, alvo)
+
+    monkeypatch.setattr(Path, "rename", falha)
+    with pytest.raises(OSError):
+        fazer_backup(config, AGORA)
+    monkeypatch.undo()
+    assert _contar(pasta / "seguranca.db") == 2  # backup anterior preservado
+    assert [p.name for p in config.backups_dir.iterdir()] == ["2026-10-14"]
+
+
+def test_limpar_nao_segue_link_para_fora(config, tmp_path_factory):
+    fora = tmp_path_factory.mktemp("fora")
+    (fora / "dado.txt").write_text("x")
+    config.backups_dir.mkdir(parents=True)
+    alvo = config.backups_dir / "2020-01-01"
+    try:
+        os.symlink(fora, alvo, target_is_directory=True)
+    except OSError:
+        # sem privilégio de link simbólico: usa junção NTFS (não exige admin)
+        import subprocess
+        r = subprocess.run(["cmd", "/c", "mklink", "/J", str(alvo), str(fora)],
+                           capture_output=True)
+        if r.returncode != 0:
+            pytest.skip("não foi possível criar link ou junção")
+    assert limpar_antigos(config, AGORA) == 0
+    assert (fora / "dado.txt").exists()

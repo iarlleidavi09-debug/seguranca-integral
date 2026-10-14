@@ -1,6 +1,7 @@
 """Backup diário do banco e dos anexos, e limpeza dos backups antigos."""
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import sqlite3
@@ -30,6 +31,9 @@ def fazer_backup(config: Config, agora: datetime) -> Path:
     final = base / nome
     temp = base / f".tmp-{nome}"
     antigo = base / f".old-{nome}"
+    # execução anterior morreu entre os dois renames: devolve o backup do dia
+    if antigo.exists() and not final.exists():
+        antigo.rename(final)
     for sobra in (temp, antigo):
         if sobra.exists():
             shutil.rmtree(sobra)
@@ -62,10 +66,14 @@ def limpar_antigos(config: Config, agora: datetime, manter_dias: int = 7) -> int
     if not base.is_dir():
         return 0
     limite = _data_utc(agora) - timedelta(days=manter_dias)
+    raiz = os.path.realpath(base)
     removidas = 0
     for item in base.iterdir():
         if (item.is_symlink() or not item.is_dir()
                 or not _PADRAO_DATA.fullmatch(item.name)):
+            continue
+        # junção NTFS ou link que aponte para fora de backups_dir nunca é apagado
+        if os.path.commonpath([raiz, os.path.realpath(item)]) != raiz:
             continue
         try:
             data = datetime.strptime(item.name, "%Y-%m-%d").date()

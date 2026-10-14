@@ -80,19 +80,13 @@ def carregar_simulacao(conn: sqlite3.Connection, config: Config,
         if identificado:
             dados["nome"] = f"Aluno Exemplo {i + 1}"
             dados["turma"] = _TURMAS[i % len(_TURMAS)]
-        # o código em claro é descartado: ninguém consulta caso simulado
-        codigo = criar_caso(conn, config, dados, [])
-        # busca pelo código (não por MAX(id)): denúncias reais podem chegar junto
-        caso_id = caso_por_codigo(conn, config, codigo)["id"]
-        # datas espalhadas pelos últimos dias para a fila parecer real
         quando = (agora - timedelta(hours=7 * (quantidade - i))).isoformat(
             timespec="seconds")
-        conn.execute(
-            "UPDATE casos SET simulacao = 1, criado_em = ?, atualizado_em = ? "
-            "WHERE id = ?", (quando, quando, caso_id))
-        conn.execute("UPDATE eventos SET criado_em = ? WHERE caso_id = ?",
-                     (quando, caso_id))
-        conn.commit()
+        # nasce já marcado e datado; o código em claro é descartado
+        codigo = criar_caso(conn, config, dados, [], simulacao=True,
+                            criado_em=quando)
+        # busca pelo código (não por MAX(id)): denúncias reais podem chegar junto
+        caso_id = caso_por_codigo(conn, config, codigo)["id"]
         del codigo
         for autor, texto in mensagens:
             adicionar_mensagem(conn, caso_id, autor, texto)

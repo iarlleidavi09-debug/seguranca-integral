@@ -1,4 +1,6 @@
 """Testes do modo de ensaio (casos fictícios marcados com simulacao=1)."""
+import pytest
+
 from app.casos import adicionar_mensagem, adicionar_nota, criar_caso
 from app.simulation import carregar_simulacao, remover_simulacao
 from app.uploads import salvar_anexo
@@ -79,11 +81,21 @@ def test_remover_apaga_arquivo_de_anexo_simulado(conn, config):
     assert not (config.uploads_dir / salvo.nome_interno).exists()
 
 
-def test_rotas_de_simulacao_exigem_login(coord_client):
+def test_rotas_de_simulacao_exigem_login(coord_client, config):
+    from app.db import connect
+    c = connect(config)
+    c.execute("INSERT INTO casos (codigo_hash, tipo, relato, gravidade, "
+              "simulacao, criado_em, atualizado_em) VALUES "
+              "('h','outro','r','baixa',1,'2026-01-01','2026-01-01')")
+    c.commit()
+    antes = c.execute("SELECT COUNT(*) FROM casos").fetchone()[0]
     r = coord_client.post("/api/simulacao/carregar", json={})
     assert r.status_code == 401
     r = coord_client.delete("/api/simulacao", json={})
     assert r.status_code == 401
+    # banco intacto: nada criado nem removido
+    assert c.execute("SELECT COUNT(*) FROM casos").fetchone()[0] == antes
+    c.close()
 
 
 def test_rotas_de_simulacao_exigem_json(coord_logado):
@@ -101,3 +113,22 @@ def test_rotas_de_simulacao_carregam_e_removem(coord_logado):
     r = coord_logado.delete("/api/simulacao", json={})
     assert r.status_code == 200 and r.get_json() == {"removidos": 18}
     assert coord_logado.get("/api/casos").get_json()["casos"] == []
+
+
+def test_falha_no_meio_nao_deixa_caso_fictício_sem_marca(conn, config, monkeypatch):
+    import app.simulation as sim
+
+    def quebra(*a, **k):
+        raise RuntimeError("falha simulada")
+
+    monkeypatch.setattr(sim, "adicionar_mensagem", quebra)
+    with pytest.raises(RuntimeError):
+        carregar_simulacao(conn, config)
+    # todo caso que ficou nasceu marcado; nenhum parece real
+    assert _um(conn, "SELECT COUNT(*) FROM casos WHERE simulacao = 0") == 0
+    assert _um(conn, "SELECT COUNT(*) FROM casos WHERE simulacao = 1") >= 1
+    monkeypatch.undo()
+    # estado coerente: a idempotência segura a recarga e a remoção limpa tudo
+    assert carregar_simulacao(conn, config) == 0
+    assert remover_simulacao(conn) >= 1
+    assert _um(conn, "SELECT COUNT(*) FROM casos") == 0
