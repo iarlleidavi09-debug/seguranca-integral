@@ -1,14 +1,13 @@
 """Rotas do portal do aluno (porta 3000)."""
 from __future__ import annotations
 
-import re
 import unicodedata
 from contextlib import closing
-from pathlib import Path
 
-from flask import Blueprint, current_app, jsonify, request, send_from_directory
+from flask import Blueprint, current_app, jsonify, request
 
 from . import casos
+from ._comum import registrar_rotas_finais
 from .db import connect
 from .security import ip_do_cliente
 from .uploads import MAX_BYTES, MAX_POR_CASO, AnexoInvalido, salvar_anexo
@@ -158,20 +157,4 @@ def enviar_mensagem():
     return jsonify({"ok": True}), 201
 
 
-@bp.route("/api/", defaults={"resto": ""})
-@bp.route("/api/<path:resto>", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
-def api_desconhecida(resto):
-    return jsonify({"erro": "nao encontrado"}), 404
-
-
-@bp.get("/", defaults={"caminho": ""})
-@bp.get("/<path:caminho>")
-def spa(caminho):
-    """Serve o build do portal; qualquer rota não-API cai no index.html."""
-    pasta: Path = current_app.config["SI_STATIC"]
-    if not (pasta / "index.html").is_file():
-        return jsonify({"erro": "nao encontrado"}), 404
-    alvo = (pasta / caminho).resolve()
-    if caminho and alvo.is_file() and pasta.resolve() in alvo.parents:
-        return send_from_directory(pasta, caminho)
-    return send_from_directory(pasta, "index.html")
+registrar_rotas_finais(bp)
