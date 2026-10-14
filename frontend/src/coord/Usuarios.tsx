@@ -16,6 +16,14 @@ export default function Usuarios({ meuId }: { meuId: number }) {
   const trabalhando = useRef(false);
   const montado = useRef(true);
   const titulo = useRef<HTMLHeadingElement>(null);
+  const gatilhos = useRef<Record<number, HTMLButtonElement | null>>({});
+  const botaoConfirmar = useRef<HTMLButtonElement>(null);
+  const anterior = useRef<number | null>(null);
+  useEffect(() => {
+    if (confirmando !== null) botaoConfirmar.current?.focus();
+    else if (anterior.current !== null) (gatilhos.current[anterior.current] ?? titulo.current)?.focus();
+    anterior.current = confirmando;
+  }, [confirmando]);
   useEffect(() => { montado.current = true; return () => { montado.current = false; }; }, []);
 
   const carregar = useCallback(async () => {
@@ -64,14 +72,15 @@ export default function Usuarios({ meuId }: { meuId: number }) {
         <div className="usuario-nome"><strong>{u.nome}</strong>{u.id === meuId && <span className="selo-neutro">Você</span>}
           <span className="usuario-estado" data-ativo={u.ativo}>{u.ativo ? 'Ativo' : 'Desativado'}</span></div>
         {u.ativo && u.id !== meuId && (confirmando === u.id
-          ? <div className="confirmar" role="group" aria-label={`Confirmar desativação de ${u.nome}`}>
+          ? <div className="confirmar" role="group" aria-label={`Confirmar desativação de ${u.nome}`}
+            onKeyDown={e => { if (e.key === 'Escape') setConfirmando(null); }}>
             <p>Desativar {u.nome}? A pessoa perde o acesso agora.</p>
             <div className="acoes">
-              <button type="button" className="botao perigo" disabled={ocupado} onClick={() => void desativar(u)}>Confirmar desativação</button>
+              <button type="button" ref={botaoConfirmar} className="botao perigo" disabled={ocupado} onClick={() => void desativar(u)}>Confirmar desativação</button>
               <button type="button" className="botao secundario" onClick={() => setConfirmando(null)}>Cancelar</button>
             </div>
           </div>
-          : <button type="button" className="botao secundario" onClick={() => setConfirmando(u.id)} aria-label={`Desativar ${u.nome}`}>Desativar</button>)}
+          : <button type="button" ref={el => { gatilhos.current[u.id] = el; }} className="botao secundario" onClick={() => setConfirmando(u.id)} aria-label={`Desativar ${u.nome}`}>Desativar</button>)}
         {u.id === meuId && <p className="texto-pequeno">Você não pode desativar a própria conta.</p>}
       </li>)}
     </ul>}

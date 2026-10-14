@@ -136,3 +136,5 @@ select:disabled { background: var(--desabilitado-fundo); color: var(--desabilita
   .caso-grade { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: var(--espaco-8); }
 }
 @media (max-width: 374px) { .painel { padding-inline: var(--espaco-3); } }
+
+.conversas .titulo-painel { margin-top: 0; font-size: var(--texto-destaque); line-height: 26px; }

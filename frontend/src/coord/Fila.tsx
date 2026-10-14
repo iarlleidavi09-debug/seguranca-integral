@@ -6,9 +6,10 @@ import { Gravidade, GRAVIDADES, Simulacao, STATUS, Status, TIPOS, dataLegivel, r
 export const INTERVALO_MS = 8000;
 const ordem = (g: string) => { const i = GRAVIDADES.indexOf(g as never); return i < 0 ? GRAVIDADES.length : i; };
 
-export default function Fila({ aoAbrir }: { aoAbrir: (id: number) => void }) {
-  const [filtroStatus, setFiltroStatus] = useState('');
-  const [filtroTipo, setFiltroTipo] = useState('');
+export type Filtros = { status: string; tipo: string };
+
+export default function Fila({ aoAbrir, filtros, aoFiltrar }: { aoAbrir: (id: number) => void; filtros: Filtros; aoFiltrar: (filtros: Filtros) => void }) {
+  const { status: filtroStatus, tipo: filtroTipo } = filtros;
   const [casos, setCasos] = useState<CasoFila[] | null>(null);
   const [erro, setErro] = useState('');
   const [anuncio, setAnuncio] = useState('');
@@ -17,20 +18,20 @@ export default function Fila({ aoAbrir }: { aoAbrir: (id: number) => void }) {
 
   useEffect(() => {
     let ativo = true;
-    let sequencia = 0;
-    let controle: AbortController | null = null;
+    let emCurso = false;
+    const controle = new AbortController();
     const chave = `${filtroStatus}|${filtroTipo}`;
     const filtroMudou = filtrosAnteriores.current !== chave;
     filtrosAnteriores.current = chave;
     if (filtroMudou) vistos.current = null;
 
     async function carregar() {
-      const minha = ++sequencia;
-      controle?.abort();
-      controle = new AbortController();
+      // um tick que cai durante uma requisição lenta é ignorado, não a cancela
+      if (emCurso) return;
+      emCurso = true;
       try {
         const recebidos = await listarCasos(filtroStatus, filtroTipo, controle.signal);
-        if (!ativo || minha !== sequencia) return;
+        if (!ativo) return;
         // a API já ordena; a ordenação estável aqui só garante alta, média e baixa
         const ordenados = [...recebidos].sort((a, b) => ordem(a.gravidade) - ordem(b.gravidade));
         const anteriores = vistos.current;
@@ -40,10 +41,10 @@ export default function Fila({ aoAbrir }: { aoAbrir: (id: number) => void }) {
         if (novos > 0) setAnuncio(novos === 1 ? 'Chegou 1 caso novo.' : `Chegaram ${novos} casos novos.`);
         else if (!anteriores) setAnuncio(ordenados.length === 1 ? '1 caso na fila.' : `${ordenados.length} casos na fila.`);
       } catch (falha) {
-        if (!ativo || minha !== sequencia) return;
+        if (!ativo) return;
         if (falha instanceof ErroApi && falha.status === 401) return;
         setErro(mensagemErroCoord(falha));
-      }
+      } finally { emCurso = false; }
     }
     void carregar();
     const relogio = setInterval(() => { if (!document.hidden) void carregar(); }, INTERVALO_MS);
@@ -53,7 +54,7 @@ export default function Fila({ aoAbrir }: { aoAbrir: (id: number) => void }) {
       ativo = false;
       clearInterval(relogio);
       document.removeEventListener('visibilitychange', aoMudarVisibilidade);
-      controle?.abort();
+      controle.abort();
     };
   }, [filtroStatus, filtroTipo]);
 
@@ -62,14 +63,14 @@ export default function Fila({ aoAbrir }: { aoAbrir: (id: number) => void }) {
     <h1 id="titulo-fila" tabIndex={-1}>Fila de casos</h1>
     <form className="filtros" onSubmit={e => e.preventDefault()}>
       <div><label htmlFor="filtro-status">Status</label>
-        <select id="filtro-status" value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}>
+        <select id="filtro-status" value={filtroStatus} onChange={e => aoFiltrar({ ...filtros, status: e.target.value })}>
           <option value="">Todos</option>{STATUS.map(s => <option key={s} value={s}>{rotuloStatus[s]}</option>)}
         </select></div>
       <div><label htmlFor="filtro-tipo">Tipo</label>
-        <select id="filtro-tipo" value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)}>
+        <select id="filtro-tipo" value={filtroTipo} onChange={e => aoFiltrar({ ...filtros, tipo: e.target.value })}>
           <option value="">Todos</option>{TIPOS.map(([valor, rotulo]) => <option key={valor} value={valor}>{rotulo}</option>)}
         </select></div>
-      {filtrando && <button type="button" className="botao-texto" onClick={() => { setFiltroStatus(''); setFiltroTipo(''); }}>Limpar filtros</button>}
+      {filtrando && <button type="button" className="botao-texto" onClick={() => aoFiltrar({ status: '', tipo: '' })}>Limpar filtros</button>}
     </form>
     <p className="texto-pequeno" role="status" aria-live="polite">{anuncio}</p>
     {erro && <p className="erro" role="alert">{erro} A fila tenta de novo sozinha.</p>}

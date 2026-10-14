@@ -60,7 +60,7 @@ export type CasoFila = {
 export type Evento = { id: number; tipo: string; usuario_id: number | null; usuario: string | null; detalhe: string; criado_em: string };
 export type Nota = { id: number; usuario_id: number; usuario: string | null; texto: string; criado_em: string };
 export type AnexoCaso = { id: number; tipo: string; tamanho: number };
-export type CasoDetalhe = CasoFila & {
+export type CasoDetalhe = Omit<CasoFila, 'resumo'> & {
   relato: string; quando: string | null; onde: string | null;
   nome: string | null; turma: string | null; motivos: string[];
   anexos: AnexoCaso[]; eventos: Evento[]; mensagens: Mensagem[]; notas: Nota[];
@@ -115,10 +115,7 @@ const id = (valor: number) => encodeURIComponent(String(valor));
 
 export const urlAnexo = (casoId: number, anexoId: number) => `/api/casos/${id(casoId)}/anexos/${id(anexoId)}`;
 // O login só devolve o nome; o id (para não desativar a própria conta) vem de /api/eu.
-export async function entrar(nome: string, senha: string): Promise<Usuario> {
-  await coord<{ nome: string }>('POST', '/api/login', { nome, senha });
-  return quemSou();
-}
+export const entrar = (nome: string, senha: string) => coord<{ nome: string }>('POST', '/api/login', { nome, senha });
 export const sair = () => coord<{ ok: boolean }>('POST', '/api/logout');
 export const quemSou = () => coord<Usuario>('GET', '/api/eu');
 export async function listarCasos(status: string, tipo: string, sinal?: AbortSignal): Promise<CasoFila[]> {

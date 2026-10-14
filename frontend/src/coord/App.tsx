@@ -3,6 +3,7 @@ import { ouvirSessaoPerdida, quemSou, sair } from '../shared/api';
 import type { Usuario } from '../shared/api';
 import Login from './Login';
 import Fila from './Fila';
+import type { Filtros } from './Fila';
 import Caso from './Caso';
 import Usuarios from './Usuarios';
 import Ensaio from './Ensaio';
@@ -26,6 +27,7 @@ function enderecoDa(tela: Tela): string {
 export default function App() {
   const [sessao, setSessao] = useState<Usuario | null | 'verificando'>('verificando');
   const [perdida, setPerdida] = useState(false);
+  const [filtros, setFiltros] = useState<Filtros>({ status: '', tipo: '' });
   const [tela, setTela] = useState<Tela>(telaDoEndereco);
   const main = useRef<HTMLElement>(null);
   const atual = useRef(sessao);
@@ -62,14 +64,14 @@ export default function App() {
 
   async function encerrar() {
     try { await sair(); } catch { /* o cookie vence sozinho; a tela de entrada aparece de qualquer forma */ }
-    setPerdida(false); setSessao(null); setTela({ nome: 'fila' });
+    setPerdida(false); setSessao(null); setTela({ nome: 'fila' }); setFiltros({ status: '', tipo: '' });
     window.history.replaceState(null, '', window.location.pathname);
   }
 
   if (sessao === 'verificando') return <main id="conteudo" className="login"><p role="status">Verificando a sessão.</p></main>;
   if (sessao === null) {
     return <Login aviso={perdida ? 'Sua sessão terminou. Entre de novo para continuar.' : undefined}
-      aoEntrar={usuario => { setPerdida(false); setSessao(usuario); }} />;
+      aoEntrar={usuario => { setPerdida(false); setFiltros({ status: '', tipo: '' }); setSessao(usuario); }} />;
   }
 
   const item = (nome: Tela['nome'], rotulo: string) => {
@@ -86,7 +88,7 @@ export default function App() {
         <button type="button" className="botao secundario" onClick={() => void encerrar()}>Sair</button></div>
     </div></header>
     <main id="conteudo" ref={main} tabIndex={-1} className="painel">
-      {tela.nome === 'fila' && <Fila aoAbrir={id => ir({ nome: 'caso', id })} />}
+      {tela.nome === 'fila' && <Fila aoAbrir={id => ir({ nome: 'caso', id })} filtros={filtros} aoFiltrar={setFiltros} />}
       {tela.nome === 'caso' && <Caso key={tela.id} id={tela.id} aoVoltar={() => ir({ nome: 'fila' })} />}
       {tela.nome === 'usuarios' && <Usuarios meuId={sessao.id} />}
       {tela.nome === 'ensaio' && <Ensaio />}

@@ -43,11 +43,12 @@ function Anexos({ caso }: { caso: CasoDetalhe }) {
 
 type Item = { chave: number; autor: string; texto: string; criado_em: string; lado?: string };
 
-function Conversa({ campo, rotulo, ajuda, botao, itens, texto, aoMudar, aoEnviar, enviando }: {
-  campo: string; rotulo: string; ajuda: string; botao: string; texto: string; enviando: boolean; itens: Item[];
+function Conversa({ titulo, campo, rotulo, ajuda, botao, itens, texto, aoMudar, aoEnviar, enviando }: {
+  titulo: string; campo: string; rotulo: string; ajuda: string; botao: string; texto: string; enviando: boolean; itens: Item[];
   aoMudar: (valor: string) => void; aoEnviar: () => void;
 }) {
   return <div>
+    <h2 className="titulo-painel">{titulo}</h2>
     {itens.length === 0 ? <p className="vazio">Nada por aqui ainda.</p> : <ul className="mensagens">
       {itens.map(i => <li key={i.chave} className="mensagem" data-autor={i.lado}>
         <h3>{i.autor}</h3><p>{i.texto}</p><time dateTime={i.criado_em}>{dataLegivel(i.criado_em)}</time>
@@ -117,11 +118,11 @@ export default function Caso({ id, aoVoltar }: { id: number; aoVoltar: () => voi
   }
   const enviarMensagem = () => {
     const texto = textoValido(rascunho.mensagens); if (texto === null) return;
-    void agir(() => enviarMensagemAoAluno(id, texto), 'Mensagem enviada ao aluno.', () => setRascunho(r => ({ ...r, mensagens: '' })));
+    void agir(() => enviarMensagemAoAluno(id, texto), 'Mensagem enviada ao aluno.', () => setRascunho(r => (r.mensagens.trim() === texto ? { ...r, mensagens: '' } : r)));
   };
   const enviarNota = () => {
     const texto = textoValido(rascunho.notas); if (texto === null) return;
-    void agir(() => criarNota(id, texto), 'Nota interna salva.', () => setRascunho(r => ({ ...r, notas: '' })));
+    void agir(() => criarNota(id, texto), 'Nota interna salva.', () => setRascunho(r => (r.notas.trim() === texto ? { ...r, notas: '' } : r)));
   };
   function teclasAbas(e: KeyboardEvent, atual: Aba) {
     const lista: Aba[] = ['mensagens', 'notas'];
@@ -192,13 +193,13 @@ export default function Caso({ id, aoVoltar }: { id: number; aoVoltar: () => voi
             onClick={() => setAba('notas')} onKeyDown={e => teclasAbas(e, 'notas')}>Notas internas</button>
         </div>
         {aba === 'mensagens' && <div role="tabpanel" id="painel-mensagens" aria-labelledby="aba-mensagens">
-          <Conversa campo="texto-mensagem" rotulo="Mensagem ao aluno" ajuda="O aluno lê esta mensagem no acompanhamento."
+          <Conversa titulo="Conversa com o aluno" campo="texto-mensagem" rotulo="Mensagem ao aluno" ajuda="O aluno lê esta mensagem no acompanhamento."
             botao="Enviar ao aluno" texto={rascunho.mensagens} enviando={ocupado}
             aoMudar={valor => setRascunho(r => ({ ...r, mensagens: valor }))} aoEnviar={enviarMensagem}
             itens={caso.mensagens.map((m, i) => ({ chave: i, autor: m.autor === 'aluno' ? 'Aluno' : 'Coordenação', texto: m.texto, criado_em: m.criado_em, lado: m.autor }))} />
         </div>}
         {aba === 'notas' && <div role="tabpanel" id="painel-notas" aria-labelledby="aba-notas">
-          <Conversa campo="texto-nota" rotulo="Nota interna" ajuda="Só a coordenação vê. O aluno nunca recebe esta nota."
+          <Conversa titulo="Notas da equipe" campo="texto-nota" rotulo="Nota interna" ajuda="Só a coordenação vê. O aluno nunca recebe esta nota."
             botao="Salvar nota" texto={rascunho.notas} enviando={ocupado}
             aoMudar={valor => setRascunho(r => ({ ...r, notas: valor }))} aoEnviar={enviarNota}
             itens={caso.notas.map(n => ({ chave: n.id, autor: n.usuario ?? 'Coordenação', texto: n.texto, criado_em: n.criado_em }))} />

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { carregarSimulacao, ErroApi, mensagemErroCoord, removerSimulacao } from '../shared/api';
 
 const plural = (n: number, um: string, varios: string) => (n === 1 ? um : varios);
@@ -9,6 +9,13 @@ export default function Ensaio() {
   const [confirmando, setConfirmando] = useState(false);
   const [ocupado, setOcupado] = useState(false);
   const trabalhando = useRef(false);
+  const gatilho = useRef<HTMLButtonElement>(null);
+  const botaoConfirmar = useRef<HTMLButtonElement>(null);
+  const abriu = useRef(false);
+  useEffect(() => {
+    if (confirmando) { botaoConfirmar.current?.focus(); abriu.current = true; }
+    else if (abriu.current) { gatilho.current?.focus(); abriu.current = false; }
+  }, [confirmando]);
 
   async function executar(acao: () => Promise<string>) {
     if (trabalhando.current) return;
@@ -29,12 +36,13 @@ export default function Ensaio() {
           const { criados } = await carregarSimulacao();
           return criados === 0 ? 'A simulação já está carregada.' : `${criados} ${plural(criados, 'caso criado', 'casos criados')}.`;
         })}>Carregar casos de simulação</button>
-      {!confirmando && <button type="button" className="botao secundario" disabled={ocupado} onClick={() => setConfirmando(true)}>Remover simulação</button>}
+      <button type="button" ref={gatilho} className="botao secundario" disabled={ocupado} onClick={() => setConfirmando(true)}>Remover simulação</button>
     </div>
-    {confirmando && <div className="confirmar" role="group" aria-label="Confirmar remoção da simulação">
+    {confirmando && <div className="confirmar" role="group" aria-label="Confirmar remoção da simulação"
+      onKeyDown={e => { if (e.key === 'Escape') setConfirmando(false); }}>
       <p>Remover todos os casos de simulação? Os casos reais ficam como estão.</p>
       <div className="acoes">
-        <button type="button" className="botao perigo" disabled={ocupado}
+        <button type="button" ref={botaoConfirmar} className="botao perigo" disabled={ocupado}
           onClick={() => void executar(async () => {
             const { removidos } = await removerSimulacao();
             return `${removidos} ${plural(removidos, 'caso removido', 'casos removidos')}.`;
