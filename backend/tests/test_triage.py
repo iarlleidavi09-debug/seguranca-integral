@@ -81,3 +81,24 @@ def test_carregar_termos_le_json(tmp_path):
     p = tmp_path / "t.json"
     p.write_text('{"x": ["Ameaça"]}', encoding="utf-8")
     assert carregar_termos(p) == {"x": ["Ameaça"]}
+
+
+def test_acento_no_relato_casa_termo_sem_acento(termos):
+    com = classificar("outro", "suicídio", False, termos)
+    sem = classificar("outro", "suicidio", False, termos)
+    assert com == sem
+    assert com.pontos == 1 + 3
+    assert "termos de risco: automutilacao" in com.motivos
+    r = classificar("outro", "FOTO ÍNTIMA", False, termos)
+    assert "termos de risco: nudes" in r.motivos
+
+
+def test_termo_composto_vou_te_bater(termos):
+    r = classificar("outro", "ele disse vou te bater amanha", False, termos)
+    assert "termos de risco: violencia" in r.motivos
+
+
+def test_pesos_vazamento_perfil_falso_e_tipo_desconhecido(termos):
+    assert classificar("vazamento", "", False, termos).pontos == 3
+    assert classificar("perfil_falso", "", False, termos).pontos == 2
+    assert classificar("inexistente", "", False, termos).pontos == 1
