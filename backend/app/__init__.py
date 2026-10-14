@@ -1,9 +1,10 @@
 """Fábricas das aplicações Flask."""
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 
 from .config import Config
 from .db import init_db
@@ -27,6 +28,24 @@ def create_student_app(config: Config, limites: dict | None = None) -> Flask:
         nome: Limitador(maximo, janela) for nome, (maximo, janela) in efetivos.items()
     }
     app.register_blueprint(bp)
+
+    # O log de requisições do werkzeug inclui o IP; fica silenciado.
+    logging.getLogger("werkzeug").setLevel(logging.WARNING)
+    acesso = logging.getLogger("seguranca.acesso")
+
+    @app.after_request
+    def registrar_acesso(resposta):
+        # só método, caminho e status: sem IP, query string nem corpo
+        acesso.info("%s %s %s", request.method, request.path, resposta.status_code)
+        return resposta
+
+    @app.errorhandler(405)
+    def metodo_nao_permitido(_erro):
+        return jsonify({"erro": "metodo nao permitido"}), 405
+
+    @app.errorhandler(500)
+    def erro_interno(_erro):
+        return jsonify({"erro": "erro interno"}), 500
 
     @app.errorhandler(413)
     def grande_demais(_erro):

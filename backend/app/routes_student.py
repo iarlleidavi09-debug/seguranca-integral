@@ -151,7 +151,9 @@ def enviar_mensagem():
         texto = dados.get("texto")
         if not isinstance(texto, str) or not 1 <= len(texto.strip()) <= TEXTO_MAX:
             return _erro("mensagem deve ter de 1 a 2000 caracteres")
-        casos.adicionar_mensagem(conn, caso["id"], "aluno", texto.strip())
+        casos.adicionar_mensagem(conn, caso["id"], "aluno", texto.strip(),
+                            commit=False)
+        # um único commit grava a mensagem e o evento juntos
         casos.registrar_evento(conn, caso["id"], "mensagem_aluno", None, "")
     return jsonify({"ok": True}), 201
 

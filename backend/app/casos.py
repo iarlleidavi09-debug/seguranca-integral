@@ -21,13 +21,15 @@ def _agora() -> str:
 
 
 def registrar_evento(conn: sqlite3.Connection, caso_id: int, tipo: str,
-                     usuario_id: int | None, detalhe: str) -> None:
+                     usuario_id: int | None, detalhe: str,
+                     commit: bool = True) -> None:
     conn.execute(
         "INSERT INTO eventos (caso_id, tipo, usuario_id, detalhe, criado_em) "
         "VALUES (?, ?, ?, ?, ?)",
         (caso_id, tipo, usuario_id, detalhe, _agora()),
     )
-    conn.commit()
+    if commit:
+        conn.commit()
 
 
 def criar_caso(conn: sqlite3.Connection, config: Config, dados: dict,
@@ -110,11 +112,12 @@ def listar_mensagens(conn: sqlite3.Connection, caso_id: int,
 
 
 def adicionar_mensagem(conn: sqlite3.Connection, caso_id: int, autor: str,
-                       texto: str) -> None:
+                       texto: str, commit: bool = True) -> None:
     agora = _agora()
     conn.execute(
         "INSERT INTO mensagens (caso_id, autor, texto, criado_em) VALUES (?,?,?,?)",
         (caso_id, autor, texto, agora),
     )
     conn.execute("UPDATE casos SET atualizado_em = ? WHERE id = ?", (agora, caso_id))
-    conn.commit()
+    if commit:
+        conn.commit()

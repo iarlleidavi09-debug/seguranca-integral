@@ -157,6 +157,7 @@ def test_codigo_invalido_e_inexistente_mesma_resposta(student_client):
     )
     for r in (a, b, c, d):
         assert r.status_code == 404
+        assert r.get_data() == a.get_data()
         assert r.get_json() == {"erro": "codigo nao encontrado"}
 
 
@@ -319,5 +320,93 @@ def test_saude(student_client):
 
 
 def test_spa_sem_build_devolve_404_sem_quebrar(student_client):
-    assert student_client.get("/").status_code in (200, 404)
-    assert student_client.get("/alguma/rota").status_code in (200, 404)
+    assert student_client.get("/").status_code == 404
+    assert student_client.get("/alguma/rota").status_code == 404
+
+
+def test_log_de_acesso_nao_tem_ip_codigo_nem_relato(config, caplog):
+    import logging
+
+    app = create_student_app(
+        config, limites={"denuncias": (100, 600), "consultas": (100, 600)}
+    )
+    client = app.test_client()
+    caplog.set_level(logging.DEBUG)
+    relato = "Relato secreto sobre o colega Fulano da turma."
+    r = client.post(
+        "/api/denuncias?x=1",
+        data=_dados(relato=relato),
+        content_type="multipart/form-data",
+        headers={"CF-Connecting-IP": "203.0.113.77"},
+        environ_overrides={"REMOTE_ADDR": "127.0.0.1"},
+    )
+    codigo = r.get_json()["codigo"]
+    client.post("/api/acompanhar", json={"codigo": codigo},
+                environ_overrides={"REMOTE_ADDR": "198.51.100.9"})
+    assert any("/api/denuncias" in m for m in caplog.messages)
+    for m in caplog.messages:
+        for proibido in ("203.0.113.77", "127.0.0.1", "198.51.100.9",
+                         codigo, relato, "x=1"):
+            assert proibido not in m
+
+
+def test_cf_connecting_ip_ignorado_se_remoto_nao_e_loopback(student_client):
+    from app.security import ip_do_cliente
+    from flask import Flask, request
+
+    app = Flask(__name__)
+    cab = {"CF-Connecting-IP": "203.0.113.5"}
+    with app.test_request_context(
+        headers=cab, environ_overrides={"REMOTE_ADDR": "198.51.100.9"}
+    ):
+        assert ip_do_cliente(request) == "198.51.100.9"
+    with app.test_request_context(
+        headers=cab, environ_overrides={"REMOTE_ADDR": "127.0.0.1"}
+    ):
+        assert ip_do_cliente(request) == "203.0.113.5"
+
+
+def test_413_devolve_json(config):
+    app = create_student_app(config)
+    app.config["MAX_CONTENT_LENGTH"] = 100
+    r = app.test_client().post(
+        "/api/denuncias", data=_dados(relato="x" * 500),
+        content_type="multipart/form-data",
+    )
+    assert r.status_code == 413
+    assert r.get_json() == {"erro": "envio grande demais"}
+
+
+def test_405_devolve_json(student_client):
+    for caminho in ("/", "/algo/qualquer"):
+        r = student_client.post(caminho)
+        assert r.status_code == 405
+        assert r.get_json() == {"erro": "metodo nao permitido"}
+
+
+def test_500_devolve_json_sem_detalhes_e_remove_anexos(config, monkeypatch):
+    from app import casos
+
+    def quebra(*a, **k):
+        raise RuntimeError("detalhe interno")
+
+    monkeypatch.setattr(casos, "criar_caso", quebra)
+    app = create_student_app(config)
+    r = _enviar(app.test_client(), anexos=(io.BytesIO(PNG), "a.png"))
+    assert r.status_code == 500
+    assert r.get_json() == {"erro": "erro interno"}
+    assert "detalhe" not in r.get_data(as_text=True)
+    assert list(config.uploads_dir.iterdir()) == []
+
+
+def test_mensagem_e_evento_gravados_juntos(student_client, config):
+    codigo = _enviar(student_client).get_json()["codigo"]
+    student_client.post(
+        "/api/acompanhar/mensagens", json={"codigo": codigo, "texto": "oi"}
+    )
+    c = connect(config)
+    try:
+        tipos = [e["tipo"] for e in c.execute("SELECT tipo FROM eventos ORDER BY id")]
+    finally:
+        c.close()
+    assert tipos == ["criado", "mensagem_aluno"]
