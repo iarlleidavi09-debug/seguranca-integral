@@ -28,3 +28,35 @@ def student_client(config):
         config, limites={"denuncias": (1000, 600), "consultas": (1000, 600)}
     )
     return app.test_client()
+
+
+SENHA_COORD = "senha-forte-123"
+
+
+@pytest.fixture
+def coord_app(config):
+    """Aplicação da coordenação com limite de login folgado."""
+    from app import create_coord_app
+
+    return create_coord_app(config, limites={"login": (1000, 600)})
+
+
+@pytest.fixture
+def coord_client(coord_app):
+    """Cliente de teste da coordenação, sem sessão."""
+    return coord_app.test_client()
+
+
+@pytest.fixture
+def coord_logado(config, coord_client):
+    """Cliente da coordenação já logado como `coord`."""
+    from app.auth import criar_usuario
+
+    c = connect(config)
+    try:
+        criar_usuario(c, "coord", SENHA_COORD)
+    finally:
+        c.close()
+    r = coord_client.post("/api/login", json={"nome": "coord", "senha": SENHA_COORD})
+    assert r.status_code == 200
+    return coord_client
