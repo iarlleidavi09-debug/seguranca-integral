@@ -3,11 +3,9 @@ from __future__ import annotations
 
 import hashlib
 import hmac
-import logging
-import sqlite3
 from pathlib import Path
 
-from flask import Flask, jsonify
+from flask import Flask
 
 from ._comum import configurar_app
 from .config import Config
@@ -64,15 +62,4 @@ def create_coord_app(config: Config, limites: dict | None = None) -> Flask:
     app.extensions["limitadores"] = _limitadores(LIMITES_COORD, limites)
     app.register_blueprint(bp)
     configurar_app(app)
-
-    @app.errorhandler(sqlite3.OperationalError)
-    def erro_do_banco(erro):
-        texto = str(erro).lower()
-        if "locked" in texto or "busy" in texto:
-            return jsonify({"erro": "servidor ocupado"}), 503
-        logging.getLogger("seguranca.erro").error(
-            "erro operacional do banco", exc_info=erro
-        )
-        return jsonify({"erro": "erro interno"}), 500
-
     return app

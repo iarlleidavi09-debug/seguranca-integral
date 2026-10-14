@@ -18,7 +18,7 @@ from flask.sessions import SecureCookieSessionInterface
 from . import auth, casos, simulation
 from ._comum import registrar_rotas_finais
 from .db import connect
-from .security import ip_do_cliente
+from .security import https_encaminhado, ip_do_cliente
 from .uploads import AnexoInvalido, caminho_anexo
 
 bp = Blueprint("coord", __name__)
@@ -48,8 +48,7 @@ class SessaoCoordenacao(SecureCookieSessionInterface):
     """Cookie `Secure` só quando o túnel informa que a conexão é https."""
 
     def get_cookie_secure(self, app) -> bool:
-        proto = request.headers.get("X-Forwarded-Proto", "")
-        return proto.split(",")[0].strip().lower() == "https"
+        return https_encaminhado(request)
 
 
 def _erro(msg: str, status: int = 400):

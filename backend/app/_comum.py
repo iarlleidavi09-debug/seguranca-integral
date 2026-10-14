@@ -2,18 +2,23 @@
 from __future__ import annotations
 
 import logging
+import sqlite3
 from pathlib import Path
 
 from flask import Blueprint, Flask, current_app, jsonify, request, send_from_directory
+
+from .security import aplicar_seguranca
 
 METODOS_API = ["GET", "POST", "PUT", "PATCH", "DELETE"]
 
 
 def configurar_app(app: Flask) -> None:
-    """Log de acesso sem IP e respostas JSON para os erros HTTP comuns."""
+    """Log de acesso sem IP e respostas JSON para os erros HTTP e do banco."""
     # O log de requisições do werkzeug inclui o IP; fica silenciado.
     logging.getLogger("werkzeug").setLevel(logging.WARNING)
     acesso = logging.getLogger("seguranca.acesso")
+    # Host permitido e cabeçalhos de segurança, iguais nos dois portais
+    aplicar_seguranca(app, app.config["SI_CONFIG"])
 
     @app.after_request
     def registrar_acesso(resposta):
@@ -36,6 +41,17 @@ def configurar_app(app: Flask) -> None:
     @app.errorhandler(404)
     def nao_encontrado(_erro):
         return jsonify({"erro": "nao encontrado"}), 404
+
+    @app.errorhandler(sqlite3.OperationalError)
+    def erro_do_banco(erro):
+        # banco travado por escrita concorrente: o cliente pode tentar de novo
+        texto = str(erro).lower()
+        if "locked" in texto or "busy" in texto:
+            return jsonify({"erro": "servidor ocupado"}), 503
+        logging.getLogger("seguranca.erro").error(
+            "erro operacional do banco", exc_info=erro
+        )
+        return jsonify({"erro": "erro interno"}), 500
 
 
 def registrar_rotas_finais(bp: Blueprint) -> None:
