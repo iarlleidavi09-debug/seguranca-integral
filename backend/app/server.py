@@ -3,9 +3,11 @@
 Uso:
     python -m app.server [--data-dir PASTA]            sobe os dois portais
     python -m app.server [--data-dir PASTA] --criar-admin
+    python -m app.server [--data-dir PASTA] --redefinir-senha
 
 Saída: 0 ok; 2 erro de uso (argparse); 3 admin já existe; 4 pasta de dados
-inutilizável ou porta ocupada.
+inutilizável, config.json inválido ou porta ocupada; 5 admin não existe
+(--redefinir-senha).
 
 Sem monkey patching do gevent: as requisições dos dois portais se revezam
 num único hub, então o SQLite nunca vê duas escritas ao mesmo tempo vindas
@@ -29,7 +31,7 @@ import gevent
 from gevent.pywsgi import WSGIServer
 
 from . import create_coord_app, create_student_app
-from .auth import criar_usuario, gerar_senha_inicial
+from .auth import criar_usuario, gerar_senha_inicial, redefinir_senha
 from .backup import fazer_backup, limpar_antigos
 from .config import Config, load_config
 from .db import connect, init_db
@@ -38,6 +40,7 @@ ADMIN = "coordenacao"
 # códigos de saída; 2 fica para erro de uso do argparse
 SAIDA_ADMIN_EXISTE = 3
 SAIDA_ERRO_INICIO = 4
+SAIDA_ADMIN_NAO_EXISTE = 5
 INTERVALO_BACKUP = 24 * 60 * 60  # segundos
 _ESPERA = 0.2  # intervalo de verificação do pedido de parada
 
@@ -243,6 +246,18 @@ def _criar_admin(config: Config) -> int:
     return 0
 
 
+def _redefinir_senha(config: Config) -> int:
+    senha = gerar_senha_inicial()
+    with closing(connect(config)) as conn:
+        if not redefinir_senha(conn, ADMIN, senha):
+            print(f"Usuario '{ADMIN}' nao existe; use --criar-admin.", file=sys.stderr)
+            return SAIDA_ADMIN_NAO_EXISTE
+    print(f"Senha do usuario '{ADMIN}' redefinida; conta desbloqueada e ativa.")
+    print(f"Nova senha: {senha}")
+    print("Anote agora: ela nao sera exibida de novo.")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="seguranca-integral",
@@ -250,8 +265,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--data-dir", type=Path, default=None,
                         help="pasta de dados (padrao: C:\\ProgramData\\SegurancaIntegral)")
-    parser.add_argument("--criar-admin", action="store_true",
-                        help=f"cria o usuario '{ADMIN}' e mostra a senha inicial uma vez")
+    acao = parser.add_mutually_exclusive_group()
+    acao.add_argument("--criar-admin", action="store_true",
+                      help=f"cria o usuario '{ADMIN}' e mostra a senha inicial uma vez")
+    acao.add_argument("--redefinir-senha", action="store_true",
+                      help=f"gera nova senha para '{ADMIN}', desbloqueia e reativa a conta")
     args = parser.parse_args(argv)  # erro de uso: o argparse sai com 2
 
     try:
@@ -263,6 +281,8 @@ def main(argv: list[str] | None = None) -> int:
         return SAIDA_ERRO_INICIO
     if args.criar_admin:
         return _criar_admin(config)
+    if args.redefinir_senha:
+        return _redefinir_senha(config)
 
     # não faz nada se o logging já foi configurado por quem chamou; o
     # handler criado aqui guarda o stderr original, antes da troca abaixo

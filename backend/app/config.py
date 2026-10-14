@@ -7,6 +7,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 DATA_DIR_PADRAO = Path(r"C:\ProgramData\SegurancaIntegral")
+# portas do config.json: fora das privilegiadas e dentro do limite do TCP
+PORTA_MIN = 1024
+PORTA_MAX = 65535
 
 
 @dataclass(frozen=True)
@@ -51,10 +54,35 @@ def load_config(data_dir: Path | None = None) -> Config:
         chave = secrets.token_hex(32)  # 32 bytes aleatórios em hexadecimal
         arquivo_chave.write_text(chave, encoding="utf-8")
 
-    hosts: tuple[str, ...] = ()
-    arquivo_json = pasta / "config.json"
-    if arquivo_json.exists():
-        dados = json.loads(arquivo_json.read_text(encoding="utf-8"))
-        hosts = tuple(dados.get("allowed_hosts", ()))
+    extras = _ler_config_json(pasta / "config.json")
+    return Config(data_dir=pasta, secret_key=chave, **extras)
 
-    return Config(data_dir=pasta, secret_key=chave, allowed_hosts=hosts)
+
+def _porta(dados: dict, nome: str, padrao: int) -> int:
+    valor = dados.get(nome, padrao)
+    # bool é subclasse de int: "true" no JSON não pode virar porta 1
+    if type(valor) is not int or not PORTA_MIN <= valor <= PORTA_MAX:
+        raise ValueError(
+            f"config.json: {nome} precisa ser um inteiro de {PORTA_MIN} a {PORTA_MAX}"
+        )
+    return valor
+
+
+def _ler_config_json(arquivo: Path) -> dict:
+    """Lê e valida o config.json opcional; erro vira ValueError (saída 4)."""
+    if not arquivo.exists():
+        return {}
+    # utf-8-sig: o PowerShell 5.1 e o Bloco de Notas antigo gravam com BOM
+    dados = json.loads(arquivo.read_text(encoding="utf-8-sig"))
+    if not isinstance(dados, dict):
+        raise ValueError("config.json precisa ser um objeto JSON")
+
+    hosts = dados.get("allowed_hosts", [])
+    if not isinstance(hosts, list) or not all(isinstance(h, str) for h in hosts):
+        raise ValueError("config.json: allowed_hosts precisa ser uma lista de textos")
+
+    aluno = _porta(dados, "student_port", 3000)
+    coord = _porta(dados, "coord_port", 4000)
+    if aluno == coord:
+        raise ValueError("config.json: student_port e coord_port precisam ser diferentes")
+    return {"allowed_hosts": tuple(hosts), "student_port": aluno, "coord_port": coord}

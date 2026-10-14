@@ -312,3 +312,52 @@ def test_porta_ocupada_sai_4(tmp_path, monkeypatch, capsys):
     assert "iniciar o servidor" in erro
     assert "Traceback" not in erro
     _sem_componentes(erro, "127.0.0.1")
+
+
+# --- redefinir a senha do admin -------------------------------------------
+
+def _senha_da_saida(saida: str, rotulo: str) -> str:
+    linhas = [l for l in saida.splitlines() if rotulo in l]
+    assert len(linhas) == 1
+    return linhas[0].split(rotulo)[1].strip()
+
+
+def test_redefinir_senha_sem_admin_sai_5(tmp_path, capsys):
+    assert server.main(["--data-dir", str(tmp_path), "--redefinir-senha"]) == 5
+    saida = capsys.readouterr()
+    assert "nao existe" in saida.err
+    assert "Nova senha" not in saida.out
+
+
+def test_redefinir_senha_troca_desbloqueia_e_reativa(tmp_path, capsys):
+    assert server.main(["--data-dir", str(tmp_path), "--criar-admin"]) == 0
+    antiga = _senha_da_saida(capsys.readouterr().out, "Senha inicial:")
+    conn = connect(Config(data_dir=tmp_path, secret_key="x"))
+    try:
+        conn.execute("UPDATE usuarios SET ativo = 0, tentativas = 5, "
+                     "bloqueado_ate = '2999-01-01T00:00:00+00:00' WHERE nome = ?",
+                     (ADMIN,))
+        conn.commit()
+    finally:
+        conn.close()
+
+    assert server.main(["--data-dir", str(tmp_path), "--redefinir-senha"]) == 0
+    saida = capsys.readouterr().out
+    nova = _senha_da_saida(saida, "Nova senha:")
+    assert len(nova) == 16 and nova != antiga
+    assert saida.count(nova) == 1
+
+    from app.auth import autenticar
+    conn = connect(Config(data_dir=tmp_path, secret_key="x"))
+    try:
+        agora = datetime.now(timezone.utc)
+        assert autenticar(conn, ADMIN, antiga, agora) is None
+        assert autenticar(conn, ADMIN, nova, agora) is not None
+    finally:
+        conn.close()
+
+
+def test_criar_admin_e_redefinir_senha_sao_exclusivos(tmp_path):
+    with pytest.raises(SystemExit) as saida:
+        server.main(["--data-dir", str(tmp_path), "--criar-admin", "--redefinir-senha"])
+    assert saida.value.code == 2

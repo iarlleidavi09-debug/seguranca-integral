@@ -165,6 +165,28 @@ def autenticar(conn: sqlite3.Connection, nome: str, senha: str,
         raise
 
 
+def redefinir_senha(conn: sqlite3.Connection, nome: str, senha: str) -> bool:
+    """Troca a senha, zera o bloqueio e reativa a conta.
+
+    Uso local (linha de comando no servidor), para quem perdeu o acesso.
+    Devolve False se o usuário não existe. Sessões abertas continuam
+    válidas até o prazo de 12 horas.
+    """
+    if not isinstance(senha, str) or len(senha) < SENHA_MINIMA:
+        raise ValueError(f"senha precisa de pelo menos {SENHA_MINIMA} caracteres")
+    linha = _buscar_por_nome(conn, nome)
+    if linha is None:
+        return False
+    senha_hash = generate_password_hash(senha, method=METODO_HASH)
+    conn.execute(
+        "UPDATE usuarios SET senha_hash = ?, tentativas = 0, bloqueado_ate = NULL, "
+        "ativo = 1 WHERE id = ?",
+        (senha_hash, linha["id"]),
+    )
+    conn.commit()
+    return True
+
+
 def desativar_usuario(conn: sqlite3.Connection, usuario_id: int) -> None:
     """Marca a conta como inativa (id inexistente não faz nada)."""
     conn.execute("UPDATE usuarios SET ativo = 0 WHERE id = ?", (usuario_id,))
