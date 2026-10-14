@@ -38,10 +38,18 @@ export default function Denuncia({ onEnviado, onEnviando }: { onEnviado: (result
   const urls = useRef(new Set<string>());
   const sequencia = useRef(0);
   const titulo = useRef<HTMLHeadingElement>(null);
+  const temRascunho = Boolean(dados.tipo || dados.relato || dados.quando || dados.onde || dados.nome || dados.turma || dados.em_andamento || !dados.anonimo);
   useEffect(() => {
-    try { localStorage.setItem(chave, JSON.stringify(dados)); }
-    catch { setAvisoRascunho('Este navegador não permite salvar o rascunho. Mantenha esta tela aberta até enviar.'); }
-  }, [dados]);
+    try {
+      // sem texto nem escolha não há o que guardar
+      if (temRascunho) localStorage.setItem(chave, JSON.stringify(dados));
+      else localStorage.removeItem(chave);
+    } catch { setAvisoRascunho('Este navegador não permite salvar o rascunho. Mantenha esta tela aberta até enviar.'); }
+  }, [dados, temRascunho]);
+  function limparRascunho() {
+    setDados({ ...vazio }); setPasso(1); setErro(''); setAvisoRascunho('Rascunho apagado.');
+    titulo.current?.focus();
+  }
   useEffect(() => { titulo.current?.focus(); }, [passo]);
   useEffect(() => {
     const criadas = urls.current;
@@ -104,6 +112,7 @@ export default function Denuncia({ onEnviado, onEnviando }: { onEnviado: (result
       {['Tipo', 'Relato', 'Provas'].map((texto, i) => <li key={texto} aria-current={passo === i + 1 ? 'step' : undefined}><span>{i + 1}</span>{texto}</li>)}
     </ol>
     <p className="texto-pequeno">Passo {passo} de 3</p>
+    {temRascunho && !enviando && <button type="button" className="botao-texto limpar-rascunho" onClick={limparRascunho}>Limpar rascunho</button>}
     <h1 ref={titulo} tabIndex={-1}>{titulos[passo - 1]}</h1>
     <form noValidate onSubmit={e => { e.preventDefault(); void continuar(); }} aria-busy={enviando}>
       <fieldset disabled={enviando} className="sem-borda">

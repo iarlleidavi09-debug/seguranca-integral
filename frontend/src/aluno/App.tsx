@@ -14,7 +14,8 @@ export default function App() {
   const telaAnterior = useRef(tela);
   const inicio = () => setTela({ nome: 'inicio' });
   useEffect(() => {
-    if (telaAnterior.current !== tela) main.current?.focus();
+    // a denúncia foca o próprio título a cada passo; o main não pode tomar o foco dela
+    if (telaAnterior.current !== tela && tela.nome !== 'denuncia') main.current?.focus();
     telaAnterior.current = tela;
   }, [tela]);
   return <>

@@ -19,14 +19,17 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
   const [aviso, setAviso] = useState('');
   const consulta = useRef(0);
   const responder = useRef(false);
+  const montado = useRef(true);
+  const consultado = useRef<string | null>(null);
+  useEffect(() => { montado.current = true; return () => { montado.current = false; }; }, []);
   useEffect(() => {
-    let ativo = true;
-    if (!codigoInicial) return;
+    // no StrictMode o efeito roda duas vezes; a consulta inicial sai uma só vez por código
+    if (!codigoInicial || consultado.current === codigoInicial) return;
+    consultado.current = codigoInicial;
     setCarregando(true);
-    acompanhar(codigoInicial).then(dados => { if (ativo) setCaso(dados); })
-      .catch(falha => { if (ativo) setErro(mensagemErro(falha)); })
-      .finally(() => { if (ativo) setCarregando(false); });
-    return () => { ativo = false; };
+    acompanhar(codigoInicial).then(dados => { if (montado.current) setCaso(dados); })
+      .catch(falha => { if (montado.current) setErro(mensagemErro(falha)); })
+      .finally(() => { if (montado.current) setCarregando(false); });
   }, [codigoInicial]);
   async function consultar() {
     if (!codigo.trim()) { setErro('Digite seu código para acompanhar.'); return; }
