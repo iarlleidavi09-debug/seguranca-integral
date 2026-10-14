@@ -10,3 +10,10 @@ build/
 ledger*.md
 .pytest_cache/
 .pytest_tmp/
+
+# Portal do aluno: saída do build (build.ps1 e npm run build:aluno a regeneram)
+backend/app/static/
+frontend/verificacao/capturas*/
+frontend/verificacao/resultado.json
+
+frontend/verificacao/resultado-coord.json
