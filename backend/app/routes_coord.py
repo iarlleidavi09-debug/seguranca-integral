@@ -15,7 +15,7 @@ from flask import (
 )
 from flask.sessions import SecureCookieSessionInterface
 
-from . import auth, casos
+from . import auth, casos, simulation
 from ._comum import registrar_rotas_finais
 from .db import connect
 from .security import ip_do_cliente
@@ -268,6 +268,21 @@ def anexo(caso_id: int, anexo_id: int):
     )
     resposta.headers["Cache-Control"] = "private, no-store"
     return resposta
+
+
+# --- modo de ensaio ------------------------------------------------------
+# A portaria já cobre estas rotas (sessão e JSON); não gravam evento algum.
+
+@bp.post("/api/simulacao/carregar")
+def carregar_simulacao():
+    criados = simulation.carregar_simulacao(_db(), current_app.config["SI_CONFIG"])
+    return jsonify({"criados": criados})
+
+
+@bp.delete("/api/simulacao")
+def remover_simulacao():
+    removidos = simulation.remover_simulacao(_db(), current_app.config["SI_CONFIG"])
+    return jsonify({"removidos": removidos})
 
 
 # --- usuários ------------------------------------------------------------
