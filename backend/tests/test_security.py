@@ -118,6 +118,30 @@ def test_anexo_mantem_cache_control_e_disposition(coord_logado, config):
     assert r.headers["X-Content-Type-Options"] == "nosniff"
 
 
+def test_nosniff_em_405_413_e_500(clientes, monkeypatch):
+    from app import casos
+
+    r = clientes["aluno"].post("/qualquer/rota")  # SPA só aceita GET
+    assert r.status_code == 405
+    assert r.headers["X-Content-Type-Options"] == "nosniff"
+
+    grande = b"x" * (1024 * 1024 + 1)  # acima do limite da coordenação
+    r = clientes["coord"].post("/api/login", data=grande,
+                               content_type="application/json")
+    assert r.status_code == 413
+    assert r.headers["X-Content-Type-Options"] == "nosniff"
+
+    def quebrado(*a, **k):
+        raise RuntimeError("falha inesperada")
+
+    monkeypatch.setattr(casos, "caso_por_codigo", quebrado)
+    r = clientes["aluno"].post("/api/acompanhar", json={"codigo": "ABCD-EFGH"})
+    assert r.status_code == 500
+    assert r.get_json() == {"erro": "erro interno"}
+    assert r.headers["X-Content-Type-Options"] == "nosniff"
+    assert r.headers["Content-Security-Policy"] == CSP
+
+
 def test_banco_ocupado_vira_503_no_aluno(clientes, monkeypatch):
     from app import casos
 

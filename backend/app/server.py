@@ -4,6 +4,9 @@ Uso:
     python -m app.server [--data-dir PASTA]            sobe os dois portais
     python -m app.server [--data-dir PASTA] --criar-admin
 
+Saída: 0 ok; 2 erro de uso (argparse); 3 admin já existe; 4 pasta de dados
+inutilizável ou porta ocupada.
+
 Sem monkey patching do gevent: as requisições dos dois portais se revezam
 num único hub, então o SQLite nunca vê duas escritas ao mesmo tempo vindas
 deste processo. Só o backup (cópia de arquivos) roda no threadpool do hub.
@@ -14,6 +17,7 @@ import argparse
 import logging
 import re
 import signal
+import sqlite3
 import sys
 import threading
 from contextlib import closing
@@ -31,33 +35,57 @@ from .config import Config, load_config
 from .db import connect, init_db
 
 ADMIN = "coordenacao"
+# códigos de saída; 2 fica para erro de uso do argparse
+SAIDA_ADMIN_EXISTE = 3
+SAIDA_ERRO_INICIO = 4
 INTERVALO_BACKUP = 24 * 60 * 60  # segundos
 _ESPERA = 0.2  # intervalo de verificação do pedido de parada
 
 log = logging.getLogger("seguranca.servidor")
 
-# IPv4 (inclusive dentro de IPv6 mapeado) e qualquer token com dois ou mais
-# ":" entre dígitos hexadecimais (IPv6, com zona opcional). Remover a mais é
-# aceitável; deixar passar um endereço não é.
-_IPV4 = re.compile(r"(?<![\w.])(?:\d{1,3}\.){3}\d{1,3}(?![\w.])")
-_IPV6 = re.compile(r"(?<![\w:])(?:[0-9A-Fa-f]{0,4}:){2,}[0-9A-Fa-f]{0,4}(?:%[\w.-]+)?")
+# Remover a mais é aceitável; deixar passar um endereço não é. Sem lookbehind
+# de palavra: "addr_203.0.113.45" também é coberto.
+# IPv6 (2+ ":" entre hex) com cauda IPv4 opcional (mapeado, NAT64) e zona.
+_IPV6 = re.compile(
+    r"(?:[0-9A-Fa-f]{0,4}:){2,}(?:\d{1,3}(?:\.\d{1,3}){3}|[0-9A-Fa-f]{0,4})"
+    r"(?:%[\w.-]+)?"
+)
+_IPV4 = re.compile(r"\d{1,3}(?:\.\d{1,3}){3}")
+# Rede de segurança: se depois da troca ainda sobrar algo com cara de
+# endereço, a linha inteira é descartada. Os limites de dígito evitam
+# descartar versões como "3.13.3824" em caminhos de traceback.
+_RESIDUO = re.compile(
+    r"(?<!\d)\d{1,3}\.\d{1,3}\.\d{1,3}(?!\d)"
+    r"|\b[0-9a-fA-F]{1,4}(?::[0-9a-fA-F]{0,4}){2,}\b"
+)
+LINHA_DESCARTADA = "[linha de log com endereco descartada]"
 
 
 def _sem_endereco(texto: str) -> str:
-    return _IPV4.sub("[endereco]", _IPV6.sub("[endereco]", texto))
+    """Troca endereços por "[endereco]"; descarta a linha se algo sobrar."""
+    limpo = _IPV4.sub("[endereco]", _IPV6.sub("[endereco]", texto))
+    if _RESIDUO.search(limpo):
+        return LINHA_DESCARTADA
+    return limpo
 
 
 class _LogSemEndereco:
-    """Arquivo falso para o `error_log` do gevent e o fluxo de exceções do hub.
+    """Arquivo falso para o `error_log` do gevent, o hub e o `sys.stderr`.
 
     O gevent escreve nele o repr do socket (laddr/raddr) e o endereço do
     cliente em requisições malformadas; cada linha sai no logger com os
     endereços trocados por "[endereco]".
     """
 
+    encoding = "utf-8"
+
     def __init__(self, logger: logging.Logger):
         self._logger = logger
         self._resto = ""
+        self._emitindo = False
+
+    def isatty(self) -> bool:
+        return False
 
     def write(self, texto) -> int:
         texto = str(texto)
@@ -78,8 +106,19 @@ class _LogSemEndereco:
 
     def _emitir(self, linha: str) -> None:
         linha = _sem_endereco(linha.rstrip())
-        if linha:
+        if not linha:
+            return
+        if self._emitindo:
+            # um handler de log que escreve no sys.stderr (que pode ser este
+            # objeto) cairia em recursão; vai direto para o stderr original
+            if sys.__stderr__ is not None:
+                sys.__stderr__.write(linha + "\n")
+            return
+        self._emitindo = True
+        try:
             self._logger.error("%s", linha)
+        finally:
+            self._emitindo = False
 
 
 # --- backup diário ---------------------------------------------------------
@@ -138,18 +177,24 @@ def servir(config: Config, parar: threading.Event | None = None, *,
     principal = threading.current_thread() is threading.main_thread()
     hub = gevent.get_hub()
     log_erro = _LogSemEndereco(log)
+    # exception_stream é um readproperty: o valor atribuído fica no __dict__
+    # da instância; guardar o estado permite devolver o padrão (sys.stderr)
+    estado_hub = getattr(hub, "__dict__", {})
+    tinha_stream = "exception_stream" in estado_hub
+    stream_anterior = estado_hub.get("exception_stream")
     # exceções não tratadas em greenlets incluem o repr do socket do cliente
     hub.exception_stream = log_erro
 
-    servidores = [
-        WSGIServer((config.host, config.student_port), create_student_app(config),
-                   log=None, error_log=log_erro),
-        WSGIServer((config.host, config.coord_port), create_coord_app(config),
-                   log=None, error_log=log_erro),
-    ]
+    servidores: list[WSGIServer] = []
     anteriores: dict = {}
     backup = None
     try:
+        servidores = [
+            WSGIServer((config.host, config.student_port), create_student_app(config),
+                       log=None, error_log=log_erro),
+            WSGIServer((config.host, config.coord_port), create_coord_app(config),
+                       log=None, error_log=log_erro),
+        ]
         for s in servidores:
             s.start()
         if principal:
@@ -172,6 +217,10 @@ def servir(config: Config, parar: threading.Event | None = None, *,
         for s in servidores:
             s.stop(timeout=5)
         log_erro.flush()
+        if tinha_stream:
+            hub.exception_stream = stream_anterior
+        else:
+            estado_hub.pop("exception_stream", None)
         if not principal:
             # cada thread tem seu hub; sem isso o loop do libuv vaza
             hub.destroy(destroy_loop=True)
@@ -187,7 +236,7 @@ def _criar_admin(config: Config) -> int:
         except ValueError:
             print(f"Usuario '{ADMIN}' ja existe; a senha nao foi alterada.",
                   file=sys.stderr)
-            return 2
+            return SAIDA_ADMIN_EXISTE
     print(f"Usuario '{ADMIN}' criado.")
     print(f"Senha inicial: {senha}")
     print("Anote agora: ela nao sera exibida de novo.")
@@ -203,17 +252,37 @@ def main(argv: list[str] | None = None) -> int:
                         help="pasta de dados (padrao: C:\\ProgramData\\SegurancaIntegral)")
     parser.add_argument("--criar-admin", action="store_true",
                         help=f"cria o usuario '{ADMIN}' e mostra a senha inicial uma vez")
-    args = parser.parse_args(argv)
+    args = parser.parse_args(argv)  # erro de uso: o argparse sai com 2
 
-    config = load_config(args.data_dir)
-    init_db(config)
+    try:
+        config = load_config(args.data_dir)
+        init_db(config)
+    except (OSError, sqlite3.Error, ValueError) as erro:
+        print(f"Nao foi possivel usar a pasta de dados: {_sem_endereco(str(erro))}",
+              file=sys.stderr)
+        return SAIDA_ERRO_INICIO
     if args.criar_admin:
         return _criar_admin(config)
 
-    # não faz nada se o logging já foi configurado por quem chamou
+    # não faz nada se o logging já foi configurado por quem chamou; o
+    # handler criado aqui guarda o stderr original, antes da troca abaixo
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s %(levelname)s %(name)s: %(message)s")
-    servir(config)
+    # o gevent ainda usa traceback.print_exc() direto no sys.stderr
+    # (pywsgi, _handle_client_error); passa pelo mesmo filtro de endereços
+    stderr_original = sys.stderr
+    filtro_stderr = _LogSemEndereco(log)
+    sys.stderr = filtro_stderr
+    try:
+        servir(config)
+    except OSError as erro:
+        # porta ocupada ou sem permissão: mensagem curta, sem traceback
+        print(f"Nao foi possivel iniciar o servidor: {_sem_endereco(str(erro))}",
+              file=stderr_original)
+        return SAIDA_ERRO_INICIO
+    finally:
+        filtro_stderr.flush()
+        sys.stderr = stderr_original
     return 0
 
 

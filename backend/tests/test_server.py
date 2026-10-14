@@ -40,7 +40,8 @@ def test_criar_admin_imprime_senha_uma_vez_e_nao_sobrescreve(tmp_path, capsys):
     hash_antes = _hash_admin(tmp_path)
     assert check_password_hash(hash_antes, senha)
 
-    assert server.main(["--data-dir", str(tmp_path), "--criar-admin"]) == 2
+    # 3, e não 2: 2 é o código do argparse para erro de uso
+    assert server.main(["--data-dir", str(tmp_path), "--criar-admin"]) == 3
     saida2 = capsys.readouterr()
     assert senha not in saida2.out + saida2.err
     assert "Senha inicial:" not in saida2.out + saida2.err
@@ -138,14 +139,17 @@ def test_falha_no_backup_nao_derruba_o_servidor(tmp_path, monkeypatch, caplog):
             daemon=True,
         )
         t.start()
-        aluno, _ = portas.get(timeout=15)
-        limite = time.monotonic() + 15
-        while "backup" not in caplog.text.lower():
-            assert time.monotonic() < limite
-            time.sleep(0.1)
-        assert _pedir(aluno, "GET", "/api/saude")[0] == 200
-        parar.set()
-        t.join(15)
+        try:
+            aluno, _ = portas.get(timeout=15)
+            limite = time.monotonic() + 15
+            while "backup" not in caplog.text.lower():
+                assert time.monotonic() < limite
+                time.sleep(0.1)
+            assert _pedir(aluno, "GET", "/api/saude")[0] == 200
+        finally:
+            # mesmo com asserção falhando, a thread do servidor encerra
+            parar.set()
+            t.join(15)
     assert not t.is_alive()
     assert "disco cheio" in caplog.text
 
@@ -181,19 +185,130 @@ def test_requisicao_malformada_nao_registra_ip(servidor, caplog, capfd):
     assert "Invalid" in texto or "invalid" in texto
 
 
-@pytest.mark.parametrize("bruto", [
-    "(from ('10.1.2.3', 5555)) Invalid HTTP method",
-    "<socket laddr=('127.0.0.1', 3000), raddr=('192.168.0.7', 51234)>: erro",
-    "Invalid request (from ('::1', 5555, 0, 0)): x",
-    "cliente [2001:db8::8a2e:370:7334]:443 e fe80::1%eth0",
-    "ipv4 mapeado ::ffff:10.0.0.9",
+def _filtrar(bruto: str) -> str:
+    """Passa `bruto` pelo filtro e devolve só as mensagens emitidas."""
+    registros = []
+
+    class Coletor(logging.Handler):
+        def emit(self, registro):
+            registros.append(registro.getMessage())
+
+    logger = logging.getLogger("teste.filtro")
+    logger.propagate = False
+    coletor = Coletor()
+    logger.addHandler(coletor)
+    try:
+        f = server._LogSemEndereco(logger)
+        f.write(bruto)
+        f.flush()
+    finally:
+        logger.removeHandler(coletor)
+    return "\n".join(registros)
+
+
+def _componentes(endereco: str) -> list[str]:
+    import re
+    return [p for p in re.split(r"[.:\[\]%]", endereco) if p]
+
+
+def _sem_componentes(saida: str, endereco: str) -> None:
+    import re
+    for parte in _componentes(endereco):
+        # parte isolada (nem colada em outro dígito hex): octeto ou hexteto
+        padrao = rf"(?<![0-9A-Fa-f]){re.escape(parte)}(?![0-9A-Fa-f])"
+        assert not re.search(padrao, saida), (parte, saida)
+
+
+@pytest.mark.parametrize("endereco,bruto", [
+    ("203.0.113.45", "conexao de 203.0.113.45 recusada"),
+    ("203.0.113.45", "(from ('203.0.113.45', 5555)) Invalid HTTP method"),
+    ("203.0.113.45", "cliente 203.0.113.45:5555 caiu"),
+    ("192.168.0.7",
+     "<socket laddr=('127.0.0.1', 3000), raddr=('192.168.0.7', 5555)>: erro"),
+    ("::1", "cliente [::1]:5555 caiu"),
+    ("::1", "Invalid request (from ('::1', 5555, 0, 0)): x"),
+    ("::ffff:203.0.113.45", "mapeado ::ffff:203.0.113.45 porta 5555"),
+    ("64:ff9b::203.0.113.5", "prefixo nat 64:ff9b::203.0.113.5 porta 5555"),
+    ("203.0.113.45", "addr_203.0.113.45 x"),
+    ("2001:db8::1", "cliente 2001:db8::1 caiu"),
+    ("[2001:db8::8a2e:370:7334]", "cliente [2001:db8::8a2e:370:7334]:443"),
+    ("fe80::7%eth9", "zona fe80::7%eth9 x"),
+    ("198.51.100.23", '  File "x.py", line 5, in f: OSError((\'198.51.100.23\', 5555))'),
 ])
-def test_filtro_remove_enderecos(bruto, caplog):
-    with caplog.at_level(logging.DEBUG):
-        log = server._LogSemEndereco(logging.getLogger("seguranca.servidor"))
-        log.write(bruto + "\n")
-        log.flush()
-    for ip in ("10.1.2.3", "127.0.0.1", "192.168.0.7", "::1", "2001:db8",
-               "fe80::1", "10.0.0.9", "ffff"):
-        assert ip not in caplog.text
-    assert caplog.text.strip()
+def test_filtro_nao_deixa_sobrar_parte_do_endereco(endereco, bruto):
+    saida = _filtrar(bruto + "\n")
+    assert saida.strip()  # a linha não some sem rastro
+    _sem_componentes(saida, endereco)
+
+
+def test_traceback_com_endereco_no_meio():
+    bruto = (
+        "Traceback (most recent call last):\n"
+        '  File "C:\\Python.3.13_3.13.3824.5\\Lib\\socket.py", line 12, in f\n'
+        "    raise OSError(('203.0.113.45', 5555))\n"
+        "OSError: ('::ffff:198.51.100.7', 5555)\n"
+    )
+    saida = _filtrar(bruto)
+    for endereco in ("203.0.113.45", "::ffff:198.51.100.7"):
+        _sem_componentes(saida, endereco)
+    # versão em caminho de arquivo não é confundida com endereço
+    assert "Python.3.13_3.13.3824.5" in saida
+
+
+def test_residuo_descarta_a_linha_inteira(monkeypatch):
+    # se a troca falhar, a rede de segurança descarta a linha
+    monkeypatch.setattr(server, "_IPV4", __import__("re").compile(r"(?!x)x"))
+    monkeypatch.setattr(server, "_IPV6", __import__("re").compile(r"(?!x)x"))
+    saida = _filtrar("cliente 203.0.113.45 e 2001:db8::1\n")
+    assert saida == server.LINHA_DESCARTADA
+
+
+def test_stderr_passa_pelo_filtro_durante_servir(tmp_path, monkeypatch, capfd, caplog):
+    import sys
+
+    original = sys.stderr
+
+    def falso_servir(config, parar=None, **k):
+        # como o traceback.print_exc() do gevent em pywsgi
+        print("Traceback: OSError(('203.0.113.45', 5555))", file=sys.stderr)
+        sys.stderr.flush()
+
+    monkeypatch.setattr(server, "servir", falso_servir)
+    with caplog.at_level(logging.INFO):
+        assert server.main(["--data-dir", str(tmp_path)]) == 0
+    assert sys.stderr is original
+    capturado = capfd.readouterr()
+    texto = caplog.text + capturado.out + capturado.err
+    _sem_componentes(texto, "203.0.113.45")
+    assert "Traceback: OSError" in caplog.text
+
+
+def test_pasta_de_dados_invalida_sai_4(tmp_path, capsys):
+    arquivo = tmp_path / "nao-e-pasta"
+    arquivo.write_text("x", encoding="utf-8")
+    assert server.main(["--data-dir", str(arquivo)]) == 4
+    erro = capsys.readouterr().err
+    assert "pasta de dados" in erro
+    assert "Traceback" not in erro
+
+
+def test_porta_ocupada_sai_4(tmp_path, monkeypatch, capsys):
+    import dataclasses
+
+    ocupante = socket.socket()
+    ocupante.bind(("127.0.0.1", 0))
+    ocupante.listen()
+    porta = ocupante.getsockname()[1]
+    carregar = server.load_config
+    monkeypatch.setattr(
+        server, "load_config",
+        lambda d=None: dataclasses.replace(carregar(d), student_port=porta, coord_port=0),
+    )
+    try:
+        assert server.main(["--data-dir", str(tmp_path)]) == 4
+    finally:
+        ocupante.close()
+    erro = capsys.readouterr().err
+    assert "iniciar o servidor" in erro
+    assert "Traceback" not in erro
+    _sem_componentes(erro, "127.0.0.1")
