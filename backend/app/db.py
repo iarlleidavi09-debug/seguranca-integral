@@ -1,7 +1,9 @@
 """Acesso ao SQLite e schema. Datas em ISO 8601 UTC. Nenhuma coluna guarda IP."""
 from __future__ import annotations
 
+import os
 import sqlite3
+from pathlib import Path
 
 from .config import Config
 
@@ -17,13 +19,17 @@ CREATE TABLE IF NOT EXISTS casos (
     anonimo INTEGER NOT NULL DEFAULT 1,
     nome TEXT,
     turma TEXT,
-    gravidade TEXT NOT NULL,
+    prioridade TEXT NOT NULL,
     pontos INTEGER NOT NULL DEFAULT 0,
     motivos_json TEXT NOT NULL DEFAULT '[]',
     status TEXT NOT NULL DEFAULT 'novo',
     simulacao INTEGER NOT NULL DEFAULT 0,
     criado_em TEXT NOT NULL,
-    atualizado_em TEXT NOT NULL
+    atualizado_em TEXT NOT NULL,
+    prioridade_original TEXT NOT NULL DEFAULT '',
+    ultimo_acesso_por INTEGER REFERENCES usuarios(id),
+    ultimo_acesso_em TEXT,
+    recorrencia_pendente INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS anexos (
@@ -49,7 +55,8 @@ CREATE TABLE IF NOT EXISTS mensagens (
     caso_id INTEGER NOT NULL REFERENCES casos(id) ON DELETE CASCADE,
     autor TEXT NOT NULL CHECK (autor IN ('aluno', 'coordenacao')),
     texto TEXT NOT NULL,
-    criado_em TEXT NOT NULL
+    criado_em TEXT NOT NULL,
+    usuario_id INTEGER REFERENCES usuarios(id)
 );
 
 CREATE TABLE IF NOT EXISTS notas_internas (
@@ -69,11 +76,50 @@ CREATE TABLE IF NOT EXISTS eventos (
     criado_em TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS resolucoes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    caso_id INTEGER NOT NULL REFERENCES casos(id) ON DELETE CASCADE,
+    desfecho TEXT NOT NULL,
+    providencias TEXT NOT NULL,
+    resultado TEXT,
+    usuario_id INTEGER REFERENCES usuarios(id),
+    criado_em TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS situacoes_aluno (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    caso_id INTEGER NOT NULL REFERENCES casos(id) ON DELETE CASCADE,
+    situacao TEXT NOT NULL,
+    criado_em TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS revisoes_recorrencia (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    caso_id INTEGER NOT NULL REFERENCES casos(id) ON DELETE CASCADE,
+    usuario_id INTEGER REFERENCES usuarios(id),
+    criado_em TEXT NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_anexos_caso ON anexos(caso_id);
 CREATE INDEX IF NOT EXISTS idx_mensagens_caso ON mensagens(caso_id);
 CREATE INDEX IF NOT EXISTS idx_notas_caso ON notas_internas(caso_id);
 CREATE INDEX IF NOT EXISTS idx_eventos_caso ON eventos(caso_id);
+CREATE INDEX IF NOT EXISTS idx_resolucoes_caso ON resolucoes(caso_id);
+CREATE INDEX IF NOT EXISTS idx_situacoes_caso ON situacoes_aluno(caso_id);
+CREATE INDEX IF NOT EXISTS idx_revisoes_caso ON revisoes_recorrencia(caso_id);
 """
+
+# Cópia do banco feita antes da migração v2, ao lado do `.db`.
+SUFIXO_BACKUP_V2 = ".pre-v2.bak"
+
+# Mapa fixo dos status da v1 para os três da v2.
+MAPA_STATUS_V2 = {
+    "novo": "novo",
+    "em_analise": "em_investigacao",
+    "aguardando_aluno": "em_investigacao",
+    "encaminhado": "em_investigacao",
+    "resolvido": "resolvido",
+}
 
 
 def connect(config: Config) -> sqlite3.Connection:
@@ -88,14 +134,106 @@ def connect(config: Config) -> sqlite3.Connection:
 
 
 def init_db(config: Config) -> None:
-    """Cria as tabelas se ainda não existirem (idempotente)."""
+    """Cria as tabelas se ainda não existirem e migra bancos antigos (idempotente)."""
     conn = connect(config)
     try:
+        # o backup vem antes de qualquer escrita, inclusive do SCHEMA
+        _backup_pre_v2(conn, config)
         conn.executescript(SCHEMA)
         _migrar_papel(conn)
         conn.commit()
+        _migrar_v2(conn, config)
     finally:
         conn.close()
+
+
+def caminho_backup_v2(config: Config) -> Path:
+    """Arquivo da cópia feita antes da migração v2."""
+    return Path(str(config.db_path) + SUFIXO_BACKUP_V2)
+
+
+def _colunas(conn: sqlite3.Connection, tabela: str) -> set[str]:
+    return {r[1] for r in conn.execute(f"PRAGMA table_info({tabela})")}
+
+
+def _precisa_v2(conn: sqlite3.Connection) -> bool:
+    return "gravidade" in _colunas(conn, "casos")
+
+
+def _backup_pre_v2(conn: sqlite3.Connection, config: Config) -> None:
+    """Copia o banco da v1 com casos antes de migrar; erro na cópia aborta tudo.
+
+    Grava num temporário e renomeia, para uma cópia interrompida nunca
+    ocupar o lugar de um backup bom.
+    """
+    if not _precisa_v2(conn):
+        return
+    if conn.execute("SELECT 1 FROM casos LIMIT 1").fetchone() is None:
+        return
+    destino = caminho_backup_v2(config)
+    temporario = destino.with_name(destino.name + ".tmp")
+    temporario.unlink(missing_ok=True)
+    copia = sqlite3.connect(temporario)
+    try:
+        conn.backup(copia)
+    finally:
+        copia.close()
+    os.replace(temporario, destino)
+
+
+def _migrar_v2(conn: sqlite3.Connection, config: Config) -> None:
+    """Leva o esquema da v1 à v2 A numa única transação.
+
+    `gravidade` vira `prioridade` (copiada também em `prioridade_original`),
+    os status passam pelo mapa fixo e os eventos antigos trocam o nome do
+    campo. Só roda enquanto `casos.gravidade` existir.
+    """
+    v2 = _precisa_v2(conn)
+    falta_autor = "usuario_id" not in _colunas(conn, "mensagens")
+    if not v2 and not falta_autor:
+        return
+    if v2 and conn.execute("SELECT 1 FROM casos LIMIT 1").fetchone() is not None:
+        if not caminho_backup_v2(config).is_file():
+            raise RuntimeError("backup pre-v2 ausente; migracao abortada")
+    if conn.in_transaction:
+        conn.commit()
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        if v2:
+            conn.execute("ALTER TABLE casos RENAME COLUMN gravidade TO prioridade")
+            conn.execute(
+                "ALTER TABLE casos ADD COLUMN prioridade_original TEXT NOT NULL DEFAULT ''"
+            )
+            conn.execute(
+                "ALTER TABLE casos ADD COLUMN ultimo_acesso_por INTEGER REFERENCES usuarios(id)"
+            )
+            conn.execute("ALTER TABLE casos ADD COLUMN ultimo_acesso_em TEXT")
+            conn.execute(
+                "ALTER TABLE casos ADD COLUMN recorrencia_pendente INTEGER NOT NULL DEFAULT 0"
+            )
+            conn.execute("UPDATE casos SET prioridade_original = prioridade")
+            for antigo, novo in MAPA_STATUS_V2.items():
+                if antigo != novo:
+                    conn.execute("UPDATE casos SET status = ? WHERE status = ?", (novo, antigo))
+            # só o prefixo muda: 'gravidade:' e 'gravidade ' têm 10 caracteres
+            conn.execute(
+                "UPDATE eventos SET tipo = 'prioridade', "
+                "detalhe = CASE WHEN detalhe LIKE 'gravidade:%' "
+                "THEN 'prioridade:' || substr(detalhe, 11) ELSE detalhe END "
+                "WHERE tipo = 'gravidade'"
+            )
+            conn.execute(
+                "UPDATE eventos SET detalhe = 'prioridade ' || substr(detalhe, 11) "
+                "WHERE tipo = 'criado' AND detalhe LIKE 'gravidade %'"
+            )
+        if falta_autor:
+            conn.execute(
+                "ALTER TABLE mensagens ADD COLUMN usuario_id INTEGER REFERENCES usuarios(id)"
+            )
+        conn.commit()
+    except BaseException:
+        conn.rollback()
+        raise
 
 
 def _migrar_papel(conn: sqlite3.Connection) -> None:
