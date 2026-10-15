@@ -282,7 +282,7 @@ def test_novas_tabelas_existem_em_banco_novo(config):
         assert _colunas(c, "resolucoes") == {
             "id", "caso_id", "desfecho", "providencias", "resultado", "usuario_id", "criado_em",
         }
-        assert _colunas(c, "situacoes_aluno") == {"id", "caso_id", "situacao", "criado_em"}
+        assert _colunas(c, "situacoes_aluno") == {"id", "caso_id", "situacao", "criado_em", "resolucao_id"}
         assert _colunas(c, "revisoes_recorrencia") == {"id", "caso_id", "usuario_id", "criado_em"}
         for t in ("resolucoes", "situacoes_aluno", "revisoes_recorrencia"):
             fks = [tuple(r) for r in c.execute(f"PRAGMA foreign_key_list({t})")]
@@ -333,5 +333,34 @@ def test_migracao_v2_cria_tabelas_novas_em_banco_v1(config):
         assert "usuario_id" in _colunas(c, "mensagens")
         assert c.execute("PRAGMA foreign_key_check").fetchall() == []
         assert c.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+    finally:
+        c.close()
+
+
+def test_migracao_v2_falha_ao_renomear_nao_deixa_tmp(config, monkeypatch):
+    _banco_v1(config, CASOS_V1)
+    import app.db as modulo
+
+    def falha(*args, **kwargs):
+        raise OSError("falha forcada")
+
+    monkeypatch.setattr(modulo.os, "replace", falha)
+    with pytest.raises(OSError):
+        init_db(config)
+    tmp = _backup_v2(config).with_name(_backup_v2(config).name + ".tmp")
+    assert not tmp.exists()
+
+
+def test_situacoes_aluno_ganha_resolucao_id_em_banco_existente(config):
+    init_db(config)
+    c = sqlite3.connect(config.db_path)
+    c.execute("ALTER TABLE situacoes_aluno DROP COLUMN resolucao_id")
+    c.commit()
+    c.close()
+    init_db(config)
+    init_db(config)
+    c = connect(config)
+    try:
+        assert "resolucao_id" in _colunas(c, "situacoes_aluno")
     finally:
         c.close()

@@ -667,3 +667,60 @@ def test_acompanhar_nao_vaza_dados_internos(student_client, config):
     assert d["mensagens"] and d["mensagens"][0]["autor"] == "coordenacao"
     assert not CHAVES_PROIBIDAS & set(_chaves(d))
     assert "secreta" not in r.get_data(as_text=True)
+
+
+def _reabrir(config, caso_id):
+    c = connect(config)
+    c.execute("UPDATE casos SET status = 'em_investigacao' WHERE id = ?", (caso_id,))
+    c.commit()
+    c.close()
+
+
+def test_reabrir_e_resolver_de_novo_zera_ultima_situacao(student_client, config):
+    codigo, caso_id = _caso_do_aluno(student_client, config)
+    _usuario_coord(config)
+    _resolver(config, caso_id, "solucionada", "Primeira")
+    _situacao(student_client, codigo, "voltou")
+    _reabrir(config, caso_id)
+    d = student_client.post("/api/acompanhar", json={"codigo": codigo}).get_json()
+    assert d["resolucao"] is None and d["pos_resolucao"] is False
+    assert d["ultima_situacao"] is None
+    _resolver(config, caso_id, "intervencao_realizada", "Segunda")
+    d = student_client.post("/api/acompanhar", json={"codigo": codigo}).get_json()
+    assert d["pos_resolucao"] is True
+    assert d["resolucao"]["providencias"] == "Segunda"
+    assert d["ultima_situacao"] is None
+    _situacao(student_client, codigo, "melhorou")
+    d = student_client.post("/api/acompanhar", json={"codigo": codigo}).get_json()
+    assert d["ultima_situacao"] == "melhorou"
+
+
+def test_resumo_aluno_funcao(student_client, config):
+    from app import casos
+    codigo, caso_id = _caso_do_aluno(student_client, config)
+    c = connect(config)
+    try:
+        assert casos.resumo_aluno(c, caso_id) == {
+            "resolucao": None, "pos_resolucao": False, "ultima_situacao": None}
+    finally:
+        c.close()
+
+
+def test_acompanhar_nao_vaza_textos_nem_nomes_internos(student_client, config):
+    from app import casos
+    from app.auth import criar_usuario
+    codigo, caso_id = _caso_do_aluno(student_client, config)
+    c = connect(config)
+    try:
+        uid = criar_usuario(c, "Fulana Revisora", "senha-forte-123", "admin")
+        casos.adicionar_nota(c, caso_id, uid, "NOTA-SECRETA-456")
+        casos.mudar_prioridade(c, caso_id, "baixa", "JUSTIF-SECRETA-123", uid)
+        casos.adicionar_mensagem(c, caso_id, "coordenacao", "Estamos vendo",
+                                 usuario_id=uid)
+        casos.registrar_resolucao(c, caso_id, "solucionada", "Conversa", "ok", uid)
+    finally:
+        c.close()
+    _situacao(student_client, codigo, "voltou")
+    texto = student_client.post("/api/acompanhar", json={"codigo": codigo}).get_data(as_text=True)
+    for proibido in ("Fulana", "Revisora", "JUSTIF-SECRETA-123", "NOTA-SECRETA-456"):
+        assert proibido not in texto

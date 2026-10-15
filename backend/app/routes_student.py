@@ -130,27 +130,14 @@ def acompanhar():
         if caso is None:
             return jsonify(ERRO_CODIGO[0]), ERRO_CODIGO[1]
         msgs = casos.listar_mensagens(conn, caso["id"])
-        # campos nomeados: nada interno (autor da resolução, prioridade) sai daqui
-        res = conn.execute(
-            "SELECT desfecho, providencias, resultado, criado_em FROM resolucoes "
-            "WHERE caso_id = ? ORDER BY id DESC LIMIT 1", (caso["id"],)
-        ).fetchone()
-        sit = conn.execute(
-            "SELECT situacao FROM situacoes_aluno WHERE caso_id = ? "
-            "ORDER BY id DESC LIMIT 1", (caso["id"],)
-        ).fetchone()
+        pos = casos.resumo_aluno(conn, caso["id"])
         return jsonify({
             "status": caso["status"],
             "mensagens": [
                 {"autor": m["autor"], "texto": m["texto"], "criado_em": m["criado_em"]}
                 for m in msgs
             ],
-            "resolucao": None if res is None else {
-                "desfecho": res["desfecho"], "providencias": res["providencias"],
-                "resultado": res["resultado"], "criado_em": res["criado_em"],
-            },
-            "pos_resolucao": caso["status"] == "resolvido",
-            "ultima_situacao": None if sit is None else sit["situacao"],
+            **pos,
         })
 
 

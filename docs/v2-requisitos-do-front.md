@@ -69,7 +69,7 @@ Valores fixos: status `novo`, `em_investigacao`, `resolvido`; prioridade `critic
 | POST `/api/casos/<id>/mensagens` | `{"texto": "1 a 2000"}` | 201 `{"ok": true}` | 400; 404 |
 | POST `/api/casos/<id>/notas` | `{"texto": "1 a 2000"}` | 201 `{"ok": true}` | 400; 404 |
 
-Item da fila (`GET /api/casos`), ordenada por prioridade (critica, alta, media, baixa) e depois do mais antigo para o mais novo: `id`, `tipo`, `prioridade`, `pontos`, `status`, `em_andamento`, `anonimo`, `simulacao`, `criado_em`, `atualizado_em`, `recorrencia_pendente` (bool), `resumo` (primeiros 120 caracteres do relato), `ultimo_acesso_por` (nome ou `null`) e `ultimo_acesso_em` (ISO ou `null`; `null` significa "Ainda não acessado").
+Item da fila (`GET /api/casos`), ordenada por prioridade (critica, alta, media, baixa) e depois do mais antigo para o mais novo: `id`, `tipo`, `prioridade`, `pontos`, `status`, `em_andamento`, `anonimo`, `simulacao`, `criado_em`, `atualizado_em`, `recorrencia_pendente` (bool), `motivos` (lista de textos, como no detalhe), `resumo` (primeiros 120 caracteres do relato), `ultimo_acesso_por` (nome ou `null`) e `ultimo_acesso_em` (ISO ou `null`; `null` significa "Ainda não acessado").
 
 Busca `q`: sem diferenciar maiúsculas nem acentos, no texto do relato; se `q` tiver só dígitos, casa também o número do caso. Os filtros se combinam (E).
 
@@ -101,7 +101,7 @@ Eventos (`tipo` e formato do `detalhe`):
 
 Mudar para o mesmo valor (status ou prioridade) não grava evento. Bancos migrados da v1 têm os eventos antigos reescritos: `gravidade` virou `prioridade` (tipo e prefixo do detalhe).
 
-Recorrência: `voltou` liga `recorrencia_pendente`; `melhorou` só entra no histórico e nunca desliga a pendência; só `revisao-recorrencia` desliga. O caso continua `resolvido`. Reabrir um caso resolvido é `POST status` com `novo` ou `em_investigacao`.
+Recorrência: `voltou` liga `recorrencia_pendente`; `melhorou` só entra no histórico e nunca desliga a pendência; só `revisao-recorrencia` desliga. O caso continua `resolvido`. Reabrir um caso resolvido é `POST status` com `novo` ou `em_investigacao`. `recorrencia_pendente` sobrevive à reabertura e `revisao-recorrencia` funciona também com o caso reaberto.
 
 Alertas críticos (`triage.py`): elevam a prioridade a `critica` depois da soma, sem mudar `pontos`, e entram em `motivos`:
 
@@ -121,7 +121,7 @@ Sem alerta, a prioridade vem dos pontos: 6 ou mais `alta`, 3 ou mais `media`, se
 | POST `/api/acompanhar/situacao` | `{"codigo": ..., "situacao": "melhorou" ou "voltou"}` | 201 `{"ok": true}` | 400 `situacao invalida`; 409 `caso ainda nao resolvido`; 404; 429 |
 | POST `/api/acompanhar/mensagens` | `{"codigo": ..., "texto": "1 a 2000"}` | 201 `{"ok": true}` | 400; 404; 429 |
 
-Resposta de `/api/acompanhar`: `status` (um dos três), `mensagens` `[{autor, texto, criado_em}]` (sem autoria individual da equipe), `resolucao` (`null` ou a mais recente: `{desfecho, providencias, resultado, criado_em}`), `pos_resolucao` (bool, verdadeiro quando `status` é `resolvido`) e `ultima_situacao` (`null`, `melhorou` ou `voltou`). Prioridade, notas, autor da resolução e motivos nunca saem para o aluno.
+Resposta de `/api/acompanhar`: `status` (um dos três), `mensagens` `[{autor, texto, criado_em}]` (sem autoria individual da equipe), `resolucao` (`null` quando `status` não é `resolvido`; senão a mais recente: `{desfecho, providencias, resultado, criado_em}`), `pos_resolucao` (bool, verdadeiro quando `status` é `resolvido`) e `ultima_situacao` (`null`, `melhorou` ou `voltou`; só vale para o ciclo atual: depois de reabrir e resolver de novo volta a `null` até o aluno responder). `providencias` e `resultado` são visíveis ao aluno: a interface deve rotulá-los assim. Prioridade, notas, autor da resolução e motivos nunca saem para o aluno.
 
 ### Rulings
 

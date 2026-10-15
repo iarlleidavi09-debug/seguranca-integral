@@ -1197,3 +1197,38 @@ def test_fila_e_resumo_mostram_pendencia_da_recorrencia(coord_logado, config):
     assert coord_logado.get("/api/casos").get_json()["casos"][0]["recorrencia_pendente"] is True
     coord_logado.post(f"/api/casos/{caso_id}/revisao-recorrencia", json={})
     assert coord_logado.get("/api/resumo").get_json()["recorrencia_pendente"] == 0
+
+
+# --- correção final: motivos na fila e acesso resiliente --------------------
+
+def test_fila_traz_motivos_do_alerta_critico(coord_logado, config):
+    c = connect(config)
+    try:
+        criar_caso(c, config, {"tipo": "ameaca", "relato": "ele disse vou te bater",
+                               "em_andamento": True, "anonimo": True}, [])
+    finally:
+        c.close()
+    item = coord_logado.get("/api/casos").get_json()["casos"][0]
+    assert item["prioridade"] == "critica"
+    assert any(m.startswith("alerta:") for m in item["motivos"])
+    assert "motivos_json" not in item
+
+
+def test_fila_motivos_sempre_lista(coord_logado, config):
+    _caso(config)
+    item = coord_logado.get("/api/casos").get_json()["casos"][0]
+    assert isinstance(item["motivos"], list)
+
+
+def test_detalhe_nao_da_500_se_registrar_acesso_falhar(coord_logado, config, monkeypatch):
+    from app import casos as modulo
+    caso_id, _ = _caso(config)
+
+    def falha(*args, **kwargs):
+        raise sqlite3.OperationalError("database is locked")
+
+    monkeypatch.setattr(modulo, "registrar_acesso", falha)
+    r = coord_logado.get(f"/api/casos/{caso_id}")
+    assert r.status_code == 200
+    assert r.get_json()["ultimo_acesso"] is None
+    assert r.get_json()["id"] == caso_id

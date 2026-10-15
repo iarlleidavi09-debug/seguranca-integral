@@ -90,7 +90,8 @@ CREATE TABLE IF NOT EXISTS situacoes_aluno (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     caso_id INTEGER NOT NULL REFERENCES casos(id) ON DELETE CASCADE,
     situacao TEXT NOT NULL,
-    criado_em TEXT NOT NULL
+    criado_em TEXT NOT NULL,
+    resolucao_id INTEGER REFERENCES resolucoes(id)
 );
 
 CREATE TABLE IF NOT EXISTS revisoes_recorrencia (
@@ -141,6 +142,7 @@ def init_db(config: Config) -> None:
         _backup_pre_v2(conn, config)
         conn.executescript(SCHEMA)
         _migrar_papel(conn)
+        _migrar_situacao_resolucao(conn)
         conn.commit()
         _migrar_v2(conn, config)
     finally:
@@ -175,10 +177,14 @@ def _backup_pre_v2(conn: sqlite3.Connection, config: Config) -> None:
     temporario.unlink(missing_ok=True)
     copia = sqlite3.connect(temporario)
     try:
-        conn.backup(copia)
-    finally:
-        copia.close()
-    os.replace(temporario, destino)
+        try:
+            conn.backup(copia)
+        finally:
+            copia.close()
+        os.replace(temporario, destino)
+    except BaseException:
+        temporario.unlink(missing_ok=True)
+        raise
 
 
 def _migrar_v2(conn: sqlite3.Connection, config: Config) -> None:
@@ -234,6 +240,15 @@ def _migrar_v2(conn: sqlite3.Connection, config: Config) -> None:
     except BaseException:
         conn.rollback()
         raise
+
+
+def _migrar_situacao_resolucao(conn: sqlite3.Connection) -> None:
+    """Bancos da v2 A anteriores não têm `situacoes_aluno.resolucao_id`."""
+    if "resolucao_id" not in _colunas(conn, "situacoes_aluno"):
+        conn.execute(
+            "ALTER TABLE situacoes_aluno ADD COLUMN resolucao_id "
+            "INTEGER REFERENCES resolucoes(id)"
+        )
 
 
 def _migrar_papel(conn: sqlite3.Connection) -> None:

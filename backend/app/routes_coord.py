@@ -7,6 +7,7 @@ quem está logado (formulário HTML não consegue mandar esse tipo).
 """
 from __future__ import annotations
 
+import sqlite3
 import time
 from datetime import datetime, timedelta, timezone
 
@@ -241,7 +242,11 @@ def detalhe(caso_id: int):
     caso = casos.detalhe_caso(conn, caso_id)
     if caso is None:
         return _nao_encontrado()
-    caso["ultimo_acesso"] = casos.registrar_acesso(conn, caso_id, g.usuario["id"])
+    try:
+        caso["ultimo_acesso"] = casos.registrar_acesso(conn, caso_id, g.usuario["id"])
+    except sqlite3.OperationalError:
+        # banco ocupado: o detalhe sai mesmo assim, sem o último acesso
+        caso["ultimo_acesso"] = None
     return jsonify(caso)
 
 

@@ -195,7 +195,7 @@ def listar_fila(conn: sqlite3.Connection, status: str | None = None,
     linhas = conn.execute(
         "SELECT c.id, c.tipo, c.prioridade, c.pontos, c.status, c.em_andamento, "
         "c.anonimo, c.simulacao, c.relato, c.criado_em, c.atualizado_em, "
-        "c.recorrencia_pendente, u.nome AS ultimo_acesso_por, c.ultimo_acesso_em "
+        "c.recorrencia_pendente, c.motivos_json, u.nome AS ultimo_acesso_por, c.ultimo_acesso_em "
         "FROM casos c LEFT JOIN usuarios u ON u.id = c.ultimo_acesso_por "
         f"{onde}ORDER BY {_ORDEM_FILA}",
         params,
@@ -203,7 +203,7 @@ def listar_fila(conn: sqlite3.Connection, status: str | None = None,
     fila = []
     for linha in linhas:
         d = _bools(dict(linha))
-        d["recorrencia_pendente"] = bool(d["recorrencia_pendente"])
+        d["motivos"] = json.loads(d.pop("motivos_json") or "[]")
         d["resumo"] = d.pop("relato")[:RESUMO_MAX]
         fila.append(d)
     return fila
@@ -423,6 +423,38 @@ def registrar_resolucao(conn: sqlite3.Connection, caso_id: int, desfecho: str,
         raise
 
 
+def resumo_aluno(conn: sqlite3.Connection, caso_id: int) -> dict:
+    """Parte pós-resolução da resposta do aluno, só com campos permitidos.
+
+    `resolucao` e `ultima_situacao` só existem com o caso `resolvido`; a
+    situação conta só se foi dada sobre a resolução mais recente (por id).
+    """
+    linha = conn.execute(
+        "SELECT status FROM casos WHERE id = ?", (caso_id,)
+    ).fetchone()
+    vazio = {"resolucao": None, "pos_resolucao": False, "ultima_situacao": None}
+    if linha is None or linha[0] != "resolvido":
+        return vazio
+    res = conn.execute(
+        "SELECT id, desfecho, providencias, resultado, criado_em FROM resolucoes "
+        "WHERE caso_id = ? ORDER BY id DESC LIMIT 1", (caso_id,)
+    ).fetchone()
+    if res is None:
+        return {**vazio, "pos_resolucao": True}
+    sit = conn.execute(
+        "SELECT situacao FROM situacoes_aluno WHERE caso_id = ? "
+        "AND resolucao_id = ? ORDER BY id DESC LIMIT 1", (caso_id, res["id"])
+    ).fetchone()
+    return {
+        "resolucao": {
+            "desfecho": res["desfecho"], "providencias": res["providencias"],
+            "resultado": res["resultado"], "criado_em": res["criado_em"],
+        },
+        "pos_resolucao": True,
+        "ultima_situacao": None if sit is None else sit["situacao"],
+    }
+
+
 def registrar_situacao(conn: sqlite3.Connection, caso_id: int,
                        situacao: str) -> str:
     """Grava a situação informada pelo aluno depois da resolução.
@@ -442,8 +474,9 @@ def registrar_situacao(conn: sqlite3.Connection, caso_id: int,
             return "nao_resolvido"
         agora = _agora()
         conn.execute(
-            "INSERT INTO situacoes_aluno (caso_id, situacao, criado_em) "
-            "VALUES (?,?,?)", (caso_id, situacao, agora),
+            "INSERT INTO situacoes_aluno (caso_id, situacao, criado_em, "
+            "resolucao_id) VALUES (?,?,?,(SELECT MAX(id) FROM resolucoes "
+            "WHERE caso_id = ?))", (caso_id, situacao, agora, caso_id),
         )
         if situacao == "voltou":
             conn.execute(

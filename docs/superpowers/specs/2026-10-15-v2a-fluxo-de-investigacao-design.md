@@ -50,7 +50,7 @@ As regras ficam em código testado (`triage.py`), fáceis de trocar. Isto é pro
 
 Todas exigem sessão e `Content-Type: application/json` nas escritas, como hoje.
 
-- `GET /api/casos?status=&prioridade=&tipo=&q=`: `q` busca no número e no resumo. Cada item traz último acesso e `recorrencia_pendente`. Ordem: prioridade (crítica primeiro), depois mais recente.
+- `GET /api/casos?status=&prioridade=&tipo=&q=`: `q` busca no número e no resumo. Cada item traz último acesso e `recorrencia_pendente`. Ordem: prioridade (crítica primeiro), depois mais antigo primeiro (quem espera há mais tempo aparece antes).
 - `GET /api/casos/<id>`: grava o último acesso (usuário e hora) e devolve o valor anterior para exibir. Inclui eventos, mensagens com autor, notas, resolução e histórico de situações.
 - `POST /api/casos/<id>/status` com os 3 valores.
 - `POST /api/casos/<id>/prioridade` exige `justificativa` (1 a 2000 caracteres); evento com autor, anterior, novo e motivo; `prioridade_original` intacta.
