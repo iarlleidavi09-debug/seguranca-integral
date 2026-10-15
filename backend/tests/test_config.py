@@ -241,3 +241,19 @@ def test_config_sem_sessao_key_explicita_sorteia_uma(tmp_path):
     a = Config(data_dir=tmp_path, secret_key="x")
     b = Config(data_dir=tmp_path, secret_key="x")
     assert HEX64.fullmatch(a.sessao_key) and a.sessao_key != b.sessao_key
+
+
+def test_host_padrao_e_so_loopback(tmp_path):
+    assert load_config(tmp_path).host == "127.0.0.1"
+
+
+def test_config_json_define_host_de_escuta(tmp_path):
+    _escrever(tmp_path, {"host": "0.0.0.0"})
+    assert load_config(tmp_path).host == "0.0.0.0"
+
+
+@pytest.mark.parametrize("host", ["", "escola", 5, None, "1.2.3", "999.1.1.1"])
+def test_host_invalido_levanta_valueerror(tmp_path, host):
+    _escrever(tmp_path, {"host": host})
+    with pytest.raises(ValueError):
+        load_config(tmp_path)

@@ -1,6 +1,7 @@
 """Configuração do sistema: pastas de dados, portas e chave secreta."""
 from __future__ import annotations
 
+import ipaddress
 import json
 import os
 import re
@@ -177,9 +178,18 @@ def _ler_config_json(arquivo: Path) -> dict:
     if not isinstance(hosts, list) or not all(isinstance(h, str) for h in hosts):
         raise ValueError("config.json: allowed_hosts precisa ser uma lista de textos")
 
+    host = dados.get("host", "127.0.0.1")
+    try:
+        if not isinstance(host, str):
+            raise TypeError
+        # só endereço IPv4 literal: "0.0.0.0" abre para a LAN, o padrão fica no loopback
+        ipaddress.IPv4Address(host)
+    except (ValueError, TypeError):
+        raise ValueError("config.json: host precisa ser um endereco IPv4, ex.: 0.0.0.0")
+
     aluno = _porta(dados, "student_port", 3000)
     coord = _porta(dados, "coord_port", 4000)
     if aluno == coord:
         raise ValueError("config.json: student_port e coord_port precisam ser diferentes")
-    return {"allowed_hosts": tuple(hosts), "student_port": aluno,
+    return {"host": host, "allowed_hosts": tuple(hosts), "student_port": aluno,
             "coord_port": coord, "limites": _limites(dados)}
