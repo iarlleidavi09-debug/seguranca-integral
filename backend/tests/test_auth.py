@@ -244,3 +244,19 @@ def test_concorrencia_nao_passa_de_cinco_falhas(config, conn):
     assert linha["tentativas"] == 5
     assert datetime.fromisoformat(linha["bloqueado_ate"]) == T0 + timedelta(minutes=15)
     assert autenticar(conn, "ana", SENHA, T0 + timedelta(minutes=1)) is None
+
+
+def test_conta_bloqueada_gasta_uma_verificacao_falsa(conn, monkeypatch):
+    criar_usuario(conn, "ana", SENHA)
+    _falhar(conn, "ana", 5)
+    verificados = []
+    original = auth.check_password_hash
+
+    def espia(h, s):
+        verificados.append(h)
+        return original(h, s)
+
+    monkeypatch.setattr(auth, "check_password_hash", espia)
+    assert autenticar(conn, "ana", SENHA, T0 + timedelta(minutes=1)) is None
+    # mesmo custo de usuário inexistente: uma verificação, só com o hash falso
+    assert verificados == [auth._HASH_FALSO]

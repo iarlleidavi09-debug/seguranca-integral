@@ -7,7 +7,7 @@ Regras:
 - 5 falhas seguidas bloqueiam por 15 minutos; durante o bloqueio nem a senha
   correta entra e as tentativas não contam; quando o bloqueio expira, o
   contador recomeça do zero;
-- usuário inexistente ou desativado gasta uma verificação com hash falso,
+- usuário inexistente, desativado ou bloqueado gasta uma verificação com hash falso,
   para o tempo de resposta não revelar se a conta existe;
 - datas em ISO 8601 UTC, como no resto do código.
 """
@@ -124,6 +124,9 @@ def autenticar(conn: sqlite3.Connection, nome: str, senha: str,
         check_password_hash(_HASH_FALSO, senha)
         return None
     if _bloqueado(linha, agora):
+        # mesmo custo do caminho de usuário inexistente: o tempo não revela
+        # que a conta existe e está bloqueada
+        check_password_hash(_HASH_FALSO, senha)
         return None
 
     usuario_id = linha["id"]
