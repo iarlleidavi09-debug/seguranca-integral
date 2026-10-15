@@ -72,6 +72,7 @@ ROTAS_PROTEGIDAS = [
     ("post", "/api/casos/1/prioridade"),
     ("post", "/api/casos/1/mensagens"),
     ("post", "/api/casos/1/notas"),
+    ("post", "/api/casos/1/resolucao"),
     ("get", "/api/casos/1/anexos/1"),
     ("get", "/api/usuarios"),
     ("post", "/api/usuarios"),
@@ -777,7 +778,7 @@ def test_detalhe_usa_so_colunas_conhecidas_do_caso(coord_logado, config):
         "nome", "turma", "prioridade", "prioridade_original", "pontos",
         "motivos", "status", "recorrencia_pendente", "ultimo_acesso",
         "simulacao", "criado_em", "atualizado_em",
-        "anexos", "eventos", "mensagens", "notas",
+        "anexos", "eventos", "mensagens", "notas", "resolucoes",
     }
     assert not any("hash" in chave for chave in d)
 
@@ -799,6 +800,7 @@ CAMINHOS_PROTEGIDOS = [
     "/api/casos/1/prioridade",
     "/api/casos/1/mensagens",
     "/api/casos/1/notas",
+    "/api/casos/1/resolucao",
     "/api/casos/1/anexos/1",
     "/api/simulacao",
     "/api/simulacao/carregar",
@@ -814,7 +816,7 @@ def _contagens(config):
     try:
         return {t: c.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
                 for t in ("casos", "mensagens", "eventos", "usuarios", "notas_internas",
-                          "anexos")}
+                          "anexos", "resolucoes")}
     finally:
         c.close()
 
@@ -1013,3 +1015,115 @@ def test_admin_cria_conta_de_coordenador(coord_logado, config):
     assert _consulta(config, "SELECT papel FROM usuarios WHERE nome = 'Nova'")[0][0] == "coordenador"
     lista = coord_logado.get("/api/usuarios").get_json()["usuarios"]
     assert {u["nome"]: u["papel"] for u in lista} == {"coord": "admin", "Nova": "coordenador"}
+
+
+# --- registro de resolução ------------------------------------------------
+
+VALIDA = {"desfecho": "solucionada", "providencias": "Conversa com a familia"}
+
+
+def _estado(config, caso_id):
+    c = connect(config)
+    try:
+        st = c.execute("SELECT status, atualizado_em FROM casos WHERE id = ?",
+                       (caso_id,)).fetchone()
+        n = c.execute("SELECT COUNT(*) FROM resolucoes WHERE caso_id = ?",
+                      (caso_id,)).fetchone()[0]
+        ev = c.execute("SELECT usuario_id, detalhe FROM eventos "
+                       "WHERE caso_id = ? AND tipo = 'resolucao'",
+                       (caso_id,)).fetchall()
+        return tuple(st), n, [tuple(e) for e in ev]
+    finally:
+        c.close()
+
+
+def test_resolucao_valida_resolve_e_registra(coord_logado, config):
+    caso_id, _ = _caso(config)
+    antes, _, _ = _estado(config, caso_id)
+    r = coord_logado.post(f"/api/casos/{caso_id}/resolucao",
+                          json={**VALIDA, "resultado": "  Tudo certo "})
+    assert r.status_code == 201 and r.get_json() == {"ok": True}
+    (status, atualizado), n, eventos = _estado(config, caso_id)
+    assert status == "resolvido" and n == 1
+    assert atualizado >= antes[1]
+    assert len(eventos) == 1 and eventos[0][1] == "solucionada"
+    assert eventos[0][0] is not None
+    d = coord_logado.get(f"/api/casos/{caso_id}").get_json()
+    assert d["status"] == "resolvido"
+    assert len(d["resolucoes"]) == 1
+    rs = d["resolucoes"][0]
+    assert set(rs) == {"desfecho", "providencias", "resultado", "usuario", "criado_em"}
+    assert rs["usuario"] == "coord" and rs["desfecho"] == "solucionada"
+    assert rs["providencias"] == "Conversa com a familia"
+
+
+def test_resultado_ausente_vira_vazio(coord_logado, config):
+    caso_id, _ = _caso(config)
+    assert coord_logado.post(f"/api/casos/{caso_id}/resolucao", json=VALIDA).status_code == 201
+    d = coord_logado.get(f"/api/casos/{caso_id}").get_json()
+    assert d["resolucoes"][0]["resultado"] == ""
+
+
+@pytest.mark.parametrize("corpo", [
+    {"desfecho": "outro", "providencias": "x"},
+    {"providencias": "x"},
+    {"desfecho": 1, "providencias": "x"},
+    {"desfecho": "solucionada", "providencias": ""},
+    {"desfecho": "solucionada", "providencias": "   "},
+    {"desfecho": "solucionada", "providencias": "a" * 2001},
+    {"desfecho": "solucionada"},
+    {"desfecho": "solucionada", "providencias": 5},
+    {"desfecho": "solucionada", "providencias": "x", "resultado": 5},
+    {"desfecho": "solucionada", "providencias": "x", "resultado": "a" * 2001},
+])
+def test_resolucao_invalida_400_sem_alterar(coord_logado, config, corpo):
+    caso_id, _ = _caso(config)
+    antes = _estado(config, caso_id)
+    r = coord_logado.post(f"/api/casos/{caso_id}/resolucao", json=corpo)
+    assert r.status_code == 400
+    assert _estado(config, caso_id) == antes
+
+
+def test_resolucao_limite_2000_aceito(coord_logado, config):
+    caso_id, _ = _caso(config)
+    r = coord_logado.post(f"/api/casos/{caso_id}/resolucao",
+                          json={"desfecho": "intervencao_realizada",
+                                "providencias": "a" * 2000, "resultado": "b" * 2000})
+    assert r.status_code == 201
+
+
+def test_resolver_duas_vezes_409(coord_logado, config):
+    caso_id, _ = _caso(config)
+    assert coord_logado.post(f"/api/casos/{caso_id}/resolucao", json=VALIDA).status_code == 201
+    antes = _estado(config, caso_id)
+    r = coord_logado.post(f"/api/casos/{caso_id}/resolucao", json=VALIDA)
+    assert r.status_code == 409 and r.get_json() == {"erro": "caso ja resolvido"}
+    assert _estado(config, caso_id) == antes
+
+
+def test_reabrir_e_resolver_de_novo(coord_logado, config):
+    caso_id, _ = _caso(config)
+    coord_logado.post(f"/api/casos/{caso_id}/resolucao", json=VALIDA)
+    coord_logado.post(f"/api/casos/{caso_id}/status", json={"status": "em_investigacao"})
+    r = coord_logado.post(f"/api/casos/{caso_id}/resolucao",
+                          json={"desfecho": "intervencao_realizada", "providencias": "Outra"})
+    assert r.status_code == 201
+    d = coord_logado.get(f"/api/casos/{caso_id}").get_json()
+    assert [x["desfecho"] for x in d["resolucoes"]] == ["solucionada", "intervencao_realizada"]
+
+
+def test_resolucao_caso_inexistente_404_antes_da_validacao(coord_logado, config):
+    r = coord_logado.post("/api/casos/999/resolucao", json={"desfecho": "x"})
+    assert r.status_code == 404
+    assert coord_logado.post("/api/casos/999/resolucao", json=VALIDA).status_code == 404
+
+
+def test_registrar_resolucao_funcao(coord_client, config):
+    from app import casos as modulo
+    caso_id, _ = _caso(config)
+    c = connect(config)
+    try:
+        assert modulo.registrar_resolucao(c, 999, "solucionada", "x", "", 1) == "nao_encontrado"
+        assert modulo.DESFECHOS == ("solucionada", "intervencao_realizada")
+    finally:
+        c.close()

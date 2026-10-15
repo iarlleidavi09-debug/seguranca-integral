@@ -129,6 +129,7 @@ def adicionar_mensagem(conn: sqlite3.Connection, caso_id: int, autor: str,
 # --- consultas e ações da coordenação ------------------------------------
 
 STATUS = ("novo", "em_investigacao", "resolvido")
+DESFECHOS = ("solucionada", "intervencao_realizada")
 PRIORIDADES = ("critica", "alta", "media", "baixa")  # ordem da fila
 RESUMO_MAX = 120
 
@@ -280,6 +281,14 @@ def detalhe_caso(conn: sqlite3.Connection, caso_id: int) -> dict | None:
             (caso_id,),
         )
     ]
+    caso["resolucoes"] = [
+        dict(r) for r in conn.execute(
+            "SELECT r.desfecho, r.providencias, r.resultado, u.nome AS usuario, "
+            "r.criado_em FROM resolucoes r LEFT JOIN usuarios u "
+            "ON u.id = r.usuario_id WHERE r.caso_id = ? ORDER BY r.id",
+            (caso_id,),
+        )
+    ]
     return caso
 
 
@@ -359,6 +368,45 @@ def mudar_status(conn: sqlite3.Connection, caso_id: int, valor: str,
         raise ValueError("status invalido")
     return _mudar(conn, caso_id, "status", valor, usuario_id,
                   lambda ant: f"status: {ant} -> {valor}")
+
+
+def registrar_resolucao(conn: sqlite3.Connection, caso_id: int, desfecho: str,
+                        providencias: str, resultado: str,
+                        usuario_id: int) -> str:
+    """Resolve o caso: grava a resolução, o status e o evento numa transação.
+
+    Devolve "ok", "nao_encontrado" ou "ja_resolvido" (sem gravar nada).
+    """
+    if desfecho not in DESFECHOS:
+        raise ValueError("desfecho invalido")
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        linha = conn.execute(
+            "SELECT status FROM casos WHERE id = ?", (caso_id,)
+        ).fetchone()
+        if linha is None:
+            conn.rollback()
+            return "nao_encontrado"
+        if linha[0] == "resolvido":
+            conn.rollback()
+            return "ja_resolvido"
+        agora = _agora()
+        conn.execute(
+            "INSERT INTO resolucoes (caso_id, desfecho, providencias, resultado, "
+            "usuario_id, criado_em) VALUES (?,?,?,?,?,?)",
+            (caso_id, desfecho, providencias, resultado, usuario_id, agora),
+        )
+        conn.execute(
+            "UPDATE casos SET status = 'resolvido', atualizado_em = ? WHERE id = ?",
+            (agora, caso_id),
+        )
+        registrar_evento(conn, caso_id, "resolucao", usuario_id, desfecho,
+                         commit=False)
+        conn.commit()
+        return "ok"
+    except BaseException:
+        conn.rollback()
+        raise
 
 
 def mudar_prioridade(conn: sqlite3.Connection, caso_id: int, valor: str,

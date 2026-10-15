@@ -268,6 +268,30 @@ def mudar_status(caso_id: int):
     return jsonify({"ok": True, "status": valor})
 
 
+@bp.post("/api/casos/<int:caso_id>/resolucao")
+def registrar_resolucao(caso_id: int):
+    conn = _db()
+    if not casos.existe_caso(conn, caso_id):
+        return _nao_encontrado()
+    corpo = _json()
+    desfecho = corpo.get("desfecho")
+    if not isinstance(desfecho, str) or desfecho not in casos.DESFECHOS:
+        return _erro("desfecho invalido")
+    providencias = _texto_valido("providencias")
+    if providencias is None:
+        return _erro("providencias deve ter de 1 a 2000 caracteres")
+    resultado = corpo.get("resultado", "")
+    if not isinstance(resultado, str) or len(resultado.strip()) > TEXTO_MAX:
+        return _erro("resultado deve ter ate 2000 caracteres")
+    r = casos.registrar_resolucao(conn, caso_id, desfecho, providencias,
+                                  resultado.strip(), g.usuario["id"])
+    if r == "nao_encontrado":
+        return _nao_encontrado()
+    if r == "ja_resolvido":
+        return _erro("caso ja resolvido", 409)
+    return jsonify({"ok": True}), 201
+
+
 @bp.post("/api/casos/<int:caso_id>/prioridade")
 def mudar_prioridade(caso_id: int):
     conn = _db()
