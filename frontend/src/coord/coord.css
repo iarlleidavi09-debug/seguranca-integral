@@ -231,7 +231,7 @@ select:disabled { background: var(--desabilitado-fundo); color: var(--desabilita
 .resumo-prioridade { margin: var(--espaco-3) 0 0; color: var(--texto-secundario); }
 .resumo-prioridade b { color: var(--texto-principal); }
 .caso-principal > h2:first-child { margin-top: var(--espaco-4); }
-.conversas { margin-top: var(--espaco-8); }
+.painel-aba { margin-top: var(--espaco-2); }
 .texto-livre { white-space: pre-wrap; background: var(--fundo-superficie); border: var(--linha-fina) solid var(--borda-suave); border-radius: var(--raio-md); padding: var(--espaco-4); }
 .detalhes { display: grid; grid-template-columns: auto 1fr; gap: var(--espaco-1) var(--espaco-4); margin: var(--espaco-3) 0 0; }
 .detalhes dt { font-weight: 700; }
@@ -251,9 +251,9 @@ select:disabled { background: var(--desabilitado-fundo); color: var(--desabilita
 .abas [role='tab'] { flex: 1; min-height: var(--controle-altura); padding: var(--espaco-2) var(--espaco-3); background: transparent; color: var(--texto-secundario); font-weight: 700; border: none; border-bottom: 3px solid transparent; }
 .abas [role='tab'][aria-selected='true'] { color: var(--primaria-base); border-bottom-color: var(--primaria-base); }
 .mensagens { list-style: none; margin: 0; padding: 0; }
-.conversas .resposta { margin-top: var(--espaco-6); padding-top: var(--espaco-4); }
-.conversas .resposta .texto-pequeno { margin-top: 0; margin-bottom: var(--espaco-2); }
-.conversas .contador { margin-top: var(--espaco-1); }
+.painel-aba .resposta { margin-top: var(--espaco-6); padding-top: var(--espaco-4); }
+.painel-aba .resposta .texto-pequeno { margin-top: 0; margin-bottom: var(--espaco-2); }
+.painel-aba .contador { margin-top: var(--espaco-1); }
 
 /* Usuários e confirmações */
 .usuarios { list-style: none; margin: var(--espaco-4) 0 0; padding: 0; display: grid; gap: var(--espaco-3); }
@@ -312,7 +312,7 @@ select:disabled { background: var(--desabilitado-fundo); color: var(--desabilita
 }
 @media (max-width: 374px) { .painel { padding-inline: var(--espaco-3); } }
 
-.conversas .titulo-painel { margin-top: 0; font-size: var(--texto-destaque); line-height: 26px; }
+.painel-aba .titulo-painel { margin-top: 0; font-size: var(--texto-destaque); line-height: 26px; }
 .login .dica { margin: var(--espaco-1) 0 0; font-size: var(--texto-pequeno, 0.875rem); color: var(--texto-suave, inherit); }
 
 /* Visão geral */
@@ -352,3 +352,27 @@ select:disabled { background: var(--desabilitado-fundo); color: var(--desabilita
   .geral-cartoes { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--espaco-4); }
   .geral-prioridades { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
+
+/* Resolução, pós-resolução e abas do caso */
+.form-resolucao { margin-top: var(--espaco-4); }
+.grupo-desfecho { display: grid; gap: var(--espaco-2); border: none; padding: 0; margin: 0 0 var(--espaco-2); min-width: 0; }
+.grupo-desfecho legend { margin-bottom: var(--espaco-1); }
+.opcao-desfecho {
+  display: flex; align-items: center; gap: var(--espaco-3); min-height: 44px; padding: var(--espaco-2) var(--espaco-4);
+  background: var(--fundo-base); border: var(--linha-fina) solid var(--borda-forte); border-radius: var(--raio-md); font-weight: 400;
+}
+.opcao-desfecho:has(input:checked) { background: var(--primaria-suave); border-color: var(--primaria-base); }
+.grupo-desfecho .erro { margin: 0; }
+.form-resolucao textarea { margin-top: var(--espaco-1); }
+.pos-resolucao {
+  margin: var(--espaco-5) 0; padding: var(--espaco-5); background: var(--fundo-superficie);
+  border: var(--linha-fina) solid var(--borda-suave); border-radius: var(--raio-md);
+}
+.painel .pos-resolucao h2 { margin: 0 0 var(--espaco-3); font-size: var(--texto-destaque); line-height: 26px; }
+.pos-resolucao h3 { margin: var(--espaco-5) 0 var(--espaco-2); font-size: var(--texto-corpo, 1rem); }
+.pos-resolucao > .recorrencia { margin: 0 0 var(--espaco-2); }
+.pos-resolucao > .recorrencia h3 { margin: 0 0 var(--espaco-1); font-size: var(--texto-destaque); line-height: 26px; }
+.pos-quem { margin: 0; }
+.pos-lista { margin: 0; padding-left: var(--espaco-5); display: grid; gap: var(--espaco-1); }
+.abas { overflow-x: auto; }
+.abas [role='tab'] { flex: 1 0 auto; white-space: nowrap; }

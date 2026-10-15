@@ -18,6 +18,7 @@ export default function ReavaliarPrioridade({ atual, aoConfirmar, ocupado }: {
   const [enviando, setEnviando] = useState(false);
   const gatilho = useRef<HTMLButtonElement>(null);
   const seletor = useRef<HTMLSelectElement>(null);
+  const campo = useRef<HTMLTextAreaElement>(null);
   const montado = useRef(true);
   useEffect(() => { montado.current = true; return () => { montado.current = false; }; }, []);
   useEffect(() => { if (aberto) seletor.current?.focus(); }, [aberto]);
@@ -27,7 +28,7 @@ export default function ReavaliarPrioridade({ atual, aoConfirmar, ocupado }: {
   function fechar() { setAberto(false); setErro(''); setTimeout(() => gatilho.current?.focus(), 0); }
   async function enviar() {
     const limpa = justificativa.trim();
-    if (!limpa || limpa.length > JUSTIFICATIVA_MAX) { setErro(`Escreva de 1 a ${JUSTIFICATIVA_MAX} caracteres.`); return; }
+    if (!limpa || limpa.length > JUSTIFICATIVA_MAX) { setErro(`Escreva de 1 a ${JUSTIFICATIVA_MAX} caracteres.`); campo.current?.focus(); return; }
     if (nova === atual) return;
     setErro(''); setEnviando(true);
     try {
@@ -35,7 +36,7 @@ export default function ReavaliarPrioridade({ atual, aoConfirmar, ocupado }: {
       if (montado.current) { setEnviando(false); fechar(); }
     } catch {
       // quem chama mostra o erro; o formulário fica aberto com o texto digitado
-      if (montado.current) setEnviando(false);
+      if (montado.current) { setEnviando(false); setTimeout(() => campo.current?.focus(), 0); } // o campo estava desabilitado durante o envio
     }
   }
   function teclas(e: KeyboardEvent) {
@@ -53,11 +54,12 @@ export default function ReavaliarPrioridade({ atual, aoConfirmar, ocupado }: {
         {PRIORIDADES.map(p => <option key={p} value={p}>{prioridade(p)}</option>)}
       </select>
       <label htmlFor="reavaliar-justificativa">Justificativa</label>
-      <p className="texto-pequeno">Fica registrada na linha do tempo, com o seu nome.</p>
-      <textarea id="reavaliar-justificativa" rows={4} maxLength={JUSTIFICATIVA_MAX} value={justificativa} disabled={travado}
-        onChange={e => setJustificativa(e.target.value)} />
+      <p id="reavaliar-ajuda" className="texto-pequeno">Fica registrada na linha do tempo, com o seu nome.</p>
+      <textarea id="reavaliar-justificativa" ref={campo} rows={4} maxLength={JUSTIFICATIVA_MAX} value={justificativa} disabled={travado}
+        aria-invalid={erro ? true : undefined} aria-describedby={erro ? 'reavaliar-erro reavaliar-ajuda' : 'reavaliar-ajuda'}
+        onChange={e => { setJustificativa(e.target.value); setErro(''); }} />
       <p className="texto-pequeno contador">{justificativa.length} de {JUSTIFICATIVA_MAX}</p>
-      {erro && <p className="erro" role="alert">{erro}</p>}
+      {erro && <p id="reavaliar-erro" className="erro" role="alert">{erro}</p>}
       <div className="acoes">
         <button type="submit" className="botao principal" disabled={travado || nova === atual}>Confirmar</button>
         <button type="button" className="botao secundario" disabled={travado} onClick={fechar}>Cancelar</button>

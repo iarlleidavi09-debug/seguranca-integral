@@ -155,6 +155,7 @@ describe('Caso', () => {
 
   it('mantém mensagens ao aluno e notas internas separadas', async () => {
     const user = await abrirCaso();
+    await user.click(await screen.findByRole('tab', { name: 'Conversa' }));
     await screen.findByText('Mensagem publica para o aluno');
     expect(screen.queryByText('Nota reservada da equipe')).not.toBeInTheDocument();
 
@@ -177,29 +178,39 @@ describe('Caso', () => {
     expect(await within(screen.getByRole('tabpanel')).findByText('Conversar com a família')).toBeInTheDocument();
     expect(chamadasA('POST', '/api/casos/5/notas')[0].corpo).toEqual({ texto: 'Conversar com a família' });
     expect(chamadasA('POST', '/api/casos/5/mensagens')).toHaveLength(1);
-    await user.click(screen.getByRole('tab', { name: 'Mensagens ao aluno' }));
+    await user.click(screen.getByRole('tab', { name: 'Conversa' }));
     expect(screen.queryByText('Conversar com a família')).not.toBeInTheDocument();
   });
 
   it('as abas respondem às setas, Home e End', async () => {
     const user = await abrirCaso();
-    const mensagens = await screen.findByRole('tab', { name: 'Mensagens ao aluno' });
-    mensagens.focus();
+    const relato = await screen.findByRole('tab', { name: 'Relato e investigação' });
+    expect(relato).toHaveAttribute('aria-selected', 'true');
+    relato.focus();
     await user.keyboard('{ArrowRight}');
-    const notas = screen.getByRole('tab', { name: 'Notas internas' });
-    expect(notas).toHaveFocus();
-    expect(notas).toHaveAttribute('aria-selected', 'true');
-    expect(notas).toHaveAttribute('tabindex', '0');
-    expect(mensagens).toHaveAttribute('tabindex', '-1');
-    await user.keyboard('{Home}');
-    expect(mensagens).toHaveAttribute('aria-selected', 'true');
+    const conversa = screen.getByRole('tab', { name: 'Conversa' });
+    expect(conversa).toHaveFocus();
+    expect(conversa).toHaveAttribute('aria-selected', 'true');
+    expect(conversa).toHaveAttribute('tabindex', '0');
+    expect(relato).toHaveAttribute('tabindex', '-1');
     await user.keyboard('{End}');
-    expect(notas).toHaveFocus();
+    const historico = screen.getByRole('tab', { name: 'Histórico' });
+    expect(historico).toHaveFocus();
+    expect(historico).toHaveAttribute('aria-selected', 'true');
+    await user.keyboard('{ArrowRight}');
+    expect(relato).toHaveFocus();
+    await user.keyboard('{ArrowLeft}');
+    expect(historico).toHaveFocus();
+    await user.keyboard('{Home}');
+    expect(relato).toHaveFocus();
+    expect(relato).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tabpanel')).toHaveAttribute('aria-labelledby', relato.id);
     expect(screen.getByRole('tablist')).toBeInTheDocument();
   });
 
   it('não envia texto vazio', async () => {
     const user = await abrirCaso();
+    await user.click(await screen.findByRole('tab', { name: 'Conversa' }));
     await user.click(await screen.findByRole('button', { name: 'Enviar ao aluno' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Escreva de 1 a 2000');
     expect(chamadasA('POST', '/api/casos/5/mensagens')).toHaveLength(0);

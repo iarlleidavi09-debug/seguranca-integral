@@ -119,3 +119,31 @@ describe('ReavaliarPrioridade', () => {
     expect(confirmar).not.toHaveBeenCalled();
   });
 });
+
+describe('ReavaliarPrioridade: acessibilidade do erro', () => {
+  it('o erro liga o campo por aria-invalid e aria-describedby e some ao digitar', async () => {
+    const user = userEvent.setup();
+    render(<ReavaliarPrioridade atual="media" aoConfirmar={vi.fn()} ocupado={false} />);
+    await abrir(user);
+    await user.selectOptions(screen.getByLabelText('Nova prioridade'), 'alta');
+    await user.click(screen.getByRole('button', { name: 'Confirmar' }));
+    const campo = screen.getByLabelText('Justificativa');
+    expect(campo).toHaveAttribute('aria-invalid', 'true');
+    const alvo = campo.getAttribute('aria-describedby')!.split(' ').find(i => document.getElementById(i)?.textContent === 'Escreva de 1 a 2000 caracteres.');
+    expect(alvo).toBeTruthy();
+    expect(campo).toHaveFocus();
+    await user.type(campo, 'a');
+    expect(screen.queryByText('Escreva de 1 a 2000 caracteres.')).not.toBeInTheDocument();
+    expect(campo).not.toHaveAttribute('aria-invalid');
+  });
+
+  it('falha no envio devolve o foco à justificativa', async () => {
+    const user = userEvent.setup();
+    render(<ReavaliarPrioridade atual="media" aoConfirmar={vi.fn().mockRejectedValue(new Error('x'))} ocupado={false} />);
+    await abrir(user);
+    await user.selectOptions(screen.getByLabelText('Nova prioridade'), 'alta');
+    await user.type(screen.getByLabelText('Justificativa'), 'motivo');
+    await user.click(screen.getByRole('button', { name: 'Confirmar' }));
+    await vi.waitFor(() => expect(screen.getByLabelText('Justificativa')).toHaveFocus());
+  });
+});

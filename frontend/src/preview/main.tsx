@@ -59,7 +59,7 @@ function App() {
       case 'acompanhar': return <Acompanhar codigoInicial="PREVIA-001" />;
       case 'login': return <Login aoEntrar={() => ir('fila')} />;
       case 'fila': return <Fila modo="casos" aoAbrir={() => ir('mensagens')} filtros={filtros} aoFiltrar={setFiltros} />;
-      case 'mensagens': case 'notas': case 'anexo': return <Caso id={1} aoVoltar={() => ir('fila')} abaInicial={tela === 'notas' ? 'notas' : 'mensagens'} anexoInicial={tela === 'anexo' ? 1 : null} imagemPrevia={dados.imagem} />;
+      case 'mensagens': case 'notas': case 'anexo': return <Caso id={1} aoVoltar={() => ir('fila')} abaInicial={tela === 'notas' ? 'notas' : 'conversa'} anexoInicial={tela === 'anexo' ? 1 : null} imagemPrevia={dados.imagem} />;
       case 'usuarios': case 'desativar': return <Usuarios meuId={1} confirmarInicial={tela === 'desativar' ? 2 : null} />;
       case 'ensaio': case 'remover': return <Ensaio confirmarInicial={tela === 'remover'} />;
     }

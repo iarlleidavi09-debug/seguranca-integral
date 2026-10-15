@@ -84,6 +84,7 @@ describe('Polimento da coordenação', () => {
     window.history.replaceState(null, '', '/#caso-5');
     render(<App />);
     const user = userEvent.setup();
+    await user.click(await screen.findByRole('tab', { name: 'Conversa' }));
     await user.type(await screen.findByLabelText('Mensagem ao aluno'), 'Primeira parte');
     await user.click(screen.getByRole('button', { name: 'Enviar ao aluno' }));
     await user.type(screen.getByLabelText('Mensagem ao aluno'), ' e mais um pouco');
@@ -96,6 +97,7 @@ describe('Polimento da coordenação', () => {
     base();
     window.history.replaceState(null, '', '/#caso-5');
     render(<App />);
+    await userEvent.setup().click(await screen.findByRole('tab', { name: 'Conversa' }));
     const painel = await screen.findByRole('tabpanel');
     expect(within(painel).getByRole('heading', { level: 2, name: 'Conversa com o aluno' })).toBeInTheDocument();
     expect(within(painel).getAllByRole('heading')[0].tagName).toBe('H2');
