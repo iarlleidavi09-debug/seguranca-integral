@@ -33,15 +33,33 @@ recusado pelo programa com o erro "host invalido". Os endereços ficam em:
 
 Depois de mudar o config.json, reinicie a tarefa (veja a seção 6).
 
-Avisos importantes:
+OBRIGATÓRIO antes de abrir para os alunos (não é opcional):
 
-  - NÃO use UPnP nem encaminhamento de porta no roteador junto com o túnel.
-    As portas 3000 e 4000 só podem ser alcançadas pelo túnel. Se o roteador
-    tiver UPnP ligado, desligue.
-  - Proteja o endereço da coordenação com Cloudflare Access (Zero Trust >
-    Access > Applications): libere só os e-mails da equipe. O login do
-    programa continua valendo; o Access é uma segunda barreira.
-  - O endereço do aluno fica aberto, sem Access: os alunos não têm conta.
+  a) Cloudflare Access no endereço da coordenação (Zero Trust > Access >
+     Applications): libere só os e-mails da equipe. Sem o Access, qualquer
+     pessoa na internet chega à tela de login. O nome "coordenacao" é
+     conhecido de todos e quem errar a senha 5 vezes bloqueia essa conta
+     por 15 minutos, de propósito ou não. O login do programa continua
+     valendo; o Access é a primeira barreira.
+  b) "Always Use HTTPS" ligado na zona do domínio (painel Cloudflare > o
+     domínio > SSL/TLS > Edge Certificates). O cookie de sessão só sai
+     marcado como Secure quando o túnel informa que a conexão é https; com
+     http aberto, a sessão da coordenação pode trafegar sem criptografia.
+  c) Nenhuma rota pública para as portas além do túnel: NÃO use UPnP nem
+     encaminhamento de porta no roteador. As portas 3000 e 4000 só podem
+     ser alcançadas pelo túnel. Se o roteador tiver UPnP ligado, desligue.
+  d) Confira, de um computador qualquer:
+       curl -I https://<endereço do aluno>/api/saude
+       curl -I https://<endereço da coordenação>/api/saude
+     A resposta precisa trazer a linha Strict-Transport-Security. A da
+     coordenação deve parar no login do Cloudflare Access.
+
+O endereço do aluno fica aberto, sem Access: os alunos não têm conta.
+
+Anonimato dos alunos: para anonimato total o aluno deve usar dados móveis
+(4G), não o Wi-Fi da escola; o horário do envio pode ser cruzado com os
+registros de rede da escola. O programa não grava endereço nenhum, mas a
+rede da escola pode gravar. Avise isso aos alunos.
 
 
 2. SENHA DA COORDENAÇÃO
@@ -85,12 +103,26 @@ Se ninguém consegue entrar, no próprio servidor:
   c) A nova senha aparece uma vez. O comando também desbloqueia a conta (se
      ela travou por tentativas erradas) e a reativa (se foi desativada).
 
-Não precisa parar o programa para isso. Atenção: quem já estava logado
-continua logado até completar 12 horas do login. Se a senha vazou, redefina
-e avise a equipe para sair e entrar de novo.
+O comando também troca a chave de sessão (sessao.key). Quem já estava
+logado só é desconectado quando o programa reinicia; por isso, depois do
+comando, reinicie a tarefa (seção 6: desabilitar, encerrar, habilitar e
+iniciar). Avise a equipe para entrar de novo.
+
+SE SUSPEITAR QUE UM COOKIE OU SENHA VAZOU
+
+  - Senha vazou: rode --redefinir-senha (acima) e reinicie a tarefa. Os
+    outros usuários trocam a própria senha ou são recriados no menu
+    Usuários.
+  - Só a sessão (cookie) vazou, por exemplo um computador da escola que
+    ficou logado: apague o arquivo
+      C:\ProgramData\SegurancaIntegral\sessao.key
+    e reinicie a tarefa (seção 6). O programa cria uma chave nova e TODAS
+    as sessões abertas da coordenação caem. Os códigos dos alunos não são
+    afetados.
 
 Não apague o arquivo secret.key para "zerar" nada: sem ele, os códigos de
-acompanhamento que os alunos já têm param de funcionar.
+acompanhamento que os alunos já têm param de funcionar. Quem pode ser
+apagada sem perda é a sessao.key.
 
 
 4. ONDE FICAM OS DADOS E OS BACKUPS
@@ -98,9 +130,12 @@ acompanhamento que os alunos já têm param de funcionar.
 
   C:\ProgramData\SegurancaIntegral\
       seguranca.db     banco (casos, mensagens, usuários)
-      uploads\         anexos
+      uploads\         anexos (fotos já sem metadados: GPS, aparelho, data)
       secret.key       chave que protege os códigos de acompanhamento
-      config.json      endereços permitidos
+      sessao.key       chave das sessões da coordenação (pode ser apagada:
+                       derruba as sessões, veja a seção 3)
+      config.json      endereços permitidos e limites
+      logs\            log do programa (logs\servidor.log)
       backups\         um backup por dia (backups\AAAA-MM-DD\), guardado por 7 dias
 
 Só SYSTEM e Administradores têm acesso a essa pasta. O instalador ajusta essa
@@ -112,24 +147,46 @@ instalador de novo, por cima, reaplica a permissão a tudo o que já existe na
 pasta. Depois de instalar, confira com: icacls C:\ProgramData\SegurancaIntegral
 (devem aparecer só SYSTEM e Administradores).
 
-O programa faz um backup ao iniciar e depois a cada 24 horas: o banco e os
-anexos. O secret.key NÃO entra no backup. Copie a pasta backups\ e também o
-secret.key para um disco externo ou outro computador de vez em
-quando: se o disco do servidor quebrar, os backups locais vão junto.
+O programa faz um backup ao iniciar (se ainda não existe o do dia) e depois
+a cada 24 horas: o banco, os anexos, o secret.key e o config.json. A
+sessao.key não entra (é descartável). Perder o secret.key invalida os
+códigos de acompanhamento de TODOS os alunos, por isso ele vai junto em
+cada backup. Copie a pasta backups\ para um disco externo ou outro
+computador de vez em quando: se o disco do servidor quebrar, os backups
+locais vão junto. Guarde essa cópia com o mesmo cuidado do servidor: ela
+tem as denúncias e a chave.
+
+LOG
+
+O programa grava o que faz em
+  C:\ProgramData\SegurancaIntegral\logs\servidor.log
+(até 1 MB por arquivo; os 5 anteriores ficam como servidor.log.1 a .5).
+Abra com o Bloco de Notas, como Administrador. Cada pedido aparece como
+método, rota e resposta (por exemplo "GET /api/casos/<int:caso_id> 200"):
+sem endereço de ninguém, sem número de caso, sem código nem texto de
+denúncia.
 
 
 5. RESTAURAR UM BACKUP
 ----------------------
 
-  a) Pare o programa (Prompt de Comando como Administrador):
+  a) Pare o programa (Prompt de Comando como Administrador), PRIMEIRO
+     desabilitando a tarefa e só depois encerrando:
+       schtasks /Change /TN SegurancaIntegral /DISABLE
        schtasks /End /TN SegurancaIntegral
+     Sem desabilitar, a tarefa religa o programa em até 5 minutos, no meio
+     da restauração, e ele abre o banco pela metade.
   b) Mova o seguranca.db atual (e os arquivos seguranca.db-wal e
-     seguranca.db-shm, se existirem) e a pasta uploads\ para outro lugar,
-     sem apagar.
-  c) Do backup escolhido (backups\AAAA-MM-DD\), copie seguranca.db e a
-     pasta uploads\ para C:\ProgramData\SegurancaIntegral\.
-  d) Use o MESMO secret.key da época do backup (normalmente o atual).
-  e) Inicie de novo:
+     seguranca.db-shm, se existirem), a pasta uploads\ e o secret.key para
+     outro lugar, sem apagar.
+  c) Do backup escolhido (backups\AAAA-MM-DD\), copie seguranca.db, a
+     pasta uploads\ e o secret.key para C:\ProgramData\SegurancaIntegral\.
+     O config.json do backup só precisa voltar se o atual se perdeu.
+  d) Confira que o secret.key copiado é o do backup (os dois arquivos têm
+     o mesmo conteúdo): é ele que valida os códigos dos alunos daquela
+     época. Um secret.key diferente faz todos os códigos pararem.
+  e) Volte a tarefa, PRIMEIRO habilitando e depois iniciando:
+       schtasks /Change /TN SegurancaIntegral /ENABLE
        schtasks /Run /TN SegurancaIntegral
   f) Entre no portal da coordenação e confira os casos.
 
@@ -139,11 +196,20 @@ quando: se o disco do servidor quebrar, os backups locais vão junto.
 
 O programa sobe sozinho quando o Windows liga (tarefa agendada
 "SegurancaIntegral", como SYSTEM). Se o processo cair, a tarefa tenta de novo
-em até 5 minutos.
+em até 5 minutos. Por isso só /End não basta para parar: a tarefa religa o
+programa sozinha. Sempre desabilite antes de encerrar e habilite antes de
+iniciar (Prompt de Comando como Administrador):
 
-  Parar:     schtasks /End /TN SegurancaIntegral
-  Iniciar:   schtasks /Run /TN SegurancaIntegral
-  Situação:  schtasks /Query /TN SegurancaIntegral /V /FO LIST
+  Parar:
+    schtasks /Change /TN SegurancaIntegral /DISABLE
+    schtasks /End /TN SegurancaIntegral
+  Voltar (iniciar):
+    schtasks /Change /TN SegurancaIntegral /ENABLE
+    schtasks /Run /TN SegurancaIntegral
+  Situação:
+    schtasks /Query /TN SegurancaIntegral /V /FO LIST
+
+"Reiniciar a tarefa", neste documento, é parar e voltar como acima.
 
 Para conferir no próprio servidor, abra no navegador:
 
@@ -168,6 +234,25 @@ Para conferir no próprio servidor, abra no navegador:
       nem :4000 (as portas não estão expostas).
   [ ] Para treinar a equipe, use o menu Ensaio (dados simulados) e remova
       os dados simulados no mesmo menu antes do uso real.
+
+ANTES DE ABRIR PARA OS ALUNOS (conferências que ainda não foram feitas)
+
+  [ ] Os quatro itens OBRIGATÓRIOS da seção 1 (Access, Always Use HTTPS,
+      nenhuma porta exposta, curl com Strict-Transport-Security).
+  [ ] Instalar com log e procurar a senha no log: rode o instalador com
+      /LOG="C:\instalacao.log" e depois
+        findstr /I "senha" C:\instalacao.log
+      Nenhuma linha pode trazer a senha da coordenação. Apague o log depois.
+  [ ] A tarefa roda como SYSTEM e relança a cada 5 minutos:
+        schtasks /Query /TN SegurancaIntegral /XML
+      deve mostrar S-1-5-18 (SYSTEM) e <Interval>PT5M</Interval>.
+  [ ] 300 pedidos seguidos em http://127.0.0.1:3000/api/saude com o
+      programa rodando pela tarefa (não à mão), sem travar nem ficar lento.
+  [ ] Reiniciar o Windows: os dois portais voltam sozinhos.
+  [ ] Teste de carga (docs/cenarios-escola.md) com o StarDust rodando ao
+      mesmo tempo, e o StarDust continua respondendo.
+  [ ] Desinstalar e responder "Não" para apagar os dados: a pasta
+      C:\ProgramData\SegurancaIntegral continua com banco, anexos e chaves.
 
 
 8. SE A INSTALAÇÃO OU A ATUALIZAÇÃO FALHAR NO MEIO
@@ -246,10 +331,17 @@ o aparelho é agrupado pelo prefixo /64.
     Faça uma instalação de ensaio antes de usar com alunos.
   - O registro da tarefa como SYSTEM e a reinicialização automática não foram
     conferidos num servidor real.
-  - O programa não grava log em arquivo; para investigar um problema, pare a
-    tarefa e rode o executável num Prompt de Comando como Administrador para
-    ver as mensagens:
+  - Para investigar um problema, leia primeiro o log (seção 4). Se precisar
+    ver as mensagens na tela, rode o executável à mão num Prompt de Comando
+    como Administrador, mas PRIMEIRO desabilite e encerre a tarefa:
+      schtasks /Change /TN SegurancaIntegral /DISABLE
+      schtasks /End /TN SegurancaIntegral
       "C:\Program Files\SegurancaIntegral\SegurancaIntegral.exe"
+    Com a tarefa ativa, ela pode subir outra cópia e as portas ficam
+    ocupadas: o executável sai com código 4 ("Nao foi possivel iniciar o
+    servidor"). Ao terminar, feche com Ctrl+C e volte a tarefa:
+      schtasks /Change /TN SegurancaIntegral /ENABLE
+      schtasks /Run /TN SegurancaIntegral
 
 
 11. DESINSTALAR

@@ -317,6 +317,38 @@ def test_leia_me_cobre_recuperacao_chave_limites_e_instalacao_silenciosa():
     assert '"limites"' in texto and '"denuncias": [300, 600]' in texto
     assert '"consultas": [1500, 600]' in texto
     assert "spam" in texto
+
+
+def test_leia_me_cobre_parada_segura_cloudflare_chaves_e_log():
+    texto = " ".join(_ler(LEIA_ME).split())
+    # parar = desabilitar e encerrar; voltar = habilitar e iniciar
+    assert "schtasks /Change /TN SegurancaIntegral /DISABLE" in texto
+    assert "schtasks /Change /TN SegurancaIntegral /ENABLE" in texto
+    assert "5 minutos" in texto
+    # todo /End vem depois de um /DISABLE e todo /Run depois de um /ENABLE
+    for trecho in texto.split("schtasks /End /TN SegurancaIntegral")[1:]:
+        anterior = texto[:texto.index(trecho)][-250:]
+        assert "/DISABLE" in anterior, anterior
+    for trecho in texto.split("schtasks /Run /TN SegurancaIntegral")[1:]:
+        anterior = texto[:texto.index(trecho)][-250:]
+        assert "/ENABLE" in anterior, anterior
+    # Cloudflare obrigatório
+    assert "OBRIGATÓRIO" in texto
+    assert "Always Use HTTPS" in texto
+    assert "Strict-Transport-Security" in texto and "curl -I https://" in texto
+    assert "recomendado" not in texto.lower()
+    # chaves e backup
+    assert "sessao.key" in texto
+    assert "secret.key NÃO entra no backup" not in texto
+    assert "cookie ou senha vazou" in texto.lower()
+    # log em arquivo
+    assert r"logs\servidor.log" in texto
+    assert "não grava log em arquivo" not in texto
+    # anonimato: aviso dos dados móveis
+    assert "dados móveis (4G)" in texto
+    # lista antes de abrir para alunos
+    assert "ANTES DE ABRIR PARA OS ALUNOS" in texto
+    assert "/XML" in texto and "PT5M" in texto and "/LOG" in texto
     # instalação silenciosa
     assert "/VERYSILENT" in texto
     assert "--criar-admin" in texto
