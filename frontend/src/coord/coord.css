@@ -204,7 +204,7 @@ select:disabled { background: var(--desabilitado-fundo); color: var(--desabilita
 .confirmar .acoes { margin-top: var(--espaco-3); }
 .form-usuario { max-width: 420px; }
 
-@media (min-width: 768px) {
+@media (min-width: 960px) {
   .painel { padding: var(--espaco-8) var(--espaco-6) var(--espaco-12); }
   .filtros { grid-template-columns: minmax(0, 220px) minmax(0, 280px) auto; }
   .seletores { grid-template-columns: minmax(0, 220px) minmax(0, 220px); }

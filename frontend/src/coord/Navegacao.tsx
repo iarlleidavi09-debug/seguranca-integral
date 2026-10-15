@@ -21,6 +21,7 @@ export default function Navegacao({ tela, admin, pendencias, aoIr }: {
         onClick={() => aoIr({ nome: i.nome })}>
         {i.rotulo}
         {i.nome === 'pos' && pendencias > 0 && <>
+          {' '}
           <span className="nav-contagem" aria-hidden="true">{pendencias}</span>
           <span className="so-leitor">{pendencias === 1 ? '1 pendente' : `${pendencias} pendentes`}</span>
         </>}

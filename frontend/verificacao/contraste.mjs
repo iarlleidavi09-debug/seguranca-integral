@@ -16,7 +16,9 @@ const temaAluno = { claro, escuro: { ...claro, ...ler(blocoEscuro) } };
 const cssCoord = readFileSync(fileURLToPath(new URL('../src/coord/coord.css', import.meta.url)), 'utf8');
 const iniEscuroCoord = cssCoord.indexOf('@media (prefers-color-scheme: dark)');
 const coordClaro = ler(cssCoord.slice(0, iniEscuroCoord));
-const coordEscuro = ler(cssCoord.slice(iniEscuroCoord, cssCoord.indexOf('/* fim dos tokens do tema */')));
+const fimTokens = cssCoord.indexOf('/* fim dos tokens do tema */');
+if (iniEscuroCoord < 0 || fimTokens < 0) throw new Error('coord.css: faltam o bloco escuro ou o marcador "/* fim dos tokens do tema */".');
+const coordEscuro = ler(cssCoord.slice(iniEscuroCoord, fimTokens));
 // o escuro precisa redefinir tudo que o claro redefine, senão o claro vazaria para o escuro
 const faltando = Object.keys(coordClaro).filter(k => !(k in coordEscuro));
 if (faltando.length) { console.log(`FALHA: tokens do .coord-app sem versão escura: ${faltando.join(', ')}`); process.exit(1); }
@@ -59,13 +61,13 @@ const paresCoord = [
     return [
       [`${t}-texto`, `${t}-fundo`, T], [`${t}-borda`, `${t}-fundo`, G], [`${t}-borda`, 'fundo-superficie', G], [`${t}-borda`, 'fundo-base', G],
       [`${t}-texto`, 'fundo-superficie', T], [`${t}-texto`, 'fundo-base', T],
-      [`${t}-fundo`, 'fundo-superficie', 1], [`foco-anel`, `${t}-fundo`, G],
+      [`foco-anel`, `${t}-fundo`, G], ['texto-principal', `${t}-fundo`, T], ['texto-secundario', `${t}-fundo`, T],
     ];
   }),
   // o "!" do octógono da prioridade crítica é desenhado com a cor da superfície sobre o preenchimento do selo
   ['fundo-superficie', 'prioridade-critica-texto', G],
   ['recorrencia-texto', 'recorrencia-fundo', T], ['recorrencia-borda', 'recorrencia-fundo', G], ['recorrencia-borda', 'fundo-base', G],
-  ['foco-anel', 'recorrencia-fundo', G],
+  ['foco-anel', 'recorrencia-fundo', G], ['texto-principal', 'recorrencia-fundo', T], ['texto-secundario', 'recorrencia-fundo', T],
   ['primaria-base', 'primaria-suave', T], ['texto-secundario', 'primaria-suave', T], ['texto-principal', 'primaria-suave', T],
   ['texto-sobre-primaria', 'primaria-base', T], ['texto-sobre-primaria', 'primaria-hover', T],
   ...['novo', 'em-investigacao', 'resolvido'].flatMap(s => [[`status-${s}`, 'fundo-superficie', G], [`status-${s}`, 'fundo-superficie-2', G], [`status-${s}`, 'fundo-base', G]]),
@@ -73,7 +75,7 @@ const paresCoord = [
   ['texto-secundario', 'fundo-superficie-2', T], ['texto-principal', 'fundo-superficie-2', T],
   ['borda-forte', 'fundo-superficie-2', G], ['borda-forte', 'fundo-superficie', G], ['borda-forte', 'fundo-base', G],
   ['primaria-base', 'fundo-superficie-2', T],
-].filter(([, , m]) => m !== 1);
+];
 
 const linhas = [];
 let falhas = 0;

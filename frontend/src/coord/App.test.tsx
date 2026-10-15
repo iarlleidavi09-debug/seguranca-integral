@@ -40,7 +40,9 @@ describe('Casca da coordenação', () => {
     for (const nome of [/Visão geral/, /Casos/, /Pós-resolução/, /Usuários/, /Ensaio/]) {
       expect(await screen.findByRole('button', { name: nome })).toBeInTheDocument();
     }
-    expect(nav).toBeInTheDocument();
+    expect(screen.getAllByRole('navigation')).toEqual([nav]);
+    expect(nav).toHaveAccessibleName('Principal');
+    expect(screen.queryByRole('complementary')).toBeNull();
     expect(screen.getByText('Marina')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Sair' })).toBeInTheDocument();
     expect(container.firstElementChild).toHaveClass('coord-app');
@@ -88,7 +90,7 @@ describe('Casca da coordenação', () => {
   it('mostra o contador de pendências com texto acessível', async () => {
     abrir(admin);
     expect(await screen.findByText('2 pendentes')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Pós-resolução/ })).toHaveTextContent('2 pendentes');
+    expect(screen.getByRole('button', { name: 'Pós-resolução 2 pendentes' })).toBeInTheDocument();
   });
 
   it('uma pendência fala no singular e zero some', async () => {

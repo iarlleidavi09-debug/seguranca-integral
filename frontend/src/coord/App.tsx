@@ -111,12 +111,12 @@ export default function App() {
   return <div className="coord-app">
     <a className="pular" href="#conteudo" onClick={e => { e.preventDefault(); main.current?.focus(); }}>Pular para o conteúdo</a>
     <div className="coord-layout">
-      <aside className="coord-lateral">
+      <div className="coord-lateral">
         <p className="marca">Segurança Integral <span>Coordenação</span></p>
         <Navegacao tela={tela} admin={admin} pendencias={pendencias} aoIr={ir} />
         <div className="sessao"><span className="sessao-nome">{sessao.nome}</span>
           <button type="button" className="botao secundario" onClick={() => void encerrar()}>Sair</button></div>
-      </aside>
+      </div>
       <div className="coord-coluna">
         <div className="coord-topo"><p><span className="ponto" aria-hidden="true" />Responsabilidade compartilhada</p></div>
         <main id="conteudo" ref={main} tabIndex={-1} className="painel">
