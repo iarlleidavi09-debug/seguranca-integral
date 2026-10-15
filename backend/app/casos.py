@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import unicodedata
 from datetime import datetime, timezone
 
 from .codes import gerar_codigo, hash_codigo, normalizar_codigo
@@ -143,6 +144,15 @@ def _bools(d: dict) -> dict:
 
 
 BUSCA_MAX = 100
+ID_MAX = 2**63 - 1  # maior inteiro que o SQLite aceita como parâmetro
+
+
+def _normalizar(texto) -> str:
+    """Minúsculas sem acento, para comparar busca e relato; None vira ''."""
+    if texto is None:
+        return ""
+    decomposto = unicodedata.normalize("NFKD", str(texto).casefold())
+    return "".join(c for c in decomposto if not unicodedata.combining(c))
 
 
 def _escapar_like(texto: str) -> str:
@@ -157,7 +167,7 @@ def listar_fila(conn: sqlite3.Connection, status: str | None = None,
 
     Os filtros chegam já validados pela rota; aqui só entram como parâmetro.
     `q` só com dígitos casa o número do caso ou o texto; senão, só o texto
-    do relato (sem diferenciar maiúsculas; `%`, `_` e a barra invertida valem como texto).
+    do relato (sem diferenciar maiúsculas nem acentos; `%`, `_` e a barra invertida valem como texto).
     """
     filtros, params = [], []
     for coluna, valor in (("c.status", status), ("c.prioridade", prioridade),
@@ -166,9 +176,11 @@ def listar_fila(conn: sqlite3.Connection, status: str | None = None,
             filtros.append(f"{coluna} = ?")
             params.append(valor)
     if q:
-        trecho = "LOWER(c.relato) LIKE ? ESCAPE '\\'"
-        padrao = f"%{_escapar_like(q.lower())}%"
-        if q.isascii() and q.isdigit():
+        # função local a esta chamada: o LOWER() do SQLite só cobre ASCII
+        conn.create_function("norm", 1, _normalizar, deterministic=True)
+        trecho = "norm(c.relato) LIKE ? ESCAPE '\\'"
+        padrao = f"%{_escapar_like(_normalizar(q))}%"
+        if q.isascii() and q.isdigit() and int(q) <= ID_MAX:
             filtros.append(f"(c.id = ? OR {trecho})")
             params.extend([int(q), padrao])
         else:

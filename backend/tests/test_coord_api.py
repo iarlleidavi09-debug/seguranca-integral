@@ -322,6 +322,24 @@ def test_busca_trata_curingas_como_texto(coord_logado, config):
     assert coord_logado.get("/api/casos?q=%27").status_code == 200
 
 
+def test_busca_so_digitos_enorme_nao_estoura(coord_logado, config):
+    caso_id, _ = _caso(config, relato="Relato qualquer")
+    assert coord_logado.get("/api/casos?q=" + "9" * 30).get_json() == {"casos": []}
+    assert _ids(coord_logado, "?q=" + "9" * 19) == []
+    achado, _ = _caso(config, relato="Protocolo 99999999999999999999 anotado")
+    assert _ids(coord_logado, "?q=99999999999999999999") == [achado]
+    assert _ids(coord_logado, f"?q={caso_id}") == [caso_id]
+
+
+def test_busca_ignora_maiusculas_e_acentos(coord_logado, config):
+    alvo, _ = _caso(config, relato="FOTOS ÍNTIMAS foram publicadas")
+    _caso(config, relato="Relato sem relação")
+    for q in ("intimas", "ÍNTIMAS", "íntimas", "Intimas"):
+        assert _ids(coord_logado, f"?q={q}") == [alvo], q
+    agua, _ = _caso(config, relato="Jogaram ÁGUA em mim")
+    assert _ids(coord_logado, "?q=água") == [agua]
+
+
 def test_busca_longa_demais_400(coord_logado):
     assert coord_logado.get("/api/casos?q=" + "a" * 100).status_code == 200
     r = coord_logado.get("/api/casos?q=" + "a" * 101)
