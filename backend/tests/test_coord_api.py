@@ -12,9 +12,10 @@ from app.db import connect
 from app.uploads import salvar_anexo
 
 from conftest import SENHA_COORD
+from imagens import gif, png
 
-PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 32
-GIF = b"GIF89a" + b"\x00" * 32
+PNG = png()
+GIF = gif()
 RELATO = "Um colega esta me xingando todos os dias no grupo da turma."
 ERRO_LOGIN = {"erro": "nome ou senha invalidos"}
 ERRO_404 = {"erro": "nao encontrado"}
@@ -418,6 +419,28 @@ def test_anexo_de_outro_caso_nao_e_servido_pelo_caso_errado(coord_logado, config
     assert r.get_json() == ERRO_404
     assert PNG not in r.get_data()
     assert coord_logado.get(f"/api/casos/{caso_a}/anexos/{anexo_a}").status_code == 200
+
+
+def test_foto_enviada_pelo_aluno_chega_sem_exif(coord_logado, config):
+    import io
+
+    from app import create_student_app
+    from imagens import jpeg, segmento_jpeg
+
+    sujo = jpeg([segmento_jpeg(0xE1, b"Exif\x00\x00GPSLatitude-23.55"),
+                 segmento_jpeg(0xFE, b"SECRET-CAMERA")])
+    aluno = create_student_app(config, limites={}).test_client()
+    r = aluno.post("/api/denuncias", data={
+        "tipo": "outro", "relato": RELATO, "anonimo": "true",
+        "anexos": (io.BytesIO(sujo), "foto.jpg"),
+    }, content_type="multipart/form-data")
+    assert r.status_code == 201
+    caso_id, anexo_id = _consulta(config, "SELECT caso_id, id FROM anexos")[0]
+    r = coord_logado.get(f"/api/casos/{caso_id}/anexos/{anexo_id}")
+    assert r.status_code == 200
+    servido = r.get_data()
+    assert b"GPSLatitude" not in servido and b"SECRET-CAMERA" not in servido
+    assert servido == jpeg()
 
 
 def test_anexo_servido_com_nosniff(coord_logado, config):

@@ -4,8 +4,9 @@ import pytest
 from app.casos import adicionar_mensagem, adicionar_nota, criar_caso
 from app.simulation import carregar_simulacao, remover_simulacao
 from app.uploads import salvar_anexo
+from imagens import png
 
-PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 32
+PNG = png()
 
 
 def _um(conn, sql, params=()):

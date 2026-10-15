@@ -101,10 +101,11 @@ def test_anexo_mantem_cache_control_e_disposition(coord_logado, config):
     from app.db import connect
     from app.uploads import salvar_anexo
 
-    png = (b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01"
-           b"\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\x9cc\xf8\x0f"
-           b"\x00\x00\x01\x01\x00\x05\x18\xd8N\x00\x00\x00\x00IEND\xaeB`\x82")
-    anexo = salvar_anexo(config, png)
+    from imagens import png
+
+    # o PNG escrito à mão que estava aqui tinha um byte a menos no IDAT; a
+    # limpeza de metadados agora recusa estrutura quebrada
+    anexo = salvar_anexo(config, png())
     conn = connect(config)
     try:
         casos.criar_caso(conn, config, {"tipo": "outro", "relato": "relato de teste"},

@@ -10,8 +10,9 @@ from app.backup import fazer_backup, limpar_antigos
 from app.casos import criar_caso
 from app.simulation import carregar_simulacao
 from app.uploads import salvar_anexo
+from imagens import png
 
-PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 32
+PNG = png()
 AGORA = datetime(2026, 10, 14, 3, 0, tzinfo=timezone.utc)
 
 
