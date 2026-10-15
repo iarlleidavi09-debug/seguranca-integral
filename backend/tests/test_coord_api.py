@@ -560,13 +560,8 @@ def test_sem_sessao_nenhum_metodo_devolve_dado_nem_altera(
     antes = _contagens(config)
     r = coord_client.open(caminho + barra, method=metodo, json={"texto": "x", "status": "novo"})
     corpo = r.get_data(as_text=True)
-    # 401 (sem sessão), 404/405 (rota inexistente ou método não aceito). A
-    # única exceção é o OPTIONS automático do Flask numa rota que não existe
-    # (barra final): 200, sem corpo e sem dado.
-    if metodo == "OPTIONS" and r.status_code == 200:
-        assert barra == "/" and corpo == ""
-    else:
-        assert r.status_code in (401, 404, 405), (metodo, caminho + barra, r.status_code)
+    # 401 (sem sessão), 404/405 (rota inexistente ou método não aceito); nunca 2xx
+    assert r.status_code in (401, 404, 405), (metodo, caminho + barra, r.status_code)
     assert RELATO not in corpo and "codigo_hash" not in corpo
     assert _contagens(config) == antes
     assert caso_id  # o caso continua lá
@@ -576,3 +571,11 @@ def test_options_com_sessao_nao_abre_brecha(coord_client, config):
     # OPTIONS passa pela portaria como qualquer método: sem sessão, 401
     assert coord_client.options("/api/casos").status_code == 401
     assert coord_client.head("/api/casos").status_code == 401
+
+
+def test_options_em_api_desconhecida_e_404_nos_dois_portais(coord_client, student_client):
+    for cliente in (coord_client, student_client):
+        for caminho in ("/api/nao-existe", "/api/nao-existe/", "/api/"):
+            r = cliente.options(caminho)
+            assert r.status_code == 404, (caminho, r.status_code)
+            assert r.get_json() == {"erro": "nao encontrado"}

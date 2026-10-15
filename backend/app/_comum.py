@@ -9,7 +9,7 @@ from flask import Blueprint, Flask, current_app, jsonify, request, send_from_dir
 
 from .security import aplicar_seguranca
 
-METODOS_API = ["GET", "POST", "PUT", "PATCH", "DELETE"]
+METODOS_API = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
 
 
 def configurar_app(app: Flask) -> None:
@@ -61,8 +61,12 @@ def registrar_rotas_finais(bp: Blueprint) -> None:
     não aceita rotas novas num blueprint que já foi registrado.
     """
 
-    @bp.route("/api/", defaults={"resto": ""})
-    @bp.route("/api/<path:resto>", methods=METODOS_API)
+    # OPTIONS entra de propósito e sem resposta automática do Flask: sem
+    # CORS ninguém precisa dele, e a rota desconhecida responde 404 a tudo
+    @bp.route("/api/", defaults={"resto": ""}, methods=METODOS_API,
+              provide_automatic_options=False)
+    @bp.route("/api/<path:resto>", methods=METODOS_API,
+              provide_automatic_options=False)
     def api_desconhecida(resto):
         return jsonify({"erro": "nao encontrado"}), 404
 
