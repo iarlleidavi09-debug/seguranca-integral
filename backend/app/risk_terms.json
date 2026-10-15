@@ -2,5 +2,6 @@
   "violencia": ["matar", "te pego", "vou te bater", "faca", "arma"],
   "automutilacao": ["me matar", "sumir", "suicidio", "me cortar"],
   "nudes": ["nude", "nudes", "foto intima", "vazar foto"],
-  "extorsao": ["pagar ou", "vou postar", "chantagem", "deposita"]
+  "extorsao": ["pagar ou", "vou postar", "chantagem", "deposita", "deposito"],
+  "urgencia": ["socorro", "urgente", "me ajuda", "preciso de ajuda", "ajuda urgente"]
 }

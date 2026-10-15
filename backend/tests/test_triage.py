@@ -102,3 +102,19 @@ def test_pesos_vazamento_perfil_falso_e_tipo_desconhecido(termos):
     assert classificar("vazamento", "", False, termos).pontos == 3
     assert classificar("perfil_falso", "", False, termos).pontos == 2
     assert classificar("inexistente", "", False, termos).pontos == 1
+
+
+@pytest.mark.parametrize("relato", [
+    "socorro", "isso e urgente", "por favor me ajuda", "preciso de ajuda agora",
+    "AJUDA URGENTE",
+])
+def test_pedido_de_ajuda_conta_como_urgencia(termos, relato):
+    r = classificar("outro", relato, False, termos)
+    assert "termos de risco: urgencia" in r.motivos
+    assert r.pontos == 1 + 3  # tipo "outro" + uma categoria
+
+
+def test_deposito_e_deposita_acionam_extorsao(termos):
+    for relato in ("ele mandou eu fazer um deposito", "deposita agora", "DEPÓSITO"):
+        r = classificar("outro", relato, False, termos)
+        assert "termos de risco: extorsao" in r.motivos, relato
