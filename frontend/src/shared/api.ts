@@ -54,18 +54,32 @@ export type Papel = 'admin' | 'coordenador';
 export type Usuario = { id: number; nome: string; papel: Papel };
 export type UsuarioLista = { id: number; nome: string; ativo: boolean; papel: Papel };
 export type EstadoSetup = { pendente: boolean; local: boolean };
+export type Prioridade = 'critica' | 'alta' | 'media' | 'baixa';
+export type StatusCaso = 'novo' | 'em_investigacao' | 'resolvido';
+export type Desfecho = 'solucionada' | 'intervencao_realizada';
+export type Situacao = 'melhorou' | 'voltou';
 export type CasoFila = {
-  id: number; tipo: string; gravidade: string; pontos: number; status: string;
+  id: number; tipo: string; prioridade: Prioridade; pontos: number; status: StatusCaso;
   em_andamento: boolean; anonimo: boolean; simulacao: boolean;
-  resumo: string; criado_em: string; atualizado_em: string;
+  resumo: string; motivos: string[]; recorrencia_pendente: boolean;
+  ultimo_acesso_por: string | null; ultimo_acesso_em: string | null;
+  criado_em: string; atualizado_em: string;
 };
+export type Resumo = { status: Record<StatusCaso, number>; prioridade: Record<Prioridade, number>; recorrencia_pendente: number };
+export type FiltrosFila = { status: string; prioridade: string; tipo: string; q: string };
 export type Evento = { id: number; tipo: string; usuario_id: number | null; usuario: string | null; detalhe: string; criado_em: string };
 export type Nota = { id: number; usuario_id: number; usuario: string | null; texto: string; criado_em: string };
 export type AnexoCaso = { id: number; tipo: string; tamanho: number };
-export type CasoDetalhe = Omit<CasoFila, 'resumo'> & {
+export type MensagemCoord = Mensagem & { usuario_id: number | null; usuario: string | null };
+export type Resolucao = { desfecho: Desfecho; providencias: string; resultado: string; usuario: string | null; criado_em: string };
+export type SituacaoInformada = { situacao: Situacao; criado_em: string };
+export type RevisaoRecorrencia = { usuario: string | null; criado_em: string };
+export type CasoDetalhe = Omit<CasoFila, 'resumo' | 'ultimo_acesso_por' | 'ultimo_acesso_em'> & {
   relato: string; quando: string | null; onde: string | null;
-  nome: string | null; turma: string | null; motivos: string[];
-  anexos: AnexoCaso[]; eventos: Evento[]; mensagens: Mensagem[]; notas: Nota[];
+  nome: string | null; turma: string | null; prioridade_original: Prioridade;
+  ultimo_acesso: { por: string | null; em: string } | null;
+  anexos: AnexoCaso[]; eventos: Evento[]; mensagens: MensagemCoord[]; notas: Nota[];
+  resolucoes: Resolucao[]; situacoes: SituacaoInformada[]; revisoes_recorrencia: RevisaoRecorrencia[];
 };
 
 export class ErroCoord extends ErroApi {
@@ -85,6 +99,7 @@ export function mensagemErroCoord(erro: unknown): string {
     case 0: return 'Não foi possível conectar. Confira a conexão e tente de novo.';
     case 400: return 'Confira os dados e tente de novo.';
     case 404: return 'Não encontrado. Pode ter sido removido.';
+    case 409: return 'O caso mudou enquanto você trabalhava. Atualize e confira o estado.';
     case 429: return 'Muitas tentativas. Aguarde alguns minutos e tente de novo.';
     case 503: return 'Servidor ocupado, tente de novo.';
     default: return 'Não foi possível concluir agora. Tente de novo.';
@@ -122,16 +137,20 @@ export const sair = () => coord<{ ok: boolean }>('POST', '/api/logout');
 export const estadoSetup = () => coord<EstadoSetup>('GET', '/api/setup');
 export const criarPrimeiroAdmin = (nome: string, senha: string) => coord<{ nome: string }>('POST', '/api/setup', { nome, senha });
 export const quemSou = () => coord<Usuario>('GET', '/api/eu');
-export async function listarCasos(status: string, tipo: string, sinal?: AbortSignal): Promise<CasoFila[]> {
+export async function listarCasos(filtros: FiltrosFila, sinal?: AbortSignal): Promise<CasoFila[]> {
   const consulta = new URLSearchParams();
-  if (status) consulta.set('status', status);
-  if (tipo) consulta.set('tipo', tipo);
+  for (const [chave, valor] of Object.entries(filtros)) if (valor) consulta.set(chave, valor);
   const texto = consulta.toString();
   return (await coord<{ casos: CasoFila[] }>('GET', `/api/casos${texto ? `?${texto}` : ''}`, undefined, sinal)).casos;
 }
+export const obterResumo = (sinal?: AbortSignal) => coord<Resumo>('GET', '/api/resumo', undefined, sinal);
 export const detalheCaso = (casoId: number, sinal?: AbortSignal) => coord<CasoDetalhe>('GET', `/api/casos/${id(casoId)}`, undefined, sinal);
-export const mudarStatus = (casoId: number, status: string) => coord<{ ok: boolean }>('POST', `/api/casos/${id(casoId)}/status`, { status });
-export const mudarGravidade = (casoId: number, gravidade: string) => coord<{ ok: boolean }>('POST', `/api/casos/${id(casoId)}/gravidade`, { gravidade });
+export const mudarStatus = (casoId: number, status: 'novo' | 'em_investigacao') => coord<{ ok: boolean }>('POST', `/api/casos/${id(casoId)}/status`, { status });
+export const mudarPrioridade = (casoId: number, prioridade: Prioridade, justificativa: string) =>
+  coord<{ ok: boolean }>('POST', `/api/casos/${id(casoId)}/prioridade`, { prioridade, justificativa });
+export const registrarResolucao = (casoId: number, dados: { desfecho: Desfecho; providencias: string; resultado: string }) =>
+  coord<{ ok: boolean }>('POST', `/api/casos/${id(casoId)}/resolucao`, dados);
+export const revisarRecorrencia = (casoId: number) => coord<{ ok: boolean }>('POST', `/api/casos/${id(casoId)}/revisao-recorrencia`, {});
 export const enviarMensagemAoAluno = (casoId: number, texto: string) => coord<{ ok: boolean }>('POST', `/api/casos/${id(casoId)}/mensagens`, { texto });
 export const criarNota = (casoId: number, texto: string) => coord<{ ok: boolean }>('POST', `/api/casos/${id(casoId)}/notas`, { texto });
 export async function listarUsuarios(sinal?: AbortSignal): Promise<UsuarioLista[]> {

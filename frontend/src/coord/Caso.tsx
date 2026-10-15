@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import {
-  criarNota, detalheCaso, enviarMensagemAoAluno, ErroApi, mensagemErroCoord, mudarGravidade, mudarStatus, urlAnexo,
+  criarNota, detalheCaso, enviarMensagemAoAluno, ErroApi, mensagemErroCoord, mudarStatus, urlAnexo,
 } from '../shared/api';
 import type { CasoDetalhe } from '../shared/api';
 import {
-  Gravidade, GRAVIDADES, Simulacao, STATUS, Status, dataLegivel, descricaoEvento, motivo, rotuloGravidade, rotuloStatus, tipo as rotuloDoTipo,
+  Prioridade, Simulacao, STATUS, Status, dataLegivel, descricaoEvento, motivo, rotuloStatus, tipo as rotuloDoTipo,
 } from './rotulos';
 
 type Aba = 'mensagens' | 'notas';
@@ -146,21 +146,17 @@ export default function Caso({ id, aoVoltar, abaInicial = 'mensagens', anexoInic
     <button type="button" className="botao-texto" onClick={aoVoltar}>Voltar à fila</button>
     <div className="caso-topo">
       <h1 id="titulo-caso" ref={titulo} tabIndex={-1}>Caso {caso.id}: {rotuloDoTipo(caso.tipo)}</h1>
-      <p className="caso-selos"><Gravidade valor={caso.gravidade} /><Status valor={caso.status} />
+      <p className="caso-selos"><Prioridade valor={caso.prioridade} /><Status valor={caso.status} />
         {caso.simulacao && <Simulacao />}{caso.em_andamento && <span className="selo-neutro">Ocorrendo agora</span>}</p>
       <p className="texto-pequeno">Recebido em {dataLegivel(caso.criado_em)}. {caso.anonimo ? 'Denúncia anônima.' : `Identificado: ${caso.nome ?? 'sem nome'}${caso.turma ? `, turma ${caso.turma}` : ''}.`}</p>
     </div>
     <div className="seletores">
       <div><label htmlFor="caso-status">Status</label>
         <select id="caso-status" value={caso.status} aria-busy={ocupado}
-          onChange={e => void agir(() => mudarStatus(id, e.target.value), `Status alterado para ${rotuloStatus[e.target.value] ?? e.target.value}.`)}>
-          {STATUS.map(s => <option key={s} value={s}>{rotuloStatus[s]}</option>)}
+          onChange={e => void agir(() => mudarStatus(id, e.target.value as 'novo' | 'em_investigacao'), `Status alterado para ${rotuloStatus[e.target.value] ?? e.target.value}.`)}>
+          {STATUS.filter(s => s !== 'resolvido' || caso.status === 'resolvido').map(s => <option key={s} value={s}>{rotuloStatus[s]}</option>)}
         </select></div>
-      <div><label htmlFor="caso-gravidade">Gravidade</label>
-        <select id="caso-gravidade" value={caso.gravidade} aria-busy={ocupado}
-          onChange={e => void agir(() => mudarGravidade(id, e.target.value), `Gravidade alterada para ${rotuloGravidade[e.target.value] ?? e.target.value}.`)}>
-          {GRAVIDADES.map(g => <option key={g} value={g}>{rotuloGravidade[g]}</option>)}
-        </select></div>
+      {/* reavaliação de prioridade com justificativa: refeito na Task 5 */}
     </div>
     <div aria-live="polite" role="status" className="resultado-acao">{aviso}</div>
     {erro && <p className="erro" role="alert">{erro}</p>}

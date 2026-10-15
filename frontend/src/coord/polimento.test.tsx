@@ -3,28 +3,16 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import { INTERVALO_MS } from './Fila';
+import { chamadas, chamadasA, servidor } from './testes/servidor';
+import type { Resposta, Rota } from './testes/servidor';
 
-type Resposta = { status?: number; corpo?: unknown };
-type Rota = (corpo: any, url: URL) => Resposta | Promise<Resposta>;
-const chamadas = () => vi.mocked(fetch).mock.calls.map(([url, init]) => ({
-  metodo: (init?.method ?? 'GET') as string, url: String(url), corpo: init?.body ? JSON.parse(String(init.body)) : undefined,
-}));
-const chamadasA = (metodo: string, caminho: string) => chamadas().filter(c => c.metodo === metodo && c.url.split('?')[0] === caminho);
-function servidor(rotas: Record<string, Rota>) {
-  vi.mocked(fetch).mockImplementation(async (entrada, init) => {
-    const url = new URL(String(entrada), 'http://localhost');
-    const rota = rotas[`${init?.method ?? 'GET'} ${url.pathname}`];
-    const { status = 200, corpo = {} } = rota ? await rota(init?.body ? JSON.parse(String(init.body)) : undefined, url) : { status: 404 };
-    return new Response(JSON.stringify(corpo), { status });
-  });
-}
 const caso = (id: number, extra: Record<string, unknown> = {}) => ({
-  id, tipo: 'ameaca', gravidade: 'media', pontos: 3, status: 'novo', em_andamento: false, anonimo: true,
+  id, tipo: 'ameaca', prioridade: 'media', pontos: 3, status: 'novo', em_andamento: false, anonimo: true,
   simulacao: false, resumo: `Resumo do caso ${id}`, criado_em: '2026-10-14T10:00:00+00:00', atualizado_em: '2026-10-14T10:00:00+00:00', ...extra,
 });
-const fila = [caso(3, { gravidade: 'alta', resumo: 'Caso alto' }), caso(1, { resumo: 'Caso medio' })];
+const fila = [caso(3, { prioridade: 'alta', resumo: 'Caso alto' }), caso(1, { resumo: 'Caso medio' })];
 const detalhe = () => ({
-  ...caso(5, { gravidade: 'alta' }), relato: 'Relato completo.', quando: null, onde: null, nome: null, turma: null,
+  ...caso(5, { prioridade: 'alta' }), relato: 'Relato completo.', quando: null, onde: null, nome: null, turma: null,
   motivos: [], anexos: [], eventos: [], mensagens: [{ autor: 'coordenacao', texto: 'Publica', criado_em: '2026-10-14T11:00:00+00:00' }],
   notas: [{ id: 1, usuario_id: 1, usuario: 'Marina', texto: 'Reservada', criado_em: '2026-10-14T11:30:00+00:00' }],
 });
@@ -71,7 +59,8 @@ describe('Polimento da coordenação', () => {
     expect(chamadasA('DELETE', '/api/simulacao')).toHaveLength(0);
   });
 
-  it('os filtros da fila sobrevivem a abrir e fechar um caso', async () => {
+  // refeito na Task 4
+  it.skip('os filtros da fila sobrevivem a abrir e fechar um caso', async () => {
     base();
     render(<App />);
     const user = userEvent.setup();

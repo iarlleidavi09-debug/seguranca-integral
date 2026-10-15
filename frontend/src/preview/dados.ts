@@ -2,15 +2,16 @@ import type { CasoDetalhe, UsuarioLista } from '../shared/api';
 
 const data = '2026-10-14T15:00:00Z';
 export const casoExemplo: CasoDetalhe = {
-  id: 1, tipo: 'perfil_falso', gravidade: 'media', pontos: 3, status: 'em_analise',
+  id: 1, tipo: 'perfil_falso', prioridade: 'media', prioridade_original: 'media', pontos: 3, status: 'em_investigacao',
+  recorrencia_pendente: false, ultimo_acesso: null, resolucoes: [], situacoes: [], revisoes_recorrencia: [],
   em_andamento: false, anonimo: true, simulacao: true,
   criado_em: data, atualizado_em: data, relato: 'Exemplo fictício para avaliar a interface: encontrei um perfil usando meu nome e gostaria de conversar com a escola.',
   quando: 'Hoje', onde: 'Rede social', nome: null, turma: null,
   motivos: ['tipo: perfil_falso'], anexos: [{ id: 1, tipo: 'image/svg+xml', tamanho: 1000 }],
-  eventos: [{ id: 1, tipo: 'criado', usuario_id: null, usuario: null, detalhe: 'gravidade media', criado_em: data }],
+  eventos: [{ id: 1, tipo: 'criado', usuario_id: null, usuario: null, detalhe: 'prioridade media', criado_em: data }],
   mensagens: [
-    { autor: 'aluno', texto: 'Esta é uma conversa fictícia para visualizar a tela.', criado_em: data },
-    { autor: 'coordenacao', texto: 'Estamos aqui para te ouvir. Podemos conversar sobre o que aconteceu?', criado_em: data },
+    { autor: 'aluno', texto: 'Esta é uma conversa fictícia para visualizar a tela.', criado_em: data, usuario_id: null, usuario: null },
+    { autor: 'coordenacao', texto: 'Estamos aqui para te ouvir. Podemos conversar sobre o que aconteceu?', criado_em: data, usuario_id: 1, usuario: 'Equipe de exemplo' },
   ],
   notas: [{ id: 1, usuario_id: 1, usuario: 'Equipe de exemplo', texto: 'Nota fictícia para avaliar a organização das informações.', criado_em: data }],
 };
@@ -31,20 +32,20 @@ export function instalarDadosDePrevia() {
     if (url === '/api/denuncias') return resposta({ codigo: 'PREVIA-001' });
     if (url === '/api/acompanhar') return resposta({ status: caso.status, mensagens: caso.mensagens });
     if (url === '/api/acompanhar/mensagens') {
-      caso.mensagens.push({ autor: 'aluno', texto: corpo.texto, criado_em: new Date().toISOString() });
+      caso.mensagens.push({ autor: 'aluno', texto: corpo.texto, criado_em: new Date().toISOString(), usuario_id: null, usuario: null });
       return resposta({ ok: true });
     }
     if (url === '/api/casos') {
       const consulta = new URLSearchParams(caminho.split('?')[1]);
       const mostrar = simulacao && (!consulta.get('status') || consulta.get('status') === caso.status) && (!consulta.get('tipo') || consulta.get('tipo') === caso.tipo);
-      return resposta({ casos: mostrar ? [{ ...caso, resumo: caso.relato }] : [] });
+      return resposta({ casos: mostrar ? [{ ...caso, resumo: caso.relato, ultimo_acesso_por: null, ultimo_acesso_em: null }] : [] });
     }
     if (url === '/api/casos/1') return resposta(caso);
     if (url === '/api/casos/1/anexos/1') return new Response(null, { status: 404 });
     if (url === '/api/casos/1/status') { caso.status = corpo.status; return resposta({ ok: true }); }
-    if (url === '/api/casos/1/gravidade') { caso.gravidade = corpo.gravidade; return resposta({ ok: true }); }
+    if (url === '/api/casos/1/prioridade') { caso.prioridade = corpo.prioridade; return resposta({ ok: true }); }
     if (url === '/api/casos/1/mensagens') {
-      caso.mensagens.push({ autor: 'coordenacao', texto: corpo.texto, criado_em: new Date().toISOString() });
+      caso.mensagens.push({ autor: 'coordenacao', texto: corpo.texto, criado_em: new Date().toISOString(), usuario_id: 1, usuario: 'Equipe de exemplo' });
       return resposta({ ok: true });
     }
     if (url === '/api/casos/1/notas') {

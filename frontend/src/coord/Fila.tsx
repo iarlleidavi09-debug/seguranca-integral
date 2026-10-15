@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { listarCasos, mensagemErroCoord, ErroApi } from '../shared/api';
 import type { CasoFila } from '../shared/api';
-import { Gravidade, GRAVIDADES, Simulacao, STATUS, Status, TIPOS, dataLegivel, rotuloStatus, tipo as rotuloDoTipo } from './rotulos';
+import { Prioridade, PRIORIDADES, Simulacao, STATUS, Status, TIPOS, dataLegivel, rotuloStatus, tipo as rotuloDoTipo } from './rotulos';
 
 export const INTERVALO_MS = 8000;
-const ordem = (g: string) => { const i = GRAVIDADES.indexOf(g as never); return i < 0 ? GRAVIDADES.length : i; };
+const ordem = (g: string) => { const i = PRIORIDADES.indexOf(g as never); return i < 0 ? PRIORIDADES.length : i; };
 
 export type Filtros = { status: string; tipo: string };
 
@@ -30,10 +30,10 @@ export default function Fila({ aoAbrir, filtros, aoFiltrar }: { aoAbrir: (id: nu
       if (emCurso) return;
       emCurso = true;
       try {
-        const recebidos = await listarCasos(filtroStatus, filtroTipo, controle.signal);
+        const recebidos = await listarCasos({ status: filtroStatus, prioridade: '', tipo: filtroTipo, q: '' }, controle.signal);
         if (!ativo) return;
         // a API já ordena; a ordenação estável aqui só garante alta, média e baixa
-        const ordenados = [...recebidos].sort((a, b) => ordem(a.gravidade) - ordem(b.gravidade));
+        const ordenados = [...recebidos].sort((a, b) => ordem(a.prioridade) - ordem(b.prioridade));
         const anteriores = vistos.current;
         const novos = anteriores ? ordenados.filter(c => !anteriores.has(c.id)).length : 0;
         vistos.current = new Set(ordenados.map(c => c.id));
@@ -77,9 +77,9 @@ export default function Fila({ aoAbrir, filtros, aoFiltrar }: { aoAbrir: (id: nu
     {casos === null && !erro && <p className="vazio">Carregando a fila.</p>}
     {casos !== null && casos.length === 0 && <p className="vazio">{filtrando ? 'Nenhum caso com esses filtros.' : 'Nenhum caso na fila.'}</p>}
     {casos !== null && casos.length > 0 && <ul className="fila">
-      {casos.map(c => <li key={c.id} className="fila-item" data-gravidade={c.gravidade}>
+      {casos.map(c => <li key={c.id} className="fila-item" data-gravidade={c.prioridade}>
         <button type="button" className="fila-linha" onClick={() => aoAbrir(c.id)}>
-          <span className="fila-gravidade"><Gravidade valor={c.gravidade} /></span>
+          <span className="fila-gravidade"><Prioridade valor={c.prioridade} /></span>
           <span className="fila-tipo"><strong>{rotuloDoTipo(c.tipo)}</strong>
             {c.em_andamento && <span className="selo-neutro">Ocorrendo agora</span>}
             {c.simulacao && <Simulacao />}</span>
