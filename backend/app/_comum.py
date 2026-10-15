@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import sqlite3
 from pathlib import Path
 
@@ -10,6 +11,16 @@ from flask import Blueprint, Flask, current_app, jsonify, request, send_from_dir
 from .security import aplicar_seguranca
 
 METODOS_API = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+_NUMEROS = re.compile(r"\d+")
+
+
+def caminho_para_log(req) -> str:
+    """Caminho sem identificadores: o padrão da rota (/api/casos/<int:caso_id>)
+    quando ela é específica; senão o caminho com números trocados por :id."""
+    regra = req.url_rule.rule if req.url_rule is not None else None
+    if regra is not None and "<path:" not in regra:
+        return regra
+    return _NUMEROS.sub(":id", req.path)
 
 
 def configurar_app(app: Flask) -> None:
@@ -22,8 +33,9 @@ def configurar_app(app: Flask) -> None:
 
     @app.after_request
     def registrar_acesso(resposta):
-        # só método, caminho e status: sem IP, query string nem corpo
-        acesso.info("%s %s %s", request.method, request.path, resposta.status_code)
+        # só método, rota e status: sem IP, query string, corpo nem id de caso
+        acesso.info("%s %s %s", request.method, caminho_para_log(request),
+                    resposta.status_code)
         return resposta
 
     @app.errorhandler(405)

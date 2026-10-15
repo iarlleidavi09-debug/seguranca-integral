@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import logging.handlers
 import re
 import signal
 import sqlite3
@@ -129,6 +130,53 @@ class _LogSemEndereco:
             self._logger.error("%s", linha)
         finally:
             self._emitindo = False
+
+
+class _FormatoSemEndereco(logging.Formatter):
+    """Formata o registro inteiro (com traceback) e filtra linha a linha."""
+
+    def format(self, registro: logging.LogRecord) -> str:
+        texto = super().format(registro)
+        return "\n".join(_sem_endereco(linha) for linha in texto.split("\n"))
+
+
+FORMATO_LOG = "%(asctime)s %(levelname)s %(name)s: %(message)s"
+LOG_MAX_BYTES = 1_000_000
+LOG_BACKUPS = 5
+
+
+def _configurar_log(config: Config) -> list[logging.Handler]:
+    """Log em data_dir/logs/servidor.log (rotativo) e, num terminal, na tela.
+
+    A pasta fica dentro de data_dir e herda a mesma permissão (só SYSTEM e
+    Administradores). Se o arquivo não puder ser aberto, o servidor sobe
+    mesmo assim. Devolve os handlers postos no logger raiz, para tirar.
+    """
+    formato = _FormatoSemEndereco(FORMATO_LOG)
+    handlers: list[logging.Handler] = []
+    try:
+        pasta = config.data_dir / "logs"
+        pasta.mkdir(exist_ok=True)
+        arquivo = logging.handlers.RotatingFileHandler(
+            pasta / "servidor.log", maxBytes=LOG_MAX_BYTES,
+            backupCount=LOG_BACKUPS, encoding="utf-8")
+    except OSError as erro:
+        if sys.stderr is not None:
+            print(f"Aviso: sem log em arquivo ({_sem_endereco(str(erro))})",
+                  file=sys.stderr)
+    else:
+        arquivo.setFormatter(formato)
+        handlers.append(arquivo)
+    # na tarefa agendada não há terminal: a tela só serve rodando à mão
+    if sys.stderr is not None and sys.stderr.isatty():
+        console = logging.StreamHandler(sys.stderr)
+        console.setFormatter(formato)
+        handlers.append(console)
+    raiz = logging.getLogger()
+    raiz.setLevel(logging.INFO)
+    for handler in handlers:
+        raiz.addHandler(handler)
+    return handlers
 
 
 # --- backup diário ---------------------------------------------------------
@@ -305,10 +353,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.redefinir_senha:
         return _redefinir_senha(config)
 
-    # não faz nada se o logging já foi configurado por quem chamou; o
-    # handler criado aqui guarda o stderr original, antes da troca abaixo
-    logging.basicConfig(level=logging.INFO,
-                        format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    # o handler de tela criado aqui guarda o stderr original, antes da troca
+    handlers = _configurar_log(config)
     # o gevent ainda usa traceback.print_exc() direto no sys.stderr
     # (pywsgi, _handle_client_error); passa pelo mesmo filtro de endereços
     stderr_original = sys.stderr
@@ -324,6 +370,10 @@ def main(argv: list[str] | None = None) -> int:
     finally:
         filtro_stderr.flush()
         sys.stderr = stderr_original
+        raiz = logging.getLogger()
+        for handler in handlers:
+            raiz.removeHandler(handler)
+            handler.close()
     return 0
 
 

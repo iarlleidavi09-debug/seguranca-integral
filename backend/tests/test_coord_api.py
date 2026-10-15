@@ -642,3 +642,23 @@ def test_chave_da_sessao_nao_depende_da_secret_key(config):
     a = create_coord_app(config, limites={})
     b = create_coord_app(replace(config, secret_key="outra"), limites={})
     assert a.secret_key == b.secret_key
+
+
+def test_log_de_acesso_nao_tem_id_de_caso(coord_logado, config, caplog):
+    import logging
+
+    caso_id, _ = _caso(config)
+    caplog.set_level(logging.INFO, logger="seguranca.acesso")
+    numero = 900000 + caso_id  # número único, fácil de achar no texto
+    coord_logado.get(f"/api/casos/{caso_id}")
+    coord_logado.get(f"/api/casos/{numero}")
+    coord_logado.get(f"/api/desconhecida/{numero}/x")
+    coord_logado.get(f"/painel/{numero}")
+    acessos = [r.getMessage() for r in caplog.records if r.name == "seguranca.acesso"]
+    assert "GET /api/casos/<int:caso_id> 200" in acessos
+    assert "GET /api/casos/<int:caso_id> 404" in acessos
+    assert "GET /api/desconhecida/:id/x 404" in acessos
+    assert any(a.startswith("GET /painel/:id ") for a in acessos)
+    for a in acessos:
+        assert str(numero) not in a
+        assert f"/{caso_id} " not in a and f"/{caso_id}/" not in a

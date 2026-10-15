@@ -435,3 +435,95 @@ def test_backup_da_partida_so_se_o_de_hoje_nao_existe(tmp_path, monkeypatch):
     assert len(limpezas) == 2  # a limpeza dos antigos roda sempre
     server._backup_e_limpeza(config, agora)
     assert len(feitos) == 2  # a rotina de 24 h refaz sempre
+
+
+# --- log em arquivo com rotação ---------------------------------------------
+
+def _tirar_handlers(handlers):
+    raiz = logging.getLogger()
+    for h in handlers:
+        raiz.removeHandler(h)
+        h.close()
+
+
+def test_log_em_arquivo_sem_endereco_nem_id_de_caso(tmp_path):
+    import logging.handlers
+
+    config = Config(data_dir=tmp_path, secret_key="chave-de-teste",
+                    student_port=0, coord_port=0)
+    handlers = server._configurar_log(config)
+    try:
+        arquivos = [h for h in handlers
+                    if isinstance(h, logging.handlers.RotatingFileHandler)]
+        assert len(arquivos) == 1
+        assert arquivos[0].maxBytes == 1_000_000 and arquivos[0].backupCount == 5
+        parar = threading.Event()
+        portas: queue.Queue = queue.Queue()
+        t = threading.Thread(target=server.servir, args=(config, parar),
+                             kwargs={"ao_iniciar": lambda a, c: portas.put((a, c))},
+                             daemon=True)
+        t.start()
+        try:
+            aluno, coord = portas.get(timeout=15)
+            cab = {"CF-Connecting-IP": "203.0.113.77",
+                   "X-Forwarded-For": "198.51.100.23, 2001:db8::7"}
+            assert _pedir(aluno, "GET", "/api/saude", cabecalhos=cab)[0] == 200
+            assert _pedir(coord, "GET", "/api/casos/777123", cabecalhos=cab)[0] == 401
+            # requisição malformada: o gevent registra o endereço do cliente
+            with socket.create_connection(("127.0.0.1", aluno), timeout=10) as s:
+                s.sendall(b"POST / HTTP/1.1\r\nHost: x\r\nContent-Length: abc\r\n\r\n")
+                s.recv(1024)
+            time.sleep(0.3)
+        finally:
+            parar.set()
+            t.join(15)
+    finally:
+        _tirar_handlers(handlers)
+    texto = (tmp_path / "logs" / "servidor.log").read_text(encoding="utf-8")
+    assert "GET /api/saude 200" in texto
+    assert "GET /api/casos/<int:caso_id> 401" in texto
+    assert "Invalid" in texto or "invalid" in texto or "[endereco]" in texto
+    for proibido in ("127.0.0.1", "203.0.113.77", "198.51.100.23", "2001:db8",
+                     "777123"):
+        assert proibido not in texto
+
+
+def test_log_em_arquivo_indisponivel_nao_impede_a_partida(tmp_path, monkeypatch, capsys):
+    (tmp_path / "logs").write_text("ocupa o lugar da pasta", encoding="utf-8")
+    chamadas = []
+    monkeypatch.setattr(server, "servir",
+                        lambda config, parar=None, **k: chamadas.append(config))
+    antes = list(logging.getLogger().handlers)
+    assert server.main(["--data-dir", str(tmp_path)]) == 0
+    assert len(chamadas) == 1
+    assert "log em arquivo" in capsys.readouterr().err
+    assert logging.getLogger().handlers == antes
+
+
+def test_main_cria_o_log_e_devolve_os_handlers(tmp_path, monkeypatch):
+    antes = list(logging.getLogger().handlers)
+
+    def servir_falso(config, parar=None, **k):
+        logging.getLogger("seguranca.teste").warning("linha de teste 10.1.2.3")
+
+    monkeypatch.setattr(server, "servir", servir_falso)
+    assert server.main(["--data-dir", str(tmp_path)]) == 0
+    assert logging.getLogger().handlers == antes  # nada vaza para outros testes
+    texto = (tmp_path / "logs" / "servidor.log").read_text(encoding="utf-8")
+    assert "linha de teste [endereco]" in texto
+    assert "10.1.2.3" not in texto
+
+
+def test_traceback_no_arquivo_passa_pelo_filtro(tmp_path):
+    config = Config(data_dir=tmp_path, secret_key="k")
+    handlers = server._configurar_log(config)
+    try:
+        try:
+            raise OSError("conexao de 192.0.2.44 caiu")
+        except OSError:
+            logging.getLogger("seguranca.teste").exception("falhou")
+    finally:
+        _tirar_handlers(handlers)
+    texto = (tmp_path / "logs" / "servidor.log").read_text(encoding="utf-8")
+    assert "falhou" in texto and "OSError" in texto
+    assert "192.0.2.44" not in texto
