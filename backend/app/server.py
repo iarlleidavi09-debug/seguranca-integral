@@ -32,7 +32,7 @@ from gevent.pywsgi import WSGIServer
 
 from . import create_coord_app, create_student_app
 from .auth import criar_usuario, gerar_senha_inicial, redefinir_senha
-from .backup import fazer_backup, limpar_antigos
+from .backup import fazer_backup, limpar_antigos, pasta_do_dia
 from .config import Config, load_config, trocar_chave_de_sessao
 from .db import connect, init_db
 
@@ -133,16 +133,21 @@ class _LogSemEndereco:
 
 # --- backup diário ---------------------------------------------------------
 
-def _backup_e_limpeza(config: Config, agora: datetime) -> None:
-    fazer_backup(config, agora)
+def _backup_e_limpeza(config: Config, agora: datetime,
+                      so_se_faltar: bool = False) -> None:
+    # na partida não refaz o backup do dia: reinícios seguidos (a tarefa
+    # relança a cada 5 minutos) não ficam copiando tudo de novo
+    if not (so_se_faltar and pasta_do_dia(config, agora).exists()):
+        fazer_backup(config, agora)
     limpar_antigos(config, agora)
 
 
-def _backup_uma_vez(config: Config) -> None:
+def _backup_uma_vez(config: Config, so_se_faltar: bool = False) -> None:
     agora = datetime.now(timezone.utc)
     try:
         # cópia de arquivos bloqueia; no threadpool os portais seguem atendendo
-        gevent.get_hub().threadpool.apply(_backup_e_limpeza, (config, agora))
+        gevent.get_hub().threadpool.apply(_backup_e_limpeza,
+                                          (config, agora, so_se_faltar))
     except Exception:
         log.exception("falha no backup diario")
     else:
@@ -150,10 +155,11 @@ def _backup_uma_vez(config: Config) -> None:
 
 
 def _rotina_backup(config: Config) -> None:
-    """Um backup na partida e depois um a cada 24 horas."""
+    """Backup na partida (se ainda não há o de hoje) e depois a cada 24 horas."""
+    _backup_uma_vez(config, so_se_faltar=True)
     while True:
-        _backup_uma_vez(config)
         gevent.sleep(INTERVALO_BACKUP)
+        _backup_uma_vez(config)
 
 
 # --- servidor ----------------------------------------------------------------

@@ -418,3 +418,20 @@ def test_sem_aviso_com_allowed_hosts(tmp_path, caplog):
     with caplog.at_level(logging.INFO, logger="seguranca.servidor"):
         _subir_e_parar(config)
     assert not [r for r in caplog.records if r.levelno >= logging.WARNING]
+
+
+def test_backup_da_partida_so_se_o_de_hoje_nao_existe(tmp_path, monkeypatch):
+    feitos, limpezas = [], []
+    monkeypatch.setattr(server, "fazer_backup", lambda c, a: feitos.append(a))
+    monkeypatch.setattr(server, "limpar_antigos", lambda c, a: limpezas.append(a))
+    config = Config(data_dir=tmp_path, secret_key="k")
+    agora = datetime(2026, 10, 14, 12, 0, tzinfo=timezone.utc)
+
+    server._backup_e_limpeza(config, agora, so_se_faltar=True)
+    assert len(feitos) == 1  # não havia backup de hoje
+    (config.backups_dir / "2026-10-14").mkdir(parents=True)
+    server._backup_e_limpeza(config, agora, so_se_faltar=True)
+    assert len(feitos) == 1  # já existe: a partida não refaz
+    assert len(limpezas) == 2  # a limpeza dos antigos roda sempre
+    server._backup_e_limpeza(config, agora)
+    assert len(feitos) == 2  # a rotina de 24 h refaz sempre
