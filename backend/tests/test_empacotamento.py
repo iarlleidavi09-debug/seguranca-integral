@@ -311,9 +311,12 @@ def test_leia_me_cobre_recuperacao_chave_limites_e_instalacao_silenciosa():
     # ACL do secret.key: instalar antes de abrir o programa
     assert "rode o instalador antes de abrir o programa" in texto
     assert "icacls" in texto
-    # limites só para ensaio, com o formato [máximo, janela]
-    assert "SOMENTE PARA ENSAIO" in texto
-    assert '"limites"' in texto and '"denuncias": [500, 600]' in texto
+    # limites: a escola inteira é uma origem; envio sem limite por padrão
+    assert "SOMENTE PARA ENSAIO" not in texto
+    assert "MESMO endereço público" in texto
+    assert '"limites"' in texto and '"denuncias": [300, 600]' in texto
+    assert '"consultas": [1500, 600]' in texto
+    assert "spam" in texto
     # instalação silenciosa
     assert "/VERYSILENT" in texto
     assert "--criar-admin" in texto
