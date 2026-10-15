@@ -230,7 +230,6 @@ select:disabled { background: var(--desabilitado-fundo); color: var(--desabilita
 .caso-resumo .motivos { flex-direction: column; align-items: flex-start; }
 .resumo-prioridade { margin: var(--espaco-3) 0 0; color: var(--texto-secundario); }
 .resumo-prioridade b { color: var(--texto-principal); }
-.caso-principal > h2:first-child { margin-top: var(--espaco-4); }
 .painel-aba { margin-top: var(--espaco-2); }
 .texto-livre { white-space: pre-wrap; background: var(--fundo-superficie); border: var(--linha-fina) solid var(--borda-suave); border-radius: var(--raio-md); padding: var(--espaco-4); }
 .detalhes { display: grid; grid-template-columns: auto 1fr; gap: var(--espaco-1) var(--espaco-4); margin: var(--espaco-3) 0 0; }

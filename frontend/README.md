@@ -35,6 +35,37 @@ npm run dev:coord
 
 O build gera `../backend/app/static/coordenacao/index.html`. `npm test` roda as suítes dos dois portais, sem navegador. A verificação em Chrome real da coordenação é `verificacao/coordenacao.mjs` (precisa de `SI_COORD_URL` e `SI_COORD_SENHA`).
 
+### Telas e endereços
+
+A casca tem navegação lateral (barra superior rolável abaixo de 760 px). O endereço guarda só o número do caso, nunca texto de caso nem nome de pessoa.
+
+| Tela | Endereço | Observação |
+| --- | --- | --- |
+| Visão geral | `/coordenacao.html` | Contagens por status e prioridade, casos que pedem atenção e atalhos para Casos já filtrados |
+| Casos | `#casos` | Busca (até 100 caracteres) e filtros de status, prioridade e tipo; mostra motivos e último acesso |
+| Pós-resolução | `#pos-resolucao` | Casos resolvidos; os com recorrência pendente ganham destaque e entram no contador da navegação |
+| Caso | `#caso-ID` | Status, reavaliação justificada da prioridade, registro de resolução, revisão de recorrência e as abas Relato, Conversa, Notas internas e Histórico |
+| Usuários | `#usuarios` | Só para administrador: lista com papel (Administrador ou Coordenação), criar e desativar |
+| Ensaio | `#ensaio` | Carregar e remover os casos de simulação, com confirmação para remover |
+
+Login e Primeiro acesso também usam o tema. O vocabulário é o da v2: status `novo`, `em_investigacao` e `resolvido`; prioridade `critica`, `alta`, `media` e `baixa`. Providências e resultado da resolução são rotulados "Visível para o aluno".
+
+### Tema
+
+O visual vem de `src/coord/coord.css`, escopado em `.coord-app`, que redefine os tokens de `src/shared/tema.css` (o portal do aluno não muda). Só tokens: sem cor fixa, estilo inline ou CDN, por causa da CSP. Todo par novo de cores entra em `verificacao/contraste.mjs`.
+
+### Como verificar
+
+```powershell
+npx vitest run --config vite.coord.config.ts
+npx vitest run --config vite.aluno.config.ts
+npx tsc --noEmit
+npm run contraste
+npm run build:coord
+```
+
+A prévia de revisão (`interfaces.html`, código em `src/preview`) usa o mesmo tema e dados fictícios no formato da v2. Para olhar as telas em 375, 768 e 1280 px e nos temas claro e escuro, suba `npm run dev` e abra `/interfaces.html`.
+
 O `csp.test.ts` varre o código-fonte dos dois portais. Se a pasta de build existir (`backend/app/static/aluno` ou `coordenacao`), o `index.html` gerado precisa existir e passa pela mesma checagem. Sem pasta de build, essa parte é pulada: rode os dois builds antes do teste para valer.
 
 ## Contraste

@@ -75,6 +75,7 @@ export default function Caso({ id, aoVoltar, abaInicial = 'relato', anexoInicial
       if (conflito && falha instanceof ErroApi && falha.status === 409) {
         if (montado.current) setErro(conflito);
         try { await recarregar(); } catch { /* a mensagem do conflito já orienta a recarregar */ }
+        if (montado.current) titulo.current?.focus(); // o formulário some com a recarga; o foco vai ao título
       } else if (!sessaoPerdida(falha) && montado.current) setErro(mensagemErroCoord(falha));
       return false;
     } finally { trabalhando.current = false; if (montado.current) setOcupado(false); }
@@ -168,11 +169,11 @@ export default function Caso({ id, aoVoltar, abaInicial = 'relato', anexoInicial
       </aside>
       <div className="caso-principal">
         <div role="tablist" aria-label="Conteúdo do caso" className="abas">
-          {ABAS.map(a => <button key={a.id} type="button" role="tab" id={`aba-${a.id}`} aria-selected={aba === a.id} aria-controls={`painel-${a.id}`}
+          {ABAS.map(a => <button key={a.id} type="button" role="tab" id={`aba-${a.id}`} aria-selected={aba === a.id} aria-controls={aba === a.id ? `painel-${a.id}` : undefined}
             tabIndex={aba === a.id ? 0 : -1} ref={el => { abas.current[a.id] = el; }}
             onClick={() => setAba(a.id)} onKeyDown={e => teclasAbas(e, a.id)}>{a.nome}</button>)}
         </div>
-        <div role="tabpanel" id={`painel-${aba}`} aria-labelledby={`aba-${aba}`} className="painel-aba">
+        <div role="tabpanel" id={`painel-${aba}`} aria-labelledby={`aba-${aba}`} className="painel-aba" tabIndex={0}>
           {aba === 'relato' && <>
             <h2>Relato</h2>
             <p className="texto-livre">{caso.relato}</p>

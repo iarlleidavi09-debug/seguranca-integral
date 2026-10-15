@@ -361,6 +361,7 @@ describe('Caso: resolução', () => {
     await user.click(screen.getByRole('button', { name: 'Registrar resolução' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Este caso já foi resolvido. Recarregue para ver o registro.');
     expect(await screen.findByRole('heading', { name: 'Acompanhamento após a resolução' })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole('heading', { name: /Caso 5/ })).toHaveFocus());
   });
 
   it('erro 400 mostra a mensagem e mantém o texto digitado', async () => {

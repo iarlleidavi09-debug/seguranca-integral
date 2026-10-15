@@ -35,15 +35,38 @@ export function instalarDadosDePrevia() {
       caso.mensagens.push({ autor: 'aluno', texto: corpo.texto, criado_em: new Date().toISOString(), usuario_id: null, usuario: null });
       return resposta({ ok: true });
     }
+    if (url === '/api/resumo') {
+      const status = { novo: 0, em_investigacao: 0, resolvido: 0 };
+      const prioridade = { critica: 0, alta: 0, media: 0, baixa: 0 };
+      if (simulacao) { status[caso.status] = 1; prioridade[caso.prioridade] = 1; }
+      return resposta({ status, prioridade, recorrencia_pendente: simulacao && caso.recorrencia_pendente ? 1 : 0 });
+    }
     if (url === '/api/casos') {
       const consulta = new URLSearchParams(caminho.split('?')[1]);
-      const mostrar = simulacao && (!consulta.get('status') || consulta.get('status') === caso.status) && (!consulta.get('tipo') || consulta.get('tipo') === caso.tipo);
-      return resposta({ casos: mostrar ? [{ ...caso, resumo: caso.relato, ultimo_acesso_por: null, ultimo_acesso_em: null }] : [] });
+      const mostrar = simulacao && (!consulta.get('status') || consulta.get('status') === caso.status)
+        && (!consulta.get('prioridade') || consulta.get('prioridade') === caso.prioridade)
+        && (!consulta.get('tipo') || consulta.get('tipo') === caso.tipo);
+      return resposta({ casos: mostrar ? [{ ...caso, resumo: caso.relato, ultimo_acesso_por: caso.ultimo_acesso?.por ?? null, ultimo_acesso_em: caso.ultimo_acesso?.em ?? null }] : [] });
     }
     if (url === '/api/casos/1') return resposta(caso);
     if (url === '/api/casos/1/anexos/1') return new Response(null, { status: 404 });
     if (url === '/api/casos/1/status') { caso.status = corpo.status; return resposta({ ok: true }); }
-    if (url === '/api/casos/1/prioridade') { caso.prioridade = corpo.prioridade; return resposta({ ok: true }); }
+    if (url === '/api/casos/1/prioridade') {
+      caso.eventos.push({ id: caso.eventos.length + 1, tipo: 'prioridade', usuario_id: 1, usuario: 'Equipe de exemplo', detalhe: `${caso.prioridade} -> ${corpo.prioridade}: ${corpo.justificativa}`, criado_em: new Date().toISOString() });
+      caso.prioridade = corpo.prioridade; return resposta({ ok: true });
+    }
+    if (url === '/api/casos/1/resolucao') {
+      if (caso.status === 'resolvido') return resposta({ erro: 'Caso já resolvido.' }, 409);
+      caso.status = 'resolvido';
+      caso.resolucoes.push({ desfecho: corpo.desfecho, providencias: corpo.providencias, resultado: corpo.resultado ?? '', usuario: 'Equipe de exemplo', criado_em: new Date().toISOString() });
+      return resposta({ ok: true });
+    }
+    if (url === '/api/casos/1/revisao-recorrencia') {
+      if (!caso.recorrencia_pendente) return resposta({ erro: 'Sem recorrência pendente.' }, 409);
+      caso.recorrencia_pendente = false;
+      caso.revisoes_recorrencia.push({ usuario: 'Equipe de exemplo', criado_em: new Date().toISOString() });
+      return resposta({ ok: true });
+    }
     if (url === '/api/casos/1/mensagens') {
       caso.mensagens.push({ autor: 'coordenacao', texto: corpo.texto, criado_em: new Date().toISOString(), usuario_id: 1, usuario: 'Equipe de exemplo' });
       return resposta({ ok: true });

@@ -208,6 +208,31 @@ describe('Caso', () => {
     expect(screen.getByRole('tablist')).toBeInTheDocument();
   });
 
+  it('ArrowLeft vai à aba anterior sem dar a volta e só a aba ativa entra na ordem de Tab', async () => {
+    const user = await abrirCaso();
+    const relato = await screen.findByRole('tab', { name: 'Relato e investigação' });
+    const conversa = screen.getByRole('tab', { name: 'Conversa' });
+    await user.click(conversa);
+    conversa.focus();
+    await user.keyboard('{ArrowLeft}');
+    expect(relato).toHaveFocus();
+    expect(relato).toHaveAttribute('aria-selected', 'true');
+    for (const nome of ['Conversa', 'Notas internas', 'Histórico']) {
+      expect(screen.getByRole('tab', { name: nome })).toHaveAttribute('tabindex', '-1');
+    }
+  });
+
+  it('o painel da aba entra na ordem de Tab e só a aba ativa aponta para ele', async () => {
+    await abrirCaso();
+    await screen.findByRole('tab', { name: 'Relato e investigação' });
+    const painel = screen.getByRole('tabpanel');
+    expect(painel).toHaveAttribute('tabindex', '0');
+    for (const aba of screen.getAllByRole('tab')) {
+      if (aba.getAttribute('aria-selected') === 'true') expect(aba).toHaveAttribute('aria-controls', painel.id);
+      else expect(aba).not.toHaveAttribute('aria-controls');
+    }
+  });
+
   it('não envia texto vazio', async () => {
     const user = await abrirCaso();
     await user.click(await screen.findByRole('tab', { name: 'Conversa' }));
@@ -219,7 +244,7 @@ describe('Caso', () => {
 });
 
 describe('Usuários e ensaio', () => {
-  const usuarios = [{ id: 1, nome: 'Marina', ativo: true }, { id: 2, nome: 'Paulo', ativo: true }, { id: 3, nome: 'Rita', ativo: false }];
+  const usuarios = [{ id: 1, nome: 'Marina', ativo: true, papel: 'admin' }, { id: 2, nome: 'Paulo', ativo: true, papel: 'coordenador' }, { id: 3, nome: 'Rita', ativo: false, papel: 'coordenador' }];
   const abrir = async (hash: string, rotas: Record<string, Rota> = {}) => {
     servidor({
       'GET /api/eu': logado, 'GET /api/casos': () => ({ corpo: { casos: [] } }),
@@ -247,6 +272,15 @@ describe('Usuários e ensaio', () => {
     const envio = chamadasA('POST', '/api/usuarios/2/desativar')[0];
     expect(envio.init?.headers).toEqual({ 'Content-Type': 'application/json' });
     expect(envio.corpo).toEqual({});
+  });
+
+  it('mostra o papel de cada pessoa em texto', async () => {
+    await abrir('/#usuarios');
+    const itens = (await screen.findAllByRole('listitem')).filter(li => li.classList.contains('usuario'));
+    expect(within(itens[0]).getByText('Administrador')).toBeInTheDocument();
+    expect(within(itens[1]).getByText('Coordenação')).toBeInTheDocument();
+    expect(within(itens[2]).getByText('Coordenação')).toBeInTheDocument();
+    expect(within(itens[2]).getByText('Desativado')).toBeInTheDocument();
   });
 
   it('cria usuário só com senha de 10 caracteres ou mais', async () => {
@@ -351,9 +385,19 @@ describe('Primeiro acesso', () => {
     expect(chamadasA('POST', '/api/setup')).toHaveLength(0);
   });
 
+  it('o primeiro acesso renderiza dentro do tema, com o painel de entrada em foco programático', async () => {
+    servidor(pendente(true));
+    const { container } = render(<App />);
+    await screen.findByRole('heading', { name: 'Criar conta de administrador' });
+    expect(container.firstElementChild).toHaveClass('coord-app');
+    expect(container.querySelector('main#conteudo.login')).toHaveAttribute('tabindex', '-1');
+    expect(screen.getByLabelText('Nome')).toHaveFocus();
+  });
+
   it('fora da máquina do servidor só orienta, sem formulário', async () => {
     servidor(pendente(false));
-    render(<App />);
+    const { container } = render(<App />);
+    expect(container.firstElementChild).toHaveClass('coord-app');
     expect(await screen.findByText(/computador onde o servidor está instalado/)).toBeInTheDocument();
     expect(screen.queryByLabelText('Senha')).toBeNull();
   });

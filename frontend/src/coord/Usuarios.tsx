@@ -70,6 +70,7 @@ export default function Usuarios({ meuId, confirmarInicial = null }: { meuId: nu
     {lista !== null && <ul className="usuarios">
       {lista.map(u => <li key={u.id} className="usuario">
         <div className="usuario-nome"><strong>{u.nome}</strong>{u.id === meuId && <span className="selo-neutro">Você</span>}
+          <span className="selo-neutro">{u.papel === 'admin' ? 'Administrador' : 'Coordenação'}</span>
           <span className="usuario-estado" data-ativo={u.ativo}>{u.ativo ? 'Ativo' : 'Desativado'}</span></div>
         {u.ativo && u.id !== meuId && (confirmando === u.id
           ? <div className="confirmar" role="group" aria-label={`Confirmar desativação de ${u.nome}`}

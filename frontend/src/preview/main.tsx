@@ -10,10 +10,13 @@ import Denuncia from '../aluno/Denuncia';
 import Confirmacao from '../aluno/Confirmacao';
 import Acompanhar from '../aluno/Acompanhar';
 import Login from '../coord/Login';
+import Geral from '../coord/Geral';
 import Fila from '../coord/Fila';
 import Caso from '../coord/Caso';
 import Usuarios from '../coord/Usuarios';
 import Ensaio from '../coord/Ensaio';
+import Navegacao from '../coord/Navegacao';
+import type { Tela } from '../coord/Navegacao';
 import { instalarDadosDePrevia } from './dados';
 
 const dados = instalarDadosDePrevia();
@@ -26,15 +29,31 @@ const telas = [
   { id: 'confirmacao', grupo: 'Aluno', nome: 'Pedido recebido', gatilho: 'Enviar pedido de ajuda → envio aceito.' },
   { id: 'acompanhar', grupo: 'Aluno', nome: 'Acompanhamento e conversa', gatilho: 'Início → código → Acompanhar; ou confirmação → Acompanhar meu caso.' },
   { id: 'login', grupo: 'Coordenação', nome: 'Login', gatilho: 'Abrir coordenação sem sessão, sair ou sessão expirar.' },
-  { id: 'fila', grupo: 'Coordenação', nome: 'Fila de casos', gatilho: 'Entrar ou menu Fila.' },
-  { id: 'mensagens', grupo: 'Coordenação', nome: 'Caso · Mensagens ao aluno', gatilho: 'Fila → clicar em um caso → Mensagens ao aluno.' },
-  { id: 'notas', grupo: 'Coordenação', nome: 'Caso · Notas internas', gatilho: 'Caso → Notas internas.' },
+  { id: 'geral', grupo: 'Coordenação', nome: 'Visão geral', gatilho: 'Entrar ou menu Visão geral.' },
+  { id: 'fila', grupo: 'Coordenação', nome: 'Casos', gatilho: 'Menu Casos, ou um atalho da Visão geral.' },
+  { id: 'pos', grupo: 'Coordenação', nome: 'Pós-resolução', gatilho: 'Menu Pós-resolução. Lista casos resolvidos.' },
+  { id: 'resolucao', grupo: 'Coordenação', nome: 'Caso · Resolução e prioridade', gatilho: 'Casos → clicar em um caso. Registrar resolução e Reavaliar prioridade ficam acima das abas.' },
+  { id: 'mensagens', grupo: 'Coordenação', nome: 'Caso · Conversa', gatilho: 'Casos → clicar em um caso → Conversa.' },
+  { id: 'notas', grupo: 'Coordenação', nome: 'Caso · Notas internas', gatilho: 'Caso → aba Notas internas.' },
   { id: 'anexo', grupo: 'Coordenação', nome: 'Caso · Anexo ampliado', gatilho: 'Caso → clicar na miniatura do anexo. Fechar ou Escape para voltar.' },
   { id: 'usuarios', grupo: 'Coordenação', nome: 'Usuários e criação', gatilho: 'Menu Usuários. O formulário Novo usuário está abaixo da lista.' },
   { id: 'desativar', grupo: 'Coordenação', nome: 'Confirmar desativação', gatilho: 'Usuários → Desativar outro usuário ativo.' },
   { id: 'ensaio', grupo: 'Coordenação', nome: 'Ensaio', gatilho: 'Menu Ensaio.' },
   { id: 'remover', grupo: 'Coordenação', nome: 'Confirmar remoção', gatilho: 'Ensaio → Remover simulação.' },
 ];
+
+// Traduz a tela da prévia para a tela da navegação real e de volta.
+function telaDaCoordenacao(id: string): Tela {
+  if (id === 'geral') return { nome: 'geral' };
+  if (id === 'pos') return { nome: 'pos' };
+  if (id === 'usuarios' || id === 'desativar') return { nome: 'usuarios' };
+  if (id === 'ensaio' || id === 'remover') return { nome: 'ensaio' };
+  if (id === 'fila') return { nome: 'casos' };
+  return { nome: 'caso', id: 1 };
+}
+function destinoDe(tela: Tela): string {
+  return tela.nome === 'casos' ? 'fila' : tela.nome === 'caso' ? 'resolucao' : tela.nome;
+}
 
 function App() {
   const doHash = () => telas.some(t => t.id === location.hash.slice(1)) ? location.hash.slice(1) : 'inicio';
@@ -57,9 +76,11 @@ function App() {
           onEnviado={() => ir('confirmacao')} />;
       case 'confirmacao': return <Confirmacao resultado={{ codigo: 'PREVIA-001' }} onAcompanhar={() => ir('acompanhar')} />;
       case 'acompanhar': return <Acompanhar codigoInicial="PREVIA-001" />;
-      case 'login': return <Login aoEntrar={() => ir('fila')} />;
-      case 'fila': return <Fila modo="casos" aoAbrir={() => ir('mensagens')} filtros={filtros} aoFiltrar={setFiltros} />;
-      case 'mensagens': case 'notas': case 'anexo': return <Caso id={1} aoVoltar={() => ir('fila')} abaInicial={tela === 'notas' ? 'notas' : 'conversa'} anexoInicial={tela === 'anexo' ? 1 : null} imagemPrevia={dados.imagem} />;
+      case 'login': return <Login aoEntrar={() => ir('geral')} />;
+      case 'geral': return <Geral aoVerCasos={parcial => { setFiltros({ status: '', prioridade: '', tipo: '', q: '', ...parcial }); ir('fila'); }} aoAbrirCaso={() => ir('resolucao')} />;
+      case 'fila': return <Fila modo="casos" aoAbrir={() => ir('resolucao')} filtros={filtros} aoFiltrar={setFiltros} />;
+      case 'pos': return <Fila modo="pos" aoAbrir={() => ir('resolucao')} filtros={filtros} aoFiltrar={setFiltros} />;
+      case 'resolucao': case 'mensagens': case 'notas': case 'anexo': return <Caso id={1} aoVoltar={() => ir('fila')} abaInicial={tela === 'notas' ? 'notas' : tela === 'mensagens' ? 'conversa' : 'relato'} anexoInicial={tela === 'anexo' ? 1 : null} imagemPrevia={dados.imagem} />;
       case 'usuarios': case 'desativar': return <Usuarios meuId={1} confirmarInicial={tela === 'desativar' ? 2 : null} />;
       case 'ensaio': case 'remover': return <Ensaio confirmarInicial={tela === 'remover'} />;
     }
@@ -83,14 +104,27 @@ function App() {
         <div><strong>{atual.grupo} / {atual.nome}</strong><p>{atual.gatilho}</p></div>
         <button className="botao secundario" onClick={() => { dados.reiniciar(); setFiltros({ status: '', prioridade: '', tipo: '', q: '' }); setVersao(v => v + 1); }}>Reiniciar prévia</button>
       </header>
-      <div className="indice-aviso" role="note">Modo de revisão · Visual original · Dados de exemplo</div>
+      <div className="indice-aviso" role="note">Modo de revisão · Tema da coordenação · Dados de exemplo</div>
       <div key={`${tela}-${versao}`}>
-        {tela !== 'login' && (atual.grupo === 'Aluno' ? <header className="cabecalho"><div className="cabecalho-conteudo"><p className="marca">Segurança Integral</p><span>Portal do aluno</span></div></header>
-          : <header className="coord-cabecalho"><div className="coord-cabecalho-conteudo"><p className="marca">Segurança Integral <span>Coordenação</span></p><nav aria-label="Principal">{['fila', 'usuarios', 'ensaio'].map(id => <button key={id} className="nav-item" onClick={() => ir(id)}>{id === 'fila' ? 'Fila' : id === 'usuarios' ? 'Usuários' : 'Ensaio'}</button>)}</nav><button className="botao secundario" onClick={() => ir('login')}>Sair</button></div></header>)}
-        {tela === 'login' ? conteudo() : <main id="previa-conteudo" tabIndex={-1} className={atual.grupo === 'Aluno' ? 'portal' : 'painel'}>
-          {atual.grupo === 'Aluno' && tela !== 'inicio' && <button className="botao-texto" onClick={() => ir('inicio')}>Voltar ao início</button>}
-          {conteudo()}
-        </main>}
+        {atual.grupo === 'Aluno' ? <>
+          <header className="cabecalho"><div className="cabecalho-conteudo"><p className="marca">Segurança Integral</p><span>Portal do aluno</span></div></header>
+          <main id="previa-conteudo" tabIndex={-1} className="portal">
+            {tela !== 'inicio' && <button className="botao-texto" onClick={() => ir('inicio')}>Voltar ao início</button>}
+            {conteudo()}
+          </main>
+        </> : tela === 'login' ? <div className="coord-app">{conteudo()}</div> : <div className="coord-app">
+          <div className="coord-layout">
+            <div className="coord-lateral">
+              <p className="marca">Segurança Integral <span>Coordenação</span></p>
+              <Navegacao tela={telaDaCoordenacao(tela)} admin pendencias={0} aoIr={destino => ir(destinoDe(destino))} />
+              <div className="sessao"><span className="sessao-nome">Equipe de exemplo</span>
+                <button type="button" className="botao secundario" onClick={() => ir('login')}>Sair</button></div>
+            </div>
+            <div className="coord-coluna">
+              <main id="previa-conteudo" tabIndex={-1} className="painel">{conteudo()}</main>
+            </div>
+          </div>
+        </div>}
       </div>
     </div>
   </div>;
