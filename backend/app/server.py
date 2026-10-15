@@ -53,12 +53,19 @@ _IPV6 = re.compile(
     r"(?:[0-9A-Fa-f]{0,4}:){2,}(?:\d{1,3}(?:\.\d{1,3}){3}|[0-9A-Fa-f]{0,4})"
     r"(?:%[\w.-]+)?"
 )
-_IPV4 = re.compile(r"\d{1,3}(?:\.\d{1,3}){3}")
+# Primeiro e último octeto aceitam qualquer quantidade de dígitos e os do meio
+# aceitam preenchimento com zeros ("203.0.0113.45", "203.0.113.0045"): a
+# forma não canônica também é endereço e nenhum dígito pode sobrar colado.
+# Quatro octetos com um do meio de 4 dígitos sem zero à esquerda (como a
+# versão "3.13.3824.5" de um caminho) não são tratados como endereço.
+_OCTETO_MEIO = r"(?:0\d{1,3}|\d{1,3})"
+_IPV4 = re.compile(rf"\d+(?:\.{_OCTETO_MEIO}){{2}}\.\d+")
 # Rede de segurança: se depois da troca ainda sobrar algo com cara de
 # endereço, a linha inteira é descartada. Os limites de dígito evitam
 # descartar versões como "3.13.3824" em caminhos de traceback.
 _RESIDUO = re.compile(
     r"(?<!\d)\d{1,3}\.\d{1,3}\.\d{1,3}(?!\d)"
+    r"|\[endereco\]\d|\d\[endereco\]"
     r"|\b[0-9a-fA-F]{1,4}(?::[0-9a-fA-F]{0,4}){2,}\b"
 )
 LINHA_DESCARTADA = "[linha de log com endereco descartada]"

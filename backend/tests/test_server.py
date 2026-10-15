@@ -230,6 +230,12 @@ def _sem_componentes(saida: str, endereco: str) -> None:
     ("::ffff:203.0.113.45", "mapeado ::ffff:203.0.113.45 porta 5555"),
     ("64:ff9b::203.0.113.5", "prefixo nat 64:ff9b::203.0.113.5 porta 5555"),
     ("203.0.113.45", "addr_203.0.113.45 x"),
+    # octetos fora do formato canônico: nenhum dígito pode sobrar
+    ("203.0.113.0045", "cliente 203.0.113.0045 caiu"),
+    ("203.0.113.4555", "cliente 203.0.113.4555 caiu"),
+    ("0203.0.113.45", "cliente 0203.0.113.45 caiu"),
+    ("203.0.0113.45", "cliente 203.0.0113.45 caiu"),
+    ("203.0.113.45", "ip=203.0.113.45999999 x"),
     ("2001:db8::1", "cliente 2001:db8::1 caiu"),
     ("[2001:db8::8a2e:370:7334]", "cliente [2001:db8::8a2e:370:7334]:443"),
     ("fe80::7%eth9", "zona fe80::7%eth9 x"),
@@ -239,6 +245,9 @@ def test_filtro_nao_deixa_sobrar_parte_do_endereco(endereco, bruto):
     saida = _filtrar(bruto + "\n")
     assert saida.strip()  # a linha não some sem rastro
     _sem_componentes(saida, endereco)
+    # nenhum dígito colado ao marcador: sobra de octeto não canônico
+    import re
+    assert not re.search(r"\]\d|\d\[endereco", saida), saida
 
 
 def test_traceback_com_endereco_no_meio():
@@ -261,6 +270,16 @@ def test_residuo_descarta_a_linha_inteira(monkeypatch):
     monkeypatch.setattr(server, "_IPV6", __import__("re").compile(r"(?!x)x"))
     saida = _filtrar("cliente 203.0.113.45 e 2001:db8::1\n")
     assert saida == server.LINHA_DESCARTADA
+
+
+def test_residuo_pega_digito_colado_no_marcador(monkeypatch):
+    import re
+    # troca incompleta: sobra "5" depois do marcador, ou "0" antes dele
+    monkeypatch.setattr(server, "_IPV6", re.compile(r"(?!x)x"))
+    monkeypatch.setattr(server, "_IPV4", re.compile(r"203\.0\.113\.004"))
+    assert _filtrar("cliente 203.0.113.0045 caiu\n") == server.LINHA_DESCARTADA
+    monkeypatch.setattr(server, "_IPV4", re.compile(r"203\.0\.113\.45"))
+    assert _filtrar("cliente 0203.0.113.45 caiu\n") == server.LINHA_DESCARTADA
 
 
 def test_stderr_passa_pelo_filtro_durante_servir(tmp_path, monkeypatch, capfd, caplog):
