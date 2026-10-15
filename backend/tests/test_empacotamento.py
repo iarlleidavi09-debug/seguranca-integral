@@ -132,7 +132,11 @@ def test_iss_nao_deixa_escolher_a_pasta_do_programa():
 
 def test_iss_acl_alcanca_arquivos_ja_existentes():
     texto = _ler(ISS)
-    assert re.search(r"/grant:r [^']*\(OI\)\(CI\)F /T'", texto)
+    # /reset /T devolve a heranca aos arquivos antigos; a regra vai so na pasta
+    # (/inheritance:r com /T deixava o secret.key com ACL vazia)
+    assert re.search(r"/reset /T'", texto)
+    assert re.search(r"/grant:r [^']*\(OI\)\(CI\)F'", texto)
+    assert not re.search(r"/inheritance:r[^']*/T'", texto)
 
 
 def test_iss_silencioso_nao_cria_admin_nem_grava_senha():

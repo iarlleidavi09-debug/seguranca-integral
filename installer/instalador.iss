@@ -195,11 +195,16 @@ var
 begin
   if not ForceDirectories(PastaDados) then
     RaiseException('Não foi possível criar ' + PastaDados + '.');
-  { /T também nos arquivos que já existem (reinstalação corrige permissões
-    abertas demais). Sem herança; só SYSTEM (S-1-5-18) e Administradores (S-1-5-32-544).
-    SIDs e não nomes: no Windows em português o grupo é "Administradores". }
+  { /reset /T faz os arquivos que já existem herdarem da pasta; depois só a
+    pasta recebe a regra (sem herança do pai; só SYSTEM, S-1-5-18, e
+    Administradores, S-1-5-32-544) e ela desce para os filhos. Aplicar
+    /inheritance:r com /T direto deixava arquivos antigos com ACL vazia
+    (ninguém lia o secret.key). SIDs e não nomes: no Windows em português o
+    grupo é "Administradores". }
+  Exec(ExpandConstant('{sys}\icacls.exe'), '"' + PastaDados + '" /reset /T',
+    '', SW_HIDE, ewWaitUntilTerminated, Codigo);
   if not Exec(ExpandConstant('{sys}\icacls.exe'),
-      '"' + PastaDados + '" /inheritance:r /grant:r *S-1-5-18:(OI)(CI)F *S-1-5-32-544:(OI)(CI)F /T',
+      '"' + PastaDados + '" /inheritance:r /grant:r *S-1-5-18:(OI)(CI)F *S-1-5-32-544:(OI)(CI)F',
       '', SW_HIDE, ewWaitUntilTerminated, Codigo) or (Codigo <> 0) then
     RaiseException('Não foi possível ajustar as permissões de ' + PastaDados +
       ' (icacls, código ' + IntToStr(Codigo) + ').');
