@@ -79,8 +79,8 @@ export function Prioridade({ valor }: { valor: string }) {
     <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true" focusable="false">
       {valor === 'critica' && <>
         <path d="M6.5 1h7L19 6.5v7L13.5 19h-7L1 13.5v-7Z" fill="currentColor" />
-        <path d="M10 5.5v5.5" stroke="var(--fundo, #fff)" strokeWidth="2" strokeLinecap="round" fill="none" />
-        <circle cx="10" cy="14.2" r="1.2" fill="var(--fundo, #fff)" />
+        <path d="M10 5.5v5.5" stroke="var(--fundo-superficie)" strokeWidth="2" strokeLinecap="round" fill="none" />
+        <circle cx="10" cy="14.2" r="1.2" fill="var(--fundo-superficie)" />
       </>}
       {valor === 'alta' && <path d="M10 2 19 18H1Z" fill="currentColor" />}
       {valor === 'media' && <path d="M10 1 19 10 10 19 1 10Z" fill="currentColor" />}

@@ -473,7 +473,7 @@ describe('Primeiro acesso', () => {
   it('coordenador sem papel de admin não vê a aba Usuários', async () => {
     servidor({ 'GET /api/eu': () => ({ corpo: { id: 2, nome: 'Paulo', papel: 'coordenador' } }), 'GET /api/casos': () => ({ corpo: { casos: [] } }) });
     render(<App />);
-    expect(await screen.findByRole('button', { name: 'Fila' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Casos' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Usuários' })).toBeNull();
   });
 });
