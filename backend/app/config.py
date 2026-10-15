@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import json
+import os
+import re
 import secrets
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -14,12 +16,21 @@ PORTA_MAX = 65535
 LIMITES_NOMES = ("denuncias", "consultas", "login")
 LIMITE_TETO_MAXIMO = 1_000_000
 LIMITE_TETO_JANELA = 86_400  # um dia
+# chaves gravadas em data_dir: 32 bytes aleatórios em hexadecimal minúsculo
+_CHAVE_HEX = re.compile(r"[0-9a-f]{64}")
+
+
+def _nova_chave() -> str:
+    return secrets.token_hex(32)
 
 
 @dataclass(frozen=True)
 class Config:
     data_dir: Path
     secret_key: str
+    # assina o cookie da sessão da coordenação; separada da secret_key para
+    # poder ser trocada (derrubando as sessões) sem invalidar os códigos
+    sessao_key: str = field(default_factory=_nova_chave)
     host: str = "127.0.0.1"
     student_port: int = 3000
     coord_port: int = 4000
@@ -53,15 +64,61 @@ def load_config(data_dir: Path | None = None) -> Config:
     pasta = Path(data_dir) if data_dir is not None else DATA_DIR_PADRAO
     pasta.mkdir(parents=True, exist_ok=True)
 
-    arquivo_chave = pasta / "secret.key"
-    if arquivo_chave.exists():
-        chave = arquivo_chave.read_text(encoding="utf-8").strip()
-    else:
-        chave = secrets.token_hex(32)  # 32 bytes aleatórios em hexadecimal
-        arquivo_chave.write_text(chave, encoding="utf-8")
+    chave = _chave_persistente(pasta, "secret.key")
+    sessao = _chave_persistente(pasta, "sessao.key")
 
     extras = _ler_config_json(pasta / "config.json")
-    return Config(data_dir=pasta, secret_key=chave, **extras)
+    return Config(data_dir=pasta, secret_key=chave, sessao_key=sessao, **extras)
+
+
+def _ler_chave(arquivo: Path) -> str:
+    # strip: um Bloco de Notas que acrescente quebra de linha não derruba nada
+    texto = arquivo.read_text(encoding="utf-8").strip()
+    if not _CHAVE_HEX.fullmatch(texto):
+        raise ValueError(f"{arquivo.name} invalida")
+    return texto
+
+
+def _chave_persistente(pasta: Path, nome: str) -> str:
+    """Lê a chave `nome`; se não existe, cria de forma atômica.
+
+    A chave nova vai para um temporário na mesma pasta (com fsync) e é
+    publicada com os.link, que falha se o destino já existe: nunca
+    sobrescreve uma chave, e dois processos que criam ao mesmo tempo acabam
+    usando a mesma (o perdedor relê a do vencedor).
+    """
+    arquivo = pasta / nome
+    if arquivo.exists():
+        return _ler_chave(arquivo)
+    nova = _nova_chave()
+    temp = pasta / f".{nome}.{secrets.token_hex(8)}.tmp"
+    try:
+        with open(temp, "x", encoding="utf-8") as saida:
+            saida.write(nova)
+            saida.flush()
+            os.fsync(saida.fileno())
+        try:
+            os.link(temp, arquivo)
+        except FileExistsError:
+            return _ler_chave(arquivo)
+        except OSError:
+            # sistema de arquivos sem link físico: criação exclusiva direta
+            try:
+                with open(arquivo, "x", encoding="utf-8") as saida:
+                    saida.write(nova)
+                    saida.flush()
+                    os.fsync(saida.fileno())
+            except FileExistsError:
+                return _ler_chave(arquivo)
+    finally:
+        temp.unlink(missing_ok=True)
+    return nova
+
+
+def trocar_chave_de_sessao(pasta: Path) -> None:
+    """Apaga e recria sessao.key: as sessões abertas morrem na próxima partida."""
+    (Path(pasta) / "sessao.key").unlink(missing_ok=True)
+    _chave_persistente(Path(pasta), "sessao.key")
 
 
 def _porta(dados: dict, nome: str, padrao: int) -> int:

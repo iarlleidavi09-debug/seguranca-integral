@@ -33,7 +33,7 @@ from gevent.pywsgi import WSGIServer
 from . import create_coord_app, create_student_app
 from .auth import criar_usuario, gerar_senha_inicial, redefinir_senha
 from .backup import fazer_backup, limpar_antigos
-from .config import Config, load_config
+from .config import Config, load_config, trocar_chave_de_sessao
 from .db import connect, init_db
 
 ADMIN = "coordenacao"
@@ -263,9 +263,13 @@ def _redefinir_senha(config: Config) -> int:
         if not redefinir_senha(conn, ADMIN, senha):
             print(f"Usuario '{ADMIN}' nao existe; use --criar-admin.", file=sys.stderr)
             return SAIDA_ADMIN_NAO_EXISTE
+    # sessões abertas (inclusive de quem roubou a senha) morrem na próxima partida
+    trocar_chave_de_sessao(config.data_dir)
     print(f"Senha do usuario '{ADMIN}' redefinida; conta desbloqueada e ativa.")
     print(f"Nova senha: {senha}")
     print("Anote agora: ela nao sera exibida de novo.")
+    print("A chave de sessao (sessao.key) foi trocada: reinicie a tarefa para "
+          "encerrar todas as sessoes abertas da coordenacao.")
     return 0
 
 

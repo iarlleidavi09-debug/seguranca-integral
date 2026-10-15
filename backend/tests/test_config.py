@@ -156,3 +156,88 @@ def test_parametro_limites_tem_prioridade_sobre_o_config(tmp_path):
     _escrever(tmp_path, {"limites": {"denuncias": [2, 60]}})
     app = create_student_app(load_config(tmp_path), limites={"denuncias": (9, 30)})
     assert app.extensions["limitadores"]["denuncias"].max_eventos == 9
+
+
+# --- secret.key e sessao.key: integridade e criação atômica ----------------
+
+import re
+import threading
+
+HEX64 = re.compile(r"[0-9a-f]{64}")
+
+
+@pytest.mark.parametrize("nome", ["secret.key", "sessao.key"])
+def test_chave_criada_na_primeira_execucao_e_reaproveitada(tmp_path, nome):
+    cfg = load_config(tmp_path)
+    gravada = (tmp_path / nome).read_text(encoding="utf-8")
+    assert HEX64.fullmatch(gravada)
+    assert load_config(tmp_path) == cfg
+    assert not [p for p in tmp_path.iterdir() if p.name.endswith(".tmp")]
+
+
+def test_chaves_de_sessao_e_de_codigos_sao_independentes(tmp_path):
+    cfg = load_config(tmp_path)
+    assert cfg.secret_key == (tmp_path / "secret.key").read_text(encoding="utf-8")
+    assert cfg.sessao_key == (tmp_path / "sessao.key").read_text(encoding="utf-8")
+    assert cfg.sessao_key != cfg.secret_key
+
+
+@pytest.mark.parametrize("nome", ["secret.key", "sessao.key"])
+@pytest.mark.parametrize("conteudo", [
+    "",                      # vazio
+    "a" * 63,                # cortado
+    "g" * 64,                # não é hexadecimal
+    "A" * 64,                # maiúsculas
+    "a" * 65,
+    "a" * 32 + " " + "a" * 31,
+])
+def test_chave_invalida_levanta_valueerror(tmp_path, nome, conteudo):
+    (tmp_path / nome).write_text(conteudo, encoding="utf-8")
+    with pytest.raises(ValueError, match=re.escape(f"{nome} invalida")):
+        load_config(tmp_path)
+    # nunca sobrescreve uma chave existente, nem inválida
+    assert (tmp_path / nome).read_text(encoding="utf-8") == conteudo
+
+
+def test_chave_com_quebra_de_linha_no_fim_e_aceita(tmp_path):
+    chave = "0123456789abcdef" * 4
+    (tmp_path / "secret.key").write_text(chave + "\r\n", encoding="utf-8")
+    assert load_config(tmp_path).secret_key == chave
+
+
+def test_main_sai_4_com_secret_key_invalida(tmp_path, capsys):
+    (tmp_path / "secret.key").write_text("", encoding="utf-8")
+    assert server.main(["--data-dir", str(tmp_path)]) == 4
+    assert "secret.key invalida" in capsys.readouterr().err
+
+
+def test_criacao_concorrente_termina_com_uma_chave_so(tmp_path):
+    from app import config as modulo
+
+    barreira = threading.Barrier(8)
+    resultados, erros = [], []
+
+    def criar():
+        try:
+            barreira.wait()
+            resultados.append(modulo._chave_persistente(tmp_path, "secret.key"))
+        except Exception as erro:  # noqa: BLE001
+            erros.append(erro)
+
+    threads = [threading.Thread(target=criar) for _ in range(8)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert not erros, erros
+    gravada = (tmp_path / "secret.key").read_text(encoding="utf-8")
+    assert set(resultados) == {gravada}
+    assert not [p for p in tmp_path.iterdir() if p.name.endswith(".tmp")]
+
+
+def test_config_sem_sessao_key_explicita_sorteia_uma(tmp_path):
+    from app.config import Config
+
+    a = Config(data_dir=tmp_path, secret_key="x")
+    b = Config(data_dir=tmp_path, secret_key="x")
+    assert HEX64.fullmatch(a.sessao_key) and a.sessao_key != b.sessao_key

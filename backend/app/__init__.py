@@ -52,10 +52,11 @@ def create_coord_app(config: Config, limites: dict | None = None) -> Flask:
     app.config["SI_CONFIG"] = config
     app.config["SI_STATIC"] = Path(__file__).parent / "static" / "coordenacao"
     app.config["MAX_CONTENT_LENGTH"] = 1024 * 1024  # só JSON pequeno
-    # chave própria para a sessão, derivada da chave mestra (que também
-    # assina os códigos de acompanhamento)
+    # chave da sessão derivada da sessao.key, separada da secret.key (que
+    # assina os códigos de acompanhamento): apagar a sessao.key e reiniciar
+    # derruba todas as sessões sem invalidar os códigos dos alunos
     app.secret_key = hmac.new(
-        config.secret_key.encode("utf-8"), b"sessao-coordenacao", hashlib.sha256
+        config.sessao_key.encode("utf-8"), b"sessao-coordenacao", hashlib.sha256
     ).hexdigest()
     app.session_interface = SessaoCoordenacao()
     app.config.update(

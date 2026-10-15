@@ -602,3 +602,43 @@ def test_options_em_api_desconhecida_e_404_nos_dois_portais(coord_client, studen
             r = cliente.options(caminho)
             assert r.status_code == 404, (caminho, r.status_code)
             assert r.get_json() == {"erro": "nao encontrado"}
+
+
+def test_apagar_sessao_key_derruba_as_sessoes_e_preserva_os_codigos(tmp_path):
+    from app.config import load_config
+
+    from app.db import init_db
+
+    cfg = load_config(tmp_path)
+    init_db(cfg)
+    conn = connect(cfg)
+    try:
+        criar_usuario(conn, "coord", SENHA_COORD)
+    finally:
+        conn.close()
+    cliente = create_coord_app(cfg, limites={}).test_client()
+    assert cliente.post("/api/login", json={"nome": "coord", "senha": SENHA_COORD}
+                        ).status_code == 200
+    assert cliente.get("/api/eu").status_code == 200
+    cookie = cliente.get_cookie("si_coord_sessao").value
+
+    # mesmo par de chaves: o cookie continua valendo depois de "reiniciar"
+    outro = create_coord_app(load_config(tmp_path), limites={}).test_client()
+    outro.set_cookie("si_coord_sessao", cookie)
+    assert outro.get("/api/eu").status_code == 200
+
+    (tmp_path / "sessao.key").unlink()
+    novo_cfg = load_config(tmp_path)
+    assert novo_cfg.secret_key == cfg.secret_key  # códigos dos alunos intactos
+    assert novo_cfg.sessao_key != cfg.sessao_key
+    novo = create_coord_app(novo_cfg, limites={}).test_client()
+    novo.set_cookie("si_coord_sessao", cookie)
+    assert novo.get("/api/eu").status_code == 401
+
+
+def test_chave_da_sessao_nao_depende_da_secret_key(config):
+    from dataclasses import replace
+
+    a = create_coord_app(config, limites={})
+    b = create_coord_app(replace(config, secret_key="outra"), limites={})
+    assert a.secret_key == b.secret_key

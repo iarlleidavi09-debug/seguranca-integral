@@ -360,11 +360,18 @@ def test_redefinir_senha_troca_desbloqueia_e_reativa(tmp_path, capsys):
     finally:
         conn.close()
 
+    sessao_antes = (tmp_path / "sessao.key").read_text(encoding="utf-8")
+    secret_antes = (tmp_path / "secret.key").read_text(encoding="utf-8")
     assert server.main(["--data-dir", str(tmp_path), "--redefinir-senha"]) == 0
     saida = capsys.readouterr().out
     nova = _senha_da_saida(saida, "Nova senha:")
     assert len(nova) == 16 and nova != antiga
     assert saida.count(nova) == 1
+    # sessões abertas morrem: sessao.key trocada; códigos dos alunos intactos
+    sessao_depois = (tmp_path / "sessao.key").read_text(encoding="utf-8")
+    assert sessao_depois != sessao_antes and len(sessao_depois) == 64
+    assert (tmp_path / "secret.key").read_text(encoding="utf-8") == secret_antes
+    assert "sessao.key" in saida and "reinicie" in saida.lower()
 
     from app.auth import autenticar
     conn = connect(Config(data_dir=tmp_path, secret_key="x"))
