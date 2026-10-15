@@ -18,14 +18,18 @@ $ips = @(Get-NetIPAddress -AddressFamily IPv4 |
     ForEach-Object { $_.IPAddress })
 if ($ips.Count -eq 0) { throw 'Nenhum IPv4 de LAN encontrado.' }
 
+# config.json antes do Setup: com ele presente o instalador pula a pagina de
+# enderecos (que exige nomes de dominio) e nunca o sobrescreve
+New-Item -ItemType Directory -Force -Path $Dados | Out-Null
+$hosts = ($ips + '127.0.0.1' + 'localhost' | ForEach-Object { '"' + $_ + '"' }) -join ','
+$cfg = '{"host":"0.0.0.0","student_port":3000,"coord_port":4000,"allowed_hosts":[' + $hosts + ']}'
+[IO.File]::WriteAllText("$Dados\config.json", $cfg, (New-Object Text.UTF8Encoding($false)))
+
 $p = Start-Process -FilePath $Setup -Wait -PassThru -ArgumentList @(
     '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', ('/LOG="' + (Join-Path $Raiz 'dist\inno.log') + '"'))
 if ($p.ExitCode -ne 0) { throw "Setup saiu com codigo $($p.ExitCode)" }
 
 & schtasks.exe /End /TN SegurancaIntegral | Out-Null
-$hosts = ($ips + '127.0.0.1' + 'localhost' | ForEach-Object { '"' + $_ + '"' }) -join ','
-$cfg = '{"host":"0.0.0.0","student_port":3000,"coord_port":4000,"allowed_hosts":[' + $hosts + ']}'
-[IO.File]::WriteAllText("$Dados\config.json", $cfg, (New-Object Text.UTF8Encoding($false)))
 
 $saida = Join-Path $Raiz 'dist\admin-inicial.txt'
 & $Exe --data-dir $Dados --criar-admin > $saida 2>&1
