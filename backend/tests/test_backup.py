@@ -137,3 +137,20 @@ def test_limpar_pula_item_quando_commonpath_falha(config, monkeypatch):
     assert limpar_antigos(config, AGORA) == 0
     assert sorted(p.name for p in config.backups_dir.iterdir()) == [
         "2020-01-01", "2020-01-02"]
+
+
+def test_backup_inclui_secret_key_e_config_json_mas_nao_sessao_key(conn, config):
+    (config.data_dir / "secret.key").write_text("a" * 64, encoding="utf-8")
+    (config.data_dir / "sessao.key").write_text("b" * 64, encoding="utf-8")
+    (config.data_dir / "config.json").write_text('{"allowed_hosts": []}',
+                                                 encoding="utf-8")
+    pasta = fazer_backup(config, AGORA)
+    assert (pasta / "secret.key").read_text(encoding="utf-8") == "a" * 64
+    assert (pasta / "config.json").read_text(encoding="utf-8") == '{"allowed_hosts": []}'
+    assert not (pasta / "sessao.key").exists()  # descartável: não vai ao backup
+
+
+def test_backup_sem_secret_key_nem_config_json(conn, config):
+    pasta = fazer_backup(config, AGORA)
+    assert (pasta / "seguranca.db").exists()
+    assert not (pasta / "secret.key").exists()

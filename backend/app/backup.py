@@ -11,6 +11,9 @@ from pathlib import Path
 from .config import Config
 
 _PADRAO_DATA = re.compile(r"\d{4}-\d{2}-\d{2}")
+# sem a secret.key os códigos dos alunos não valem; config.json guarda os
+# endereços. A sessao.key fica de fora: é descartável.
+ARQUIVOS_EXTRAS = ("secret.key", "config.json")
 
 
 def _data_utc(agora: datetime):
@@ -19,8 +22,14 @@ def _data_utc(agora: datetime):
     return agora.date()
 
 
+def pasta_do_dia(config: Config, agora: datetime) -> Path:
+    """Pasta do backup do dia (data UTC) de `agora`."""
+    return config.backups_dir / _data_utc(agora).isoformat()
+
+
 def fazer_backup(config: Config, agora: datetime) -> Path:
-    """Copia banco (API de backup do SQLite) e anexos para backups/AAAA-MM-DD.
+    """Copia banco (API de backup do SQLite), anexos, secret.key e config.json
+    para backups/AAAA-MM-DD.
 
     Escreve numa pasta temporária e só então troca pelo nome final, para
     nunca deixar um backup pela metade.
@@ -48,6 +57,10 @@ def fazer_backup(config: Config, agora: datetime) -> Path:
             origem.close()
         if config.uploads_dir.exists():
             shutil.copytree(config.uploads_dir, temp / "uploads")
+        for nome_extra in ARQUIVOS_EXTRAS:
+            origem_extra = config.data_dir / nome_extra
+            if origem_extra.is_file():
+                shutil.copy2(origem_extra, temp / nome_extra)
         if final.exists():
             final.rename(antigo)
         temp.rename(final)
