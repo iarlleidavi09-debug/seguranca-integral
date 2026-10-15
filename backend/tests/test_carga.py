@@ -72,19 +72,33 @@ def test_carga_envia_dez_e_sai_zero(subir):
     assert anexos == 5  # PNG válido em metade
 
 
-def test_limite_do_servidor_e_429_esperado(subir):
-    porta, config = subir()  # limite padrão: 5 por 10 minutos
-    r = _rodar(porta, "--total", "8", "--concorrencia", "2")
+def test_padrao_do_servidor_aceita_todos_os_envios(subir):
+    porta, config = subir()  # padrão: envio de denúncias sem limite
+    r = _rodar(porta, "--total", "12", "--concorrencia", "3")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "enviadas: 12 (aceitas 12, limitadas por 429: 0)" in r.stdout
+    assert _casos(config)[0] == 12
+
+
+def test_limite_religado_e_429_esperado(subir):
+    porta, config = subir({"denuncias": (5, 600)})
+    r = _rodar(porta, "--total", "8", "--concorrencia", "2", "--limite-esperado")
     assert r.returncode == 0, r.stdout + r.stderr
     assert "aceitas 5, limitadas por 429: 3" in r.stdout
     assert _casos(config)[0] == 5
 
 
-def test_429_vira_falha_com_sem_limite_esperado(subir):
-    porta, _ = subir()
-    r = _rodar(porta, "--total", "8", "--concorrencia", "2", "--sem-limite-esperado")
+@pytest.mark.parametrize("extra", [(), ("--sem-limite-esperado",)])
+def test_429_e_falha_no_modo_padrao(subir, extra):
+    porta, _ = subir({"denuncias": (5, 600)})
+    r = _rodar(porta, "--total", "8", "--concorrencia", "2", *extra)
     assert r.returncode == 1
     assert "falhas: 3" in r.stdout and "status 429" in r.stdout
+
+
+def test_flags_de_limite_sao_exclusivas():
+    r = _rodar(1, "--limite-esperado", "--sem-limite-esperado")
+    assert r.returncode == 2
 
 
 def test_servidor_fora_do_ar_sai_um():

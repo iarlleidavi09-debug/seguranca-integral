@@ -6,8 +6,9 @@ import threading
 
 from app import create_student_app
 from app.db import connect
+from imagens import png
 
-PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 32
+PNG = png()
 RELATO = "Um colega esta me xingando todos os dias no grupo da turma."
 
 
@@ -412,3 +413,29 @@ def test_mensagem_e_evento_gravados_juntos(student_client, config):
     finally:
         c.close()
     assert tipos == ["criado", "mensagem_aluno"]
+
+
+def test_padrao_sem_limite_de_envio(config):
+    # pedido do usuário: ambiente controlado, sem teto de envios por padrão
+    app = create_student_app(config)
+    assert app.extensions["limitadores"].get("denuncias") is None
+    client = app.test_client()
+    for _ in range(100):
+        assert _enviar(client).status_code == 201
+    assert _contar(config, "casos") == 100
+
+
+def test_padrao_de_consultas_e_600_por_10_minutos(config):
+    lim = create_student_app(config).extensions["limitadores"]["consultas"]
+    assert (lim.max_eventos, lim.janela_s) == (600, 600)
+
+
+def test_limite_de_envio_religado_por_config_ainda_da_429(tmp_path):
+    from app.config import load_config
+
+    (tmp_path / "config.json").write_text(
+        json.dumps({"limites": {"denuncias": [2, 600]}}), encoding="utf-8")
+    client = create_student_app(load_config(tmp_path)).test_client()
+    assert _enviar(client).status_code == 201
+    assert _enviar(client).status_code == 201
+    assert _enviar(client).status_code == 429

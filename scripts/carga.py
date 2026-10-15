@@ -11,13 +11,13 @@ Cada envio é uma denúncia nova: tipos em rodízio, duas anônimas para cada
 identificada e um PNG minúsculo válido em metade delas. Os casos criados
 ficam no banco; use uma pasta de dados de ensaio (veja docs/cenarios-escola.md).
 
-O servidor limita 5 denúncias por 10 minutos por cliente. Resposta 429 é
-tratada como limite esperado: conta à parte e não é falha. Para um ensaio com
-limites elevados (config.json com "limites"), passe --sem-limite-esperado e um
-429 passa a contar como falha.
+Por padrão o servidor não limita o envio de denúncias, então um 429 conta
+como falha. Se o limite foi religado no config.json ("limites":
+{"denuncias": [N, 600]}), passe --limite-esperado: o 429 passa a contar à
+parte, sem ser falha. --sem-limite-esperado continua aceito e é o padrão.
 
 Saída: 0 se não houve falha; 1 se houve qualquer falha (erro de rede, status
-diferente de 201, resposta sem código válido) ou 429 com --sem-limite-esperado.
+diferente de 201, resposta sem código válido) ou 429 sem --limite-esperado.
 """
 from __future__ import annotations
 
@@ -194,8 +194,12 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--total", type=int, default=60, help="denuncias a enviar")
     ap.add_argument("--concorrencia", type=int, default=6,
                     help="envios simultaneos")
-    ap.add_argument("--sem-limite-esperado", action="store_true",
-                    help="o servidor foi aberto com limites altos: 429 conta como falha")
+    modo = ap.add_mutually_exclusive_group()
+    modo.add_argument("--limite-esperado", action="store_true",
+                      help="o limite de envio foi religado no config.json: "
+                           "429 conta a parte, sem ser falha")
+    modo.add_argument("--sem-limite-esperado", action="store_true",
+                      help="padrao: 429 conta como falha")
     ap.add_argument("--timeout", type=float, default=30.0,
                     help="segundos por requisicao (padrao: %(default)s)")
     args = ap.parse_args(argv)
@@ -203,7 +207,7 @@ def main(argv: list[str] | None = None) -> int:
         ap.error("--total e --concorrencia precisam ser maiores que zero")
     try:
         res, duracao = rodar(args.alvo, args.total, args.concorrencia,
-                             tolera_429=not args.sem_limite_esperado,
+                             tolera_429=args.limite_esperado,
                              timeout=args.timeout)
     except ValueError as erro:
         ap.error(str(erro))

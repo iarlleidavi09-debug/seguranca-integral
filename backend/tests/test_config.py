@@ -124,11 +124,30 @@ def test_apps_usam_limites_do_config(tmp_path):
     cfg = load_config(tmp_path)
     aluno = create_student_app(cfg).extensions["limitadores"]
     assert (aluno["denuncias"].max_eventos, aluno["denuncias"].janela_s) == (2, 60)
-    assert aluno["consultas"].max_eventos == 20  # padrão mantido
+    assert aluno["consultas"].max_eventos == 600  # padrão mantido
     assert "login" not in aluno
     coord = create_coord_app(cfg).extensions["limitadores"]
     assert (coord["login"].max_eventos, coord["login"].janela_s) == (1, 60)
     assert "denuncias" not in coord
+
+
+def test_null_desliga_um_limite(tmp_path):
+    from app import create_coord_app, create_student_app
+
+    _escrever(tmp_path, {"limites": {"consultas": None, "login": None}})
+    cfg = load_config(tmp_path)
+    assert cfg.limites == {"consultas": None, "login": None}
+    assert create_student_app(cfg).extensions["limitadores"].get("consultas") is None
+    assert create_coord_app(cfg).extensions["limitadores"].get("login") is None
+
+
+@pytest.mark.parametrize("limites", [
+    {"denuncias": [None, 600]}, {"denuncias": [5, None]}, {"denuncias": "null"},
+])
+def test_null_so_vale_no_lugar_do_par(tmp_path, limites):
+    _escrever(tmp_path, {"limites": limites})
+    with pytest.raises(ValueError, match="limites"):
+        load_config(tmp_path)
 
 
 def test_parametro_limites_tem_prioridade_sobre_o_config(tmp_path):

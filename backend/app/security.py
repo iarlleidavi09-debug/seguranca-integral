@@ -1,7 +1,10 @@
 """Ajudantes de segurança: cabeçalhos, validação de Host e chave do limitador."""
 from __future__ import annotations
 
+import hashlib
+import hmac
 import ipaddress
+import secrets
 
 from flask import Flask, jsonify, request
 
@@ -63,6 +66,32 @@ def _loopback(endereco: str | None) -> bool:
         return ipaddress.ip_address(endereco or "").is_loopback
     except ValueError:
         return False
+
+
+# sal aleatório por processo: a chave do limitador não volta a ser o IP e
+# some com o processo
+_SAL = secrets.token_bytes(32)
+
+
+def _cliente_normalizado(endereco: str) -> str:
+    """IPv4 como está; IPv6 reduzido ao /64 (um aparelho troca de endereço
+    dentro do próprio /64 à vontade); IPv4 mapeado vira o IPv4."""
+    texto = endereco.strip().split("%", 1)[0]
+    try:
+        ip = ipaddress.ip_address(texto)
+    except ValueError:
+        return "?" + endereco
+    if ip.version == 6:
+        if ip.ipv4_mapped is not None:
+            return str(ip.ipv4_mapped)
+        return str(ipaddress.ip_network(f"{ip}/64", strict=False))
+    return str(ip)
+
+
+def chave_limitador(request) -> str:
+    """Chave do limitador de taxa: HMAC-SHA256 do cliente, nunca o IP."""
+    cliente = _cliente_normalizado(ip_do_cliente(request))
+    return hmac.new(_SAL, cliente.encode("utf-8"), hashlib.sha256).hexdigest()
 
 
 def ip_do_cliente(request) -> str:

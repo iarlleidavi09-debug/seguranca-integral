@@ -18,7 +18,7 @@ from flask.sessions import SecureCookieSessionInterface
 from . import auth, casos, simulation
 from ._comum import registrar_rotas_finais
 from .db import connect
-from .security import https_encaminhado, ip_do_cliente
+from .security import chave_limitador, https_encaminhado
 from .uploads import AnexoInvalido, caminho_anexo
 
 bp = Blueprint("coord", __name__)
@@ -122,8 +122,8 @@ def saude():
 
 @bp.post("/api/login")
 def login():
-    limitador = current_app.extensions["limitadores"]["login"]
-    if not limitador.permitir(ip_do_cliente(request)):
+    limitador = current_app.extensions["limitadores"].get("login")
+    if limitador is not None and not limitador.permitir(chave_limitador(request)):
         return _erro("muitas tentativas, tente mais tarde", 429)
     # qualquer tentativa derruba a sessão anterior (evita fixação de sessão)
     session.clear()

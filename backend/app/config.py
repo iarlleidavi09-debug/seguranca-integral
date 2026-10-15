@@ -10,7 +10,7 @@ DATA_DIR_PADRAO = Path(r"C:\ProgramData\SegurancaIntegral")
 # portas do config.json: fora das privilegiadas e dentro do limite do TCP
 PORTA_MIN = 1024
 PORTA_MAX = 65535
-# limites de taxa ajustáveis no config.json (só para ensaio): nome -> (máximo, janela em s)
+# limites de taxa ajustáveis no config.json: nome -> (máximo, janela em s) ou None
 LIMITES_NOMES = ("denuncias", "consultas", "login")
 LIMITE_TETO_MAXIMO = 1_000_000
 LIMITE_TETO_JANELA = 86_400  # um dia
@@ -80,7 +80,7 @@ def _inteiro_positivo(valor, teto: int) -> bool:
 
 
 def _limites(dados: dict) -> dict:
-    """Valida `limites`: {"denuncias": [máximo, janela_s], ...}, só para ensaio."""
+    """Valida `limites`: {"denuncias": [máximo, janela_s] ou null, ...}."""
     bruto = dados.get("limites", {})
     if not isinstance(bruto, dict):
         raise ValueError("config.json: limites precisa ser um objeto")
@@ -91,11 +91,15 @@ def _limites(dados: dict) -> dict:
                 f"config.json: limites.{nome} desconhecido "
                 f"(use {', '.join(LIMITES_NOMES)})"
             )
+        if par is None:  # null desliga o limite
+            limites[nome] = None
+            continue
         if (not isinstance(par, list) or len(par) != 2
                 or not _inteiro_positivo(par[0], LIMITE_TETO_MAXIMO)
                 or not _inteiro_positivo(par[1], LIMITE_TETO_JANELA)):
             raise ValueError(
-                f"config.json: limites.{nome} precisa ser [maximo, janela_em_segundos] "
+                f"config.json: limites.{nome} precisa ser null ou "
+                f"[maximo, janela_em_segundos] "
                 f"com inteiros positivos (maximo ate {LIMITE_TETO_MAXIMO}, "
                 f"janela ate {LIMITE_TETO_JANELA})"
             )

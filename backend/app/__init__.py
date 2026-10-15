@@ -12,8 +12,11 @@ from .config import Config
 from .db import init_db
 from .ratelimit import Limitador
 
-# (máximo de eventos, janela em segundos) por cliente
-LIMITES_PADRAO = {"denuncias": (5, 600), "consultas": (20, 600)}
+# (máximo de eventos, janela em segundos) por cliente; None = sem limite.
+# Atrás do Wi-Fi da escola todos os alunos saem pelo mesmo IP público, então
+# o limite vale para a escola inteira. Envio de denúncias sem limite por
+# pedido do usuário (ambiente controlado); o config.json pode religar.
+LIMITES_PADRAO = {"denuncias": None, "consultas": (600, 600)}
 LIMITES_COORD = {"login": (20, 600)}
 
 
@@ -21,7 +24,7 @@ def _limitadores(padrao: dict, limites: dict | None) -> dict:
     # só os nomes deste portal; o config.json traz os de todos
     sobrepostos = {n: v for n, v in (limites or {}).items() if n in padrao}
     efetivos = {**padrao, **sobrepostos}
-    return {nome: Limitador(maximo, janela) for nome, (maximo, janela) in efetivos.items()}
+    return {nome: Limitador(*par) for nome, par in efetivos.items() if par is not None}
 
 
 def create_student_app(config: Config, limites: dict | None = None) -> Flask:

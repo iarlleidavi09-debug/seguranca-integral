@@ -9,7 +9,7 @@ from flask import Blueprint, current_app, jsonify, request
 from . import casos
 from ._comum import registrar_rotas_finais
 from .db import connect
-from .security import ip_do_cliente
+from .security import chave_limitador
 from .uploads import MAX_BYTES, MAX_POR_CASO, AnexoInvalido, salvar_anexo
 
 bp = Blueprint("aluno", __name__)
@@ -47,8 +47,10 @@ def _limpo(valor, maximo: int = CAMPO_MAX) -> str | None:
 
 
 def _limite_estourado(nome: str) -> bool:
-    limitador = current_app.extensions["limitadores"][nome]
-    return not limitador.permitir(ip_do_cliente(request))
+    limitador = current_app.extensions["limitadores"].get(nome)
+    if limitador is None:  # limite desligado (padrão das denúncias)
+        return False
+    return not limitador.permitir(chave_limitador(request))
 
 
 @bp.get("/api/saude")
