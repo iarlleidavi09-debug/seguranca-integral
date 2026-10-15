@@ -21,7 +21,7 @@ ERRO_LOGIN = {"erro": "nome ou senha invalidos"}
 ERRO_404 = {"erro": "nao encontrado"}
 
 
-def _caso(config, tipo="cyberbullying", gravidade=None, criado_em=None,
+def _caso(config, tipo="cyberbullying", prioridade=None, criado_em=None,
           status=None, anexos=(), relato=RELATO):
     """Cria um caso direto na camada de dados; devolve (id, codigo)."""
     c = connect(config)
@@ -31,7 +31,7 @@ def _caso(config, tipo="cyberbullying", gravidade=None, criado_em=None,
             c, config, {"tipo": tipo, "relato": relato, "anonimo": True}, salvos
         )
         caso_id = c.execute("SELECT MAX(id) FROM casos").fetchone()[0]
-        for campo, valor in (("gravidade", gravidade), ("criado_em", criado_em),
+        for campo, valor in (("prioridade", prioridade), ("criado_em", criado_em),
                              ("status", status)):
             if valor is not None:
                 c.execute(f"UPDATE casos SET {campo} = ? WHERE id = ?",
@@ -68,7 +68,7 @@ ROTAS_PROTEGIDAS = [
     ("get", "/api/casos"),
     ("get", "/api/casos/1"),
     ("post", "/api/casos/1/status"),
-    ("post", "/api/casos/1/gravidade"),
+    ("post", "/api/casos/1/prioridade"),
     ("post", "/api/casos/1/mensagens"),
     ("post", "/api/casos/1/notas"),
     ("get", "/api/casos/1/anexos/1"),
@@ -252,16 +252,18 @@ def test_outro_erro_operacional_vira_500_generico(coord_client, monkeypatch):
 
 # --- fila e detalhe ------------------------------------------------------
 
-def test_fila_ordenada_por_gravidade_e_antiguidade(coord_logado, config):
-    b_velho, _ = _caso(config, gravidade="baixa", criado_em="2026-01-01T08:00:00+00:00")
-    a_novo, _ = _caso(config, gravidade="alta", criado_em="2026-01-03T08:00:00+00:00")
-    m_velho, _ = _caso(config, gravidade="media", criado_em="2026-01-01T09:00:00+00:00")
-    a_velho, _ = _caso(config, gravidade="alta", criado_em="2026-01-02T08:00:00+00:00")
+def test_fila_ordenada_por_prioridade_e_antiguidade(coord_logado, config):
+    b_velho, _ = _caso(config, prioridade="baixa", criado_em="2026-01-01T08:00:00+00:00")
+    a_novo, _ = _caso(config, prioridade="alta", criado_em="2026-01-03T08:00:00+00:00")
+    m_velho, _ = _caso(config, prioridade="media", criado_em="2026-01-01T09:00:00+00:00")
+    a_velho, _ = _caso(config, prioridade="alta", criado_em="2026-01-02T08:00:00+00:00")
+    c_novo, _ = _caso(config, prioridade="critica", criado_em="2026-01-09T08:00:00+00:00")
     r = coord_logado.get("/api/casos")
     assert r.status_code == 200
     casos = r.get_json()["casos"]
-    assert [c["id"] for c in casos] == [a_velho, a_novo, m_velho, b_velho]
+    assert [c["id"] for c in casos] == [c_novo, a_velho, a_novo, m_velho, b_velho]
     assert all("codigo_hash" not in c for c in casos)
+    assert all("prioridade" in c and "gravidade" not in c for c in casos)
 
 
 def test_filtros_status_e_tipo(coord_logado, config):
@@ -302,41 +304,105 @@ def test_detalhe_traz_motivos_anexos_e_timeline(coord_logado, config):
     assert d["notas"][0]["usuario"] == "coord"
 
 
-# --- mudanças de status e gravidade --------------------------------------
+# --- mudanças de status e prioridade -------------------------------------
 
 def test_mudar_status_registra_evento_com_autor(coord_logado, config):
     caso_id, _ = _caso(config)
-    r = coord_logado.post(f"/api/casos/{caso_id}/status", json={"status": "em_analise"})
+    r = coord_logado.post(f"/api/casos/{caso_id}/status", json={"status": "em_investigacao"})
     assert r.status_code == 200
     linha = _consulta(config, "SELECT status FROM casos WHERE id = ?", (caso_id,))[0]
-    assert linha["status"] == "em_analise"
+    assert linha["status"] == "em_investigacao"
     ev = _consulta(config, "SELECT * FROM eventos WHERE tipo = 'status'")
     assert len(ev) == 1
     assert ev[0]["usuario_id"] == _id_usuario(config)
-    assert ev[0]["detalhe"] == "status: novo -> em_analise"
+    assert ev[0]["detalhe"] == "status: novo -> em_investigacao"
     # mesmo valor não gera evento novo
-    coord_logado.post(f"/api/casos/{caso_id}/status", json={"status": "em_analise"})
+    coord_logado.post(f"/api/casos/{caso_id}/status", json={"status": "em_investigacao"})
     assert len(_consulta(config, "SELECT * FROM eventos WHERE tipo = 'status'")) == 1
 
 
 def test_status_invalido_400(coord_logado, config):
     caso_id, _ = _caso(config)
-    for valor in ("apagado", "", None, 3, "NOVO"):
+    # resolvido só vem da resolução; valores da v1 não existem mais
+    for valor in ("apagado", "", None, 3, "NOVO", "resolvido", "em_analise",
+                  "encaminhado", "aguardando_aluno"):
         r = coord_logado.post(f"/api/casos/{caso_id}/status", json={"status": valor})
-        assert r.status_code == 400
+        assert r.status_code == 400, valor
     assert _consulta(config, "SELECT status FROM casos")[0][0] == "novo"
 
 
-def test_mudar_gravidade_registra_evento(coord_logado, config):
-    caso_id, _ = _caso(config, gravidade="baixa")
-    r = coord_logado.post(f"/api/casos/{caso_id}/gravidade", json={"gravidade": "alta"})
+def test_reabrir_caso_resolvido(coord_logado, config):
+    caso_id, _ = _caso(config, status="resolvido")
+    r = coord_logado.post(f"/api/casos/{caso_id}/status", json={"status": "em_investigacao"})
     assert r.status_code == 200
-    assert _consulta(config, "SELECT gravidade FROM casos")[0][0] == "alta"
-    ev = _consulta(config, "SELECT * FROM eventos WHERE tipo = 'gravidade'")
-    assert ev[0]["detalhe"] == "gravidade: baixa -> alta"
+    assert _consulta(config, "SELECT status FROM casos")[0][0] == "em_investigacao"
+    ev = _consulta(config, "SELECT detalhe FROM eventos WHERE tipo = 'status'")
+    assert ev[0]["detalhe"] == "status: resolvido -> em_investigacao"
+
+
+def test_filtro_status_aceita_os_tres_valores(coord_logado, config):
+    caso_id, _ = _caso(config, status="em_investigacao")
+    for valor in ("novo", "em_investigacao", "resolvido"):
+        assert coord_logado.get(f"/api/casos?status={valor}").status_code == 200
+    ids = [c["id"] for c in coord_logado.get("/api/casos?status=em_investigacao").get_json()["casos"]]
+    assert ids == [caso_id]
+    assert coord_logado.get("/api/casos?status=em_analise").status_code == 400
+
+
+def _prio(coord, caso_id, **corpo):
+    return coord.post(f"/api/casos/{caso_id}/prioridade", json=corpo)
+
+
+def test_mudar_prioridade_com_justificativa(coord_logado, config):
+    caso_id, _ = _caso(config, prioridade="media")
+    original = _consulta(config, "SELECT prioridade_original FROM casos")[0][0]
+    r = _prio(coord_logado, caso_id, prioridade="critica", justificativa="  Ameaca real  ")
+    assert r.status_code == 200
+    linha = _consulta(config, "SELECT prioridade, prioridade_original FROM casos")[0]
+    assert linha["prioridade"] == "critica"
+    assert linha["prioridade_original"] == original
+    ev = _consulta(config, "SELECT * FROM eventos WHERE tipo = 'prioridade'")
+    assert len(ev) == 1
     assert ev[0]["usuario_id"] == _id_usuario(config)
-    r = coord_logado.post(f"/api/casos/{caso_id}/gravidade", json={"gravidade": "urgente"})
-    assert r.status_code == 400
+    assert ev[0]["detalhe"] == "media -> critica: Ameaca real"
+    # mesmo valor não grava evento
+    r = _prio(coord_logado, caso_id, prioridade="critica", justificativa="de novo")
+    assert r.status_code == 200
+    assert len(_consulta(config, "SELECT * FROM eventos WHERE tipo = 'prioridade'")) == 1
+
+
+def test_voltar_a_prioridade_original_gera_evento(coord_logado, config):
+    caso_id, _ = _caso(config, prioridade="media")
+    _prio(coord_logado, caso_id, prioridade="alta", justificativa="subiu")
+    r = _prio(coord_logado, caso_id, prioridade="media", justificativa="voltou")
+    assert r.status_code == 200
+    ev = _consulta(config, "SELECT detalhe FROM eventos WHERE tipo = 'prioridade' ORDER BY id")
+    assert [e["detalhe"] for e in ev] == ["media -> alta: subiu", "alta -> media: voltou"]
+
+
+def test_prioridade_invalida_400_sem_gravar(coord_logado, config):
+    caso_id, _ = _caso(config, prioridade="media")
+    casos_ruins = [
+        {"prioridade": "alta"},
+        {"prioridade": "alta", "justificativa": "   "},
+        {"prioridade": "alta", "justificativa": 5},
+        {"prioridade": "alta", "justificativa": "x" * 2001},
+        {"prioridade": "urgente", "justificativa": "ok"},
+        {"prioridade": None, "justificativa": "ok"},
+        {"prioridade": 3, "justificativa": "ok"},
+        {"justificativa": "ok"},
+    ]
+    for corpo in casos_ruins:
+        assert _prio(coord_logado, caso_id, **corpo).status_code == 400, corpo
+    assert _consulta(config, "SELECT prioridade FROM casos")[0][0] == "media"
+    assert _consulta(config, "SELECT * FROM eventos WHERE tipo = 'prioridade'") == []
+    ok = _prio(coord_logado, caso_id, prioridade="alta", justificativa="x" * 2000)
+    assert ok.status_code == 200
+
+
+def test_rota_gravidade_nao_existe_mais(coord_logado):
+    r = coord_logado.post("/api/casos/1/gravidade", json={"gravidade": "alta"})
+    assert r.status_code == 404
 
 
 # --- mensagens e notas ---------------------------------------------------
@@ -377,7 +443,9 @@ def test_caso_inexistente_404_sem_vazar(coord_logado, config):
         ("get", "/api/casos/999", None),
         ("post", "/api/casos/999/status", {"status": "resolvido"}),
         ("post", "/api/casos/999/status", {"status": "invalido"}),
-        ("post", "/api/casos/999/gravidade", {"gravidade": "alta"}),
+        ("post", "/api/casos/999/prioridade",
+         {"prioridade": "alta", "justificativa": "x"}),
+        ("post", "/api/casos/999/prioridade", {"prioridade": "xx"}),
         ("post", "/api/casos/999/mensagens", {"texto": "oi"}),
         ("post", "/api/casos/999/notas", {"texto": ""}),
         ("get", "/api/casos/999/anexos/1", None),
@@ -531,7 +599,8 @@ def test_detalhe_usa_so_colunas_conhecidas_do_caso(coord_logado, config):
     d = coord_logado.get(f"/api/casos/{caso_id}").get_json()
     assert set(d) == {
         "id", "tipo", "relato", "quando", "onde", "em_andamento", "anonimo",
-        "nome", "turma", "gravidade", "pontos", "motivos", "status",
+        "nome", "turma", "prioridade", "prioridade_original", "pontos",
+        "motivos", "status",
         "simulacao", "criado_em", "atualizado_em",
         "anexos", "eventos", "mensagens", "notas",
     }
@@ -551,7 +620,7 @@ CAMINHOS_PROTEGIDOS = [
     "/api/casos",
     "/api/casos/1",
     "/api/casos/1/status",
-    "/api/casos/1/gravidade",
+    "/api/casos/1/prioridade",
     "/api/casos/1/mensagens",
     "/api/casos/1/notas",
     "/api/casos/1/anexos/1",

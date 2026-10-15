@@ -124,12 +124,13 @@ def adicionar_mensagem(conn: sqlite3.Connection, caso_id: int, autor: str,
 
 # --- consultas e ações da coordenação ------------------------------------
 
-STATUS = ("novo", "em_analise", "aguardando_aluno", "encaminhado", "resolvido")
-GRAVIDADES = ("alta", "media", "baixa")  # ordem da fila
+STATUS = ("novo", "em_investigacao", "resolvido")
+PRIORIDADES = ("critica", "alta", "media", "baixa")  # ordem da fila
 RESUMO_MAX = 120
 
 _ORDEM_FILA = (
-    "CASE gravidade WHEN 'alta' THEN 0 WHEN 'media' THEN 1 ELSE 2 END, "
+    "CASE prioridade WHEN 'critica' THEN 0 WHEN 'alta' THEN 1 "
+    "WHEN 'media' THEN 2 ELSE 3 END, "
     "criado_em, id"
 )
 
@@ -143,7 +144,7 @@ def _bools(d: dict) -> dict:
 
 def listar_fila(conn: sqlite3.Connection, status: str | None = None,
                 tipo: str | None = None) -> list[dict]:
-    """Fila da coordenação: gravidade (alta, media, baixa) e depois antiguidade.
+    """Fila da coordenação: prioridade (critica, alta, media, baixa) e depois antiguidade.
 
     Os filtros chegam já validados pela rota; aqui só entram como parâmetro.
     """
@@ -156,7 +157,7 @@ def listar_fila(conn: sqlite3.Connection, status: str | None = None,
         params.append(tipo)
     onde = f"WHERE {' AND '.join(filtros)} " if filtros else ""
     linhas = conn.execute(
-        "SELECT id, tipo, gravidade, pontos, status, em_andamento, anonimo, "
+        "SELECT id, tipo, prioridade, pontos, status, em_andamento, anonimo, "
         "simulacao, relato, criado_em, atualizado_em FROM casos "
         f"{onde}ORDER BY {_ORDEM_FILA}",
         params,
@@ -179,8 +180,8 @@ def existe_caso(conn: sqlite3.Connection, caso_id: int) -> bool:
 # nunca vaza para a coordenação sem alguém incluí-la aqui de propósito.
 COLUNAS_DETALHE = (
     "id", "tipo", "relato", "quando", "onde", "em_andamento", "anonimo",
-    "nome", "turma", "gravidade", "pontos", "motivos_json", "status",
-    "simulacao", "criado_em", "atualizado_em",
+    "nome", "turma", "prioridade", "prioridade_original", "pontos",
+    "motivos_json", "status", "simulacao", "criado_em", "atualizado_em",
 )
 
 
@@ -219,14 +220,15 @@ def detalhe_caso(conn: sqlite3.Connection, caso_id: int) -> dict | None:
     return caso
 
 
-def mudar_campo(conn: sqlite3.Connection, caso_id: int, campo: str,
-                valor: str, usuario_id: int) -> bool:
-    """Muda `status` ou `gravidade` e registra o evento com valor antigo e novo.
+def _mudar(conn: sqlite3.Connection, caso_id: int, campo: str, valor: str,
+           usuario_id: int, detalhe) -> bool:
+    """Muda `status` ou `prioridade` e registra o evento (tipo = campo).
 
     Leitura, atualização e evento ficam na mesma transação. Devolve False se
-    o caso não existe. Mesmo valor não grava nada.
+    o caso não existe. Mesmo valor não grava nada. `detalhe(anterior)` monta
+    o texto do evento.
     """
-    if campo not in ("status", "gravidade"):
+    if campo not in ("status", "prioridade"):
         raise ValueError("campo nao editavel")
     conn.execute("BEGIN IMMEDIATE")
     try:
@@ -243,12 +245,34 @@ def mudar_campo(conn: sqlite3.Connection, caso_id: int, campo: str,
                 (valor, _agora(), caso_id),
             )
             registrar_evento(conn, caso_id, campo, usuario_id,
-                             f"{campo}: {anterior} -> {valor}", commit=False)
+                             detalhe(anterior), commit=False)
         conn.commit()
         return True
     except BaseException:
         conn.rollback()
         raise
+
+
+def mudar_status(conn: sqlite3.Connection, caso_id: int, valor: str,
+                 usuario_id: int) -> bool:
+    """Marca o caso como novo ou em investigação (reabrir um resolvido vale).
+
+    `resolvido` não passa por aqui: vem só da resolução. False se o caso não
+    existe.
+    """
+    if valor not in ("novo", "em_investigacao"):
+        raise ValueError("status invalido")
+    return _mudar(conn, caso_id, "status", valor, usuario_id,
+                  lambda ant: f"status: {ant} -> {valor}")
+
+
+def mudar_prioridade(conn: sqlite3.Connection, caso_id: int, valor: str,
+                     justificativa: str, usuario_id: int) -> bool:
+    """Troca a prioridade com justificativa; `prioridade_original` não muda."""
+    if valor not in PRIORIDADES:
+        raise ValueError("prioridade invalida")
+    return _mudar(conn, caso_id, "prioridade", valor, usuario_id,
+                  lambda ant: f"{ant} -> {valor}: {justificativa}")
 
 
 def adicionar_nota(conn: sqlite3.Connection, caso_id: int, usuario_id: int,

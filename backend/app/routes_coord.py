@@ -234,35 +234,44 @@ def detalhe(caso_id: int):
     return jsonify(caso)
 
 
-def _mudar(caso_id: int, campo: str, permitidos: tuple[str, ...]):
-    conn = _db()
-    # existência antes da validação: caso inexistente sempre dá o mesmo 404
-    if not casos.existe_caso(conn, caso_id):
-        return _nao_encontrado()
-    valor = _json().get(campo)
-    if not isinstance(valor, str) or valor not in permitidos:
-        return _erro(f"{campo} invalido")
-    if not casos.mudar_campo(conn, caso_id, campo, valor, g.usuario["id"]):
-        return _nao_encontrado()
-    return jsonify({"ok": True, campo: valor})
-
-
-@bp.post("/api/casos/<int:caso_id>/status")
-def mudar_status(caso_id: int):
-    return _mudar(caso_id, "status", casos.STATUS)
-
-
-@bp.post("/api/casos/<int:caso_id>/gravidade")
-def mudar_gravidade(caso_id: int):
-    return _mudar(caso_id, "gravidade", casos.GRAVIDADES)
-
-
-def _texto_valido():
-    texto = _json().get("texto")
+def _texto_valido(campo: str = "texto"):
+    texto = _json().get(campo)
     if not isinstance(texto, str):
         return None
     texto = texto.strip()
     return texto if 1 <= len(texto) <= TEXTO_MAX else None
+
+
+@bp.post("/api/casos/<int:caso_id>/status")
+def mudar_status(caso_id: int):
+    conn = _db()
+    # existência antes da validação: caso inexistente sempre dá o mesmo 404
+    if not casos.existe_caso(conn, caso_id):
+        return _nao_encontrado()
+    valor = _json().get("status")
+    # resolvido só vem da resolução do caso
+    if not isinstance(valor, str) or valor not in ("novo", "em_investigacao"):
+        return _erro("status invalido")
+    if not casos.mudar_status(conn, caso_id, valor, g.usuario["id"]):
+        return _nao_encontrado()
+    return jsonify({"ok": True, "status": valor})
+
+
+@bp.post("/api/casos/<int:caso_id>/prioridade")
+def mudar_prioridade(caso_id: int):
+    conn = _db()
+    if not casos.existe_caso(conn, caso_id):
+        return _nao_encontrado()
+    valor = _json().get("prioridade")
+    if not isinstance(valor, str) or valor not in casos.PRIORIDADES:
+        return _erro("prioridade invalida")
+    justificativa = _texto_valido("justificativa")
+    if justificativa is None:
+        return _erro("justificativa deve ter de 1 a 2000 caracteres")
+    if not casos.mudar_prioridade(conn, caso_id, valor, justificativa,
+                                  g.usuario["id"]):
+        return _nao_encontrado()
+    return jsonify({"ok": True, "prioridade": valor})
 
 
 @bp.post("/api/casos/<int:caso_id>/mensagens")
