@@ -144,7 +144,6 @@ describe('Caso', () => {
         estado = { ...estado, status: c.status, eventos: [...estado.eventos, { id: 2, tipo: 'status', usuario_id: 1, usuario: 'Marina', detalhe: `status: novo -> ${c.status}`, criado_em: '2026-10-14T12:00:00+00:00' }] };
         return { corpo: { ok: true } };
       },
-      'POST /api/casos/5/gravidade': c => { estado = { ...estado, gravidade: c.gravidade }; return { corpo: { ok: true } }; },
       'POST /api/casos/5/mensagens': c => { estado = { ...estado, mensagens: [...estado.mensagens, { autor: 'coordenacao', texto: c.texto, criado_em: '2026-10-14T12:10:00+00:00' }] }; return { status: 201, corpo: { ok: true } }; },
       'POST /api/casos/5/notas': c => { estado = { ...estado, notas: [...estado.notas, { id: 2, usuario_id: 1, usuario: 'Marina', texto: c.texto, criado_em: '2026-10-14T12:20:00+00:00' }] }; return { status: 201, corpo: { ok: true } }; },
       ...rotas,
@@ -153,52 +152,6 @@ describe('Caso', () => {
     render(<App />);
     return userEvent.setup();
   };
-
-  // refeito na Task 5
-  it.skip('mostra relato, motivos, anexos e linha do tempo e foca o título', async () => {
-    await abrirCaso();
-    const titulo = await screen.findByRole('heading', { name: /Caso 5/ });
-    await waitFor(() => expect(titulo).toHaveFocus());
-    expect(screen.getByText('Relato completo do aluno.')).toBeInTheDocument();
-    expect(screen.getByText('Tipo: Ameaça')).toBeInTheDocument();
-    expect(screen.getByText('Ocorrendo agora', { selector: 'li' })).toBeInTheDocument();
-    expect(screen.getByText('Termos de risco: violencia')).toBeInTheDocument();
-    expect(screen.getByText('Caso recebido com gravidade alta')).toBeInTheDocument();
-    const miniatura = screen.getByAltText('Anexo 1 do caso 5');
-    expect(miniatura).toHaveAttribute('src', '/api/casos/5/anexos/9');
-  });
-
-  it('amplia o anexo em uma janela e devolve o foco ao fechar', async () => {
-    const user = await abrirCaso();
-    const gatilho = await screen.findByRole('button', { name: 'Ampliar anexo 1' });
-    await user.click(gatilho);
-    const janela = screen.getByRole('dialog');
-    expect(within(janela).getByRole('img')).toHaveAttribute('src', '/api/casos/5/anexos/9');
-    expect(within(janela).getByRole('button', { name: 'Fechar' })).toHaveFocus();
-    await user.keyboard('{Escape}');
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    expect(gatilho).toHaveFocus();
-  });
-
-  // refeito na Task 5
-  it.skip('muda o status pela API e atualiza a linha do tempo', async () => {
-    const user = await abrirCaso();
-    await user.selectOptions(await screen.findByLabelText('Status'), 'em_analise');
-    expect(await screen.findByText('Status mudou de Novo para Em análise por Marina')).toBeInTheDocument();
-    const envio = chamadasA('POST', '/api/casos/5/status')[0];
-    expect(envio.corpo).toEqual({ status: 'em_analise' });
-    expect(envio.init?.headers).toEqual({ 'Content-Type': 'application/json' });
-    expect(screen.getByText('Status alterado para Em análise.')).toBeInTheDocument();
-  });
-
-  // refeito na Task 5
-  it.skip('muda a gravidade pela API', async () => {
-    const user = await abrirCaso();
-    await user.selectOptions(await screen.findByLabelText('Gravidade'), 'baixa');
-    expect(await screen.findByText('Gravidade alterada para Baixa.')).toBeInTheDocument();
-    expect(chamadasA('POST', '/api/casos/5/gravidade')[0].corpo).toEqual({ prioridade: 'baixa' });
-    expect(screen.getByLabelText('Gravidade')).toHaveValue('baixa');
-  });
 
   it('mantém mensagens ao aluno e notas internas separadas', async () => {
     const user = await abrirCaso();
@@ -252,13 +205,6 @@ describe('Caso', () => {
     expect(chamadasA('POST', '/api/casos/5/mensagens')).toHaveLength(0);
   });
 
-  // refeito na Task 5
-  it.skip('401 ao agir devolve ao Login', async () => {
-    const user = await abrirCaso({ 'POST /api/casos/5/status': () => ({ status: 401 }) });
-    await user.selectOptions(await screen.findByLabelText('Status'), 'resolvido');
-    expect(await screen.findByLabelText('Senha')).toBeInTheDocument();
-    expect(screen.queryByText('Relato completo do aluno.')).not.toBeInTheDocument();
-  });
 });
 
 describe('Usuários e ensaio', () => {

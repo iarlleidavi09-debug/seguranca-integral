@@ -70,7 +70,7 @@ describe('Polimento da coordenação', () => {
     await user.selectOptions(screen.getByLabelText('Tipo'), 'golpe');
     await user.click(await screen.findByRole('button', { name: 'Caso 3. Abrir.' }));
     await screen.findByRole('heading', { name: /Caso 3/ });
-    await user.click(screen.getByRole('button', { name: 'Voltar à fila' }));
+    await user.click(screen.getByRole('button', { name: 'Voltar aos casos' }));
     await screen.findByRole('heading', { level: 1, name: 'Casos' });
     expect(screen.getByLabelText('Status')).toHaveValue('em_investigacao');
     expect(screen.getByLabelText('Prioridade')).toHaveValue('alta');
