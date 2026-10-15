@@ -30,8 +30,10 @@ export default function Denuncia({ onEnviado, onEnviando, passoInicial = 1, dado
   const temRascunho = Boolean(dados.situacaoId || dados.marcadas.length || dados.relato || dados.quando || dados.onde || dados.nome || dados.turma || dados.em_andamento || !dados.anonimo);
   // espaço que o bloco das opções marcadas ocupa; o resto é o que o aluno pode escrever
   const limiteTexto = LIMITE_RELATO - comporRelato('', dados.marcadas).length;
+  // o rascunho restaurado não se regrava ao abrir: só uma edição real renova o prazo de 24 horas
+  const gravado = useRef(dados);
   useEffect(() => {
-    if (!persistir) return;
+    if (!persistir || dados === gravado.current) return;
     // sem texto nem escolha não há o que guardar
     if (temRascunho) { if (!salvarRascunho(dados)) setAvisoRascunho('Este navegador não permite salvar o rascunho. Mantenha esta tela aberta até enviar.'); }
     else apagarRascunho();
@@ -40,6 +42,8 @@ export default function Denuncia({ onEnviado, onEnviando, passoInicial = 1, dado
     setDados({ ...vazio }); setPasso(1); setErro(''); setAvisoRascunho('Rascunho apagado.');
     titulo.current?.focus();
   }
+  const tamanhoTexto = dados.relato.trim().length;
+  const excesso = tamanhoTexto - limiteTexto;
   useEffect(() => { titulo.current?.focus(); }, [passo]);
   useEffect(() => {
     const criadas = urls.current;
@@ -86,7 +90,7 @@ export default function Denuncia({ onEnviado, onEnviando, passoInicial = 1, dado
     if (passo === 2 && !dados.marcadas.length) return 'Escolha pelo menos uma opção.';
     if (passo === 3) {
       const tamanho = comporRelato(dados.relato, dados.marcadas).length;
-      if (tamanho < 10) return 'Conte um pouco mais, com pelo menos 10 caracteres.';
+      if (dados.relato.trim().length < 10) return 'Conte um pouco mais, com pelo menos 10 caracteres.';
       if (tamanho > LIMITE_RELATO) {
         const excesso = tamanho - LIMITE_RELATO;
         return `Seu relato tem ${excesso} ${excesso === 1 ? 'caractere' : 'caracteres'} a mais que o limite de ${LIMITE_RELATO}. Apague um pouco para continuar.`;
@@ -148,7 +152,7 @@ export default function Denuncia({ onEnviado, onEnviando, passoInicial = 1, dado
           <div><label htmlFor="relato">O que aconteceu?</label>
             <p id="ajuda-relato" className="texto-pequeno">Conte com suas palavras. Você não precisa lembrar de todos os detalhes.</p>
             <textarea id="relato" rows={7} value={dados.relato} onChange={e => alterar('relato', e.target.value)} aria-describedby="ajuda-relato tamanho-relato" />
-            <p id="tamanho-relato" className="texto-pequeno contador">{dados.relato.length} de {limiteTexto} caracteres. Mínimo de 10.</p>
+            <p id="tamanho-relato" className={'texto-pequeno contador' + (excesso > 0 ? ' excedido' : '')}>{tamanhoTexto} de {limiteTexto} caracteres. Mínimo de 10.{excesso > 0 && ` ${excesso} ${excesso === 1 ? 'caractere' : 'caracteres'} a mais.`}</p>
           </div>
           <div><label htmlFor="quando">Quando aconteceu? <span>(opcional)</span></label><input id="quando" maxLength={200} value={dados.quando} onChange={e => alterar('quando', e.target.value)} placeholder="Por exemplo, ontem à noite" /></div>
           <div><label htmlFor="onde">Onde aconteceu? <span>(opcional)</span></label><input id="onde" maxLength={200} value={dados.onde} onChange={e => alterar('onde', e.target.value)} placeholder="Rede social ou aplicativo" /></div>

@@ -358,4 +358,56 @@ describe('Rascunho', () => {
     expect(screen.queryByRole('button', { name: 'Limpar rascunho' })).not.toBeInTheDocument();
     expect(localStorage.getItem('si-aluno-rascunho-v1')).toBeNull();
   });
+  it('reabrir sem editar não renova o prazo; editar renova', async () => {
+    const hora = 60 * 60 * 1000;
+    const antes = Date.now() - 23 * hora;
+    salvarRascunho({ situacaoId: 'ameaca', marcadas: [opcaoAmeaca[0]], relato, quando: '', onde: '', em_andamento: false, anonimo: true, nome: '', turma: '' }, antes);
+    const user = userEvent.setup();
+    render(<Denuncia onEnviado={() => {}} />);
+    expect(situacao(/^Ameaças\./)).toBeChecked();
+    expect(JSON.parse(localStorage.getItem(CHAVE)!).salvoEm).toBe(antes);
+    await user.click(situacao(/^Golpe\./));
+    expect(JSON.parse(localStorage.getItem(CHAVE)!).salvoEm).toBeGreaterThan(antes);
+  });
+  it('rascunho de 25 horas não é restaurado nem regravado', () => {
+    const hora = 60 * 60 * 1000;
+    salvarRascunho({ situacaoId: 'ameaca', marcadas: [], relato, quando: '', onde: '', em_andamento: false, anonimo: true, nome: '', turma: '' }, Date.now() - 25 * hora);
+    render(<Denuncia onEnviado={() => {}} />);
+    expect(situacao(/^Ameaças\./)).not.toBeChecked();
+    expect(localStorage.getItem(CHAVE)).toBeNull();
+  });
+  it('rascunho adulterado (situação inexistente) abre vazio sem erro', () => {
+    localStorage.setItem(CHAVE, JSON.stringify({ situacaoId: 'inventada', marcadas: ['x'], relato, salvoEm: Date.now() }));
+    render(<Denuncia onEnviado={() => {}} />);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    for (const r of screen.getAllByRole('radio')) expect(r).not.toBeChecked();
+  });
+  it('opções que não pertencem à situação são descartadas ao restaurar', async () => {
+    localStorage.setItem(CHAVE, JSON.stringify({ situacaoId: 'ameaca', marcadas: ['texto inventado', opcaoAmeaca[1]], relato, anonimo: true, salvoEm: Date.now() }));
+    const user = userEvent.setup();
+    render(<Denuncia onEnviado={() => {}} />);
+    await continuar(user);
+    expect(screen.getByRole('checkbox', { name: opcaoAmeaca[1] })).toBeChecked();
+    expect(screen.getAllByRole('checkbox').filter(c => (c as HTMLInputElement).checked)).toHaveLength(1);
+  });
+});
+
+describe('Texto próprio do relato', () => {
+  it.each([['', 'vazio'], ['12345', 'de 5 caracteres'], ['         x         ', 'só espaços em volta']])('com opções marcadas e relato %s (%s) não avança', async valor => {
+    const user = await abrirApp();
+    await ateRelato(user);
+    if (valor) fireEvent.change(screen.getByLabelText('O que aconteceu?'), { target: { value: valor } });
+    await continuar(user);
+    expect(screen.getByRole('alert')).toHaveTextContent('Conte um pouco mais, com pelo menos 10 caracteres.');
+    expect(screen.queryByRole('heading', { name: 'Provas e identificação' })).not.toBeInTheDocument();
+  });
+  it('o contador usa o texto aparado e avisa quando passa do limite', async () => {
+    const user = await abrirApp();
+    await ateRelato(user, /^Outros\./, []);
+    fireEvent.change(screen.getByLabelText('O que aconteceu?'), { target: { value: '  ' + 'a'.repeat(5003) + '  ' } });
+    const contador = document.getElementById('tamanho-relato')!;
+    expect(contador).toHaveTextContent('5003 de 5000 caracteres');
+    expect(contador).toHaveTextContent('3 caracteres a mais');
+    expect(contador).toHaveClass('excedido');
+  });
 });

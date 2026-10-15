@@ -121,6 +121,7 @@
 .aluno-app .situacao:focus-within { outline: var(--linha-foco) solid var(--foco-anel); outline-offset: var(--espaco-1); }
 .aluno-app .situacao b { display: block; }
 .aluno-app .situacao small { display: block; margin-top: var(--espaco-2); color: var(--texto-secundario); font-size: var(--texto-pequeno); line-height: 1.5; }
+.aluno-app .contador.excedido { color: var(--perigo-base); font-weight: 700; }
 .aluno-app .fim-etapa { border-top: var(--linha-fina) solid var(--borda-suave); padding-top: var(--espaco-6); }
 @media (min-width: 768px) {
   .aluno-app .situacoes { grid-template-columns: 1fr 1fr; }
