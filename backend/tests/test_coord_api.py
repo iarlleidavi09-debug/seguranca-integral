@@ -520,3 +520,59 @@ def test_detalhe_nao_le_colunas_sensiveis(config):
     from app import casos as modulo
     assert "SELECT *" not in inspect.getsource(modulo.detalhe_caso)
     assert "codigo_hash" not in modulo.COLUNAS_DETALHE
+
+
+# --- rotas protegidas sem sessão: métodos incomuns e barra final -----------
+
+CAMINHOS_PROTEGIDOS = [
+    "/api/casos",
+    "/api/casos/1",
+    "/api/casos/1/status",
+    "/api/casos/1/gravidade",
+    "/api/casos/1/mensagens",
+    "/api/casos/1/notas",
+    "/api/casos/1/anexos/1",
+    "/api/simulacao",
+    "/api/simulacao/carregar",
+    "/api/usuarios",
+    "/api/usuarios/1/desativar",
+    "/api/eu",
+]
+METODOS = ["GET", "HEAD", "OPTIONS", "POST", "PUT", "PATCH", "DELETE"]
+
+
+def _contagens(config):
+    c = connect(config)
+    try:
+        return {t: c.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
+                for t in ("casos", "mensagens", "eventos", "usuarios", "notas_internas",
+                          "anexos")}
+    finally:
+        c.close()
+
+
+@pytest.mark.parametrize("barra", ["", "/"])
+@pytest.mark.parametrize("metodo", METODOS)
+@pytest.mark.parametrize("caminho", CAMINHOS_PROTEGIDOS)
+def test_sem_sessao_nenhum_metodo_devolve_dado_nem_altera(
+        coord_client, config, caminho, metodo, barra):
+    caso_id, _ = _caso(config)  # algo para vazar ou apagar
+    antes = _contagens(config)
+    r = coord_client.open(caminho + barra, method=metodo, json={"texto": "x", "status": "novo"})
+    corpo = r.get_data(as_text=True)
+    # 401 (sem sessão), 404/405 (rota inexistente ou método não aceito). A
+    # única exceção é o OPTIONS automático do Flask numa rota que não existe
+    # (barra final): 200, sem corpo e sem dado.
+    if metodo == "OPTIONS" and r.status_code == 200:
+        assert barra == "/" and corpo == ""
+    else:
+        assert r.status_code in (401, 404, 405), (metodo, caminho + barra, r.status_code)
+    assert RELATO not in corpo and "codigo_hash" not in corpo
+    assert _contagens(config) == antes
+    assert caso_id  # o caso continua lá
+
+
+def test_options_com_sessao_nao_abre_brecha(coord_client, config):
+    # OPTIONS passa pela portaria como qualquer método: sem sessão, 401
+    assert coord_client.options("/api/casos").status_code == 401
+    assert coord_client.head("/api/casos").status_code == 401
