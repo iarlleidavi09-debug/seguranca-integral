@@ -481,7 +481,9 @@ def test_porta_da_coordenacao_nao_aceita_denuncia(coord_client, coord_logado):
     assert coord_logado.get("/api/qualquer").status_code == 404
 
 
-def test_spa_da_coordenacao_sem_build_404(coord_client):
+def test_spa_da_coordenacao_sem_build_404(coord_client, tmp_path):
+    # pasta vazia: o build.ps1 gera app/static antes de rodar os testes
+    coord_client.application.config["SI_STATIC"] = tmp_path / "sem-build"
     assert coord_client.get("/").status_code == 404
     assert coord_client.get("/casos/1").status_code == 404
 

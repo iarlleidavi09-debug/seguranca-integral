@@ -1,0 +1,168 @@
+﻿SEGURANÇA INTEGRAL 1.0: LEIA-ME
+================================
+
+O programa roda neste computador e abre dois portais, só para o próprio
+computador (127.0.0.1):
+
+  Portal do aluno ........... http://127.0.0.1:3000
+  Portal da coordenação ..... http://127.0.0.1:4000
+
+Quem acessa de fora chega pelo Cloudflare Tunnel que já existe neste servidor.
+O instalador NÃO altera o cloudflared, a configuração do túnel nem o StarDust
+(que continua na porta 5000). As rotas abaixo são criadas à mão, no painel.
+
+
+1. ROTAS DO TÚNEL (fazer uma vez)
+---------------------------------
+
+No painel Cloudflare Zero Trust, em Networks > Tunnels, abra o túnel que já
+existe neste servidor e, em "Public Hostname", adicione duas rotas:
+
+  <endereço do aluno>          ->  http://127.0.0.1:3000
+  <endereço da coordenação>    ->  http://127.0.0.1:4000
+
+Use exatamente os dois endereços digitados no instalador (por exemplo
+escola.exemplo.com.br e coordenacao.exemplo.com.br). Um endereço diferente é
+recusado pelo programa com o erro "host invalido". Os endereços ficam em:
+
+  C:\ProgramData\SegurancaIntegral\config.json   (campo "allowed_hosts")
+
+Depois de mudar o config.json, reinicie a tarefa (veja a seção 6).
+
+Avisos importantes:
+
+  - NÃO use UPnP nem encaminhamento de porta no roteador junto com o túnel.
+    As portas 3000 e 4000 só podem ser alcançadas pelo túnel. Se o roteador
+    tiver UPnP ligado, desligue.
+  - Proteja o endereço da coordenação com Cloudflare Access (Zero Trust >
+    Access > Applications): libere só os e-mails da equipe. O login do
+    programa continua valendo; o Access é uma segunda barreira.
+  - O endereço do aluno fica aberto, sem Access: os alunos não têm conta.
+
+
+2. SENHA DA COORDENAÇÃO
+-----------------------
+
+O instalador cria o usuário "coordenacao" e mostra a senha UMA vez, na página
+"Acesso da coordenação", logo depois da cópia dos arquivos. Ela não fica
+gravada em nenhum arquivo. Anote e guarde num lugar seguro.
+
+Se o instalador disser "usuário já existe; senha não alterada", é uma
+atualização: a senha continua a mesma de antes.
+
+Outras pessoas da equipe: entre no portal da coordenação e crie um usuário
+para cada uma (menu Usuários). Não compartilhe a senha do "coordenacao".
+
+
+3. ESQUECI A SENHA
+------------------
+
+Se outra pessoa da equipe ainda consegue entrar: ela cria um usuário novo
+para você no menu Usuários e desativa o antigo.
+
+Se ninguém consegue entrar, no próprio servidor:
+
+  a) Abra o "Prompt de Comando" como Administrador (a pasta de dados só
+     aceita SYSTEM e Administradores).
+  b) Rode:
+       "C:\Program Files\SegurancaIntegral\SegurancaIntegral.exe" --redefinir-senha
+  c) A nova senha aparece uma vez. O comando também desbloqueia a conta (se
+     ela travou por tentativas erradas) e a reativa (se foi desativada).
+
+Não precisa parar o programa para isso. Atenção: quem já estava logado
+continua logado até completar 12 horas do login. Se a senha vazou, redefina
+e avise a equipe para sair e entrar de novo.
+
+Não apague o arquivo secret.key para "zerar" nada: sem ele, os códigos de
+acompanhamento que os alunos já têm param de funcionar.
+
+
+4. ONDE FICAM OS DADOS E OS BACKUPS
+-----------------------------------
+
+  C:\ProgramData\SegurancaIntegral\
+      seguranca.db     banco (casos, mensagens, usuários)
+      uploads\         anexos
+      secret.key       chave que protege os códigos de acompanhamento
+      config.json      endereços permitidos
+      backups\         um backup por dia (backups\AAAA-MM-DD\), guardado por 7 dias
+
+Só SYSTEM e Administradores têm acesso a essa pasta.
+
+O programa faz um backup ao iniciar e depois a cada 24 horas: o banco e os
+anexos. O secret.key NÃO entra no backup. Copie a pasta backups\ e também o
+secret.key para um disco externo ou outro computador de vez em
+quando: se o disco do servidor quebrar, os backups locais vão junto.
+
+
+5. RESTAURAR UM BACKUP
+----------------------
+
+  a) Pare o programa (Prompt de Comando como Administrador):
+       schtasks /End /TN SegurancaIntegral
+  b) Mova o seguranca.db atual (e os arquivos seguranca.db-wal e
+     seguranca.db-shm, se existirem) e a pasta uploads\ para outro lugar,
+     sem apagar.
+  c) Do backup escolhido (backups\AAAA-MM-DD\), copie seguranca.db e a
+     pasta uploads\ para C:\ProgramData\SegurancaIntegral\.
+  d) Use o MESMO secret.key da época do backup (normalmente o atual).
+  e) Inicie de novo:
+       schtasks /Run /TN SegurancaIntegral
+  f) Entre no portal da coordenação e confira os casos.
+
+
+6. PARAR, INICIAR E CONFERIR
+----------------------------
+
+O programa sobe sozinho quando o Windows liga (tarefa agendada
+"SegurancaIntegral", como SYSTEM). Se o processo cair, a tarefa tenta de novo
+em até 5 minutos.
+
+  Parar:     schtasks /End /TN SegurancaIntegral
+  Iniciar:   schtasks /Run /TN SegurancaIntegral
+  Situação:  schtasks /Query /TN SegurancaIntegral /V /FO LIST
+
+Para conferir no próprio servidor, abra no navegador:
+
+  http://127.0.0.1:3000/api/saude
+  http://127.0.0.1:4000/api/saude
+
+
+7. LISTA DE TESTES ANTES DO TESTE NA ESCOLA
+-------------------------------------------
+
+  [ ] As duas páginas de saúde acima respondem neste computador.
+  [ ] Pelo celular (4G, fora da rede da escola), o endereço do aluno abre o
+      portal do aluno.
+  [ ] O endereço da coordenação pede o login do Cloudflare Access e depois o
+      login do programa.
+  [ ] Uma denúncia de teste chega na fila da coordenação, com anexo.
+  [ ] O código de acompanhamento mostra a resposta da coordenação.
+  [ ] Reiniciar o Windows: os dois portais voltam sozinhos.
+  [ ] O StarDust continua funcionando como antes.
+  [ ] Em C:\ProgramData\SegurancaIntegral\backups\ existe o backup de hoje.
+  [ ] Um computador de fora da rede NÃO abre http://<IP do servidor>:3000
+      nem :4000 (as portas não estão expostas).
+  [ ] Para treinar a equipe, use o menu Ensaio (dados simulados) e remova
+      os dados simulados no mesmo menu antes do uso real.
+
+
+8. O QUE AINDA NÃO FOI FEITO
+----------------------------
+
+  - O instalador não foi testado numa máquina limpa ou numa máquina virtual.
+    Faça uma instalação de ensaio antes de usar com alunos.
+  - O registro da tarefa como SYSTEM e a reinicialização automática não foram
+    conferidos num servidor real.
+  - O programa não grava log em arquivo; para investigar um problema, pare a
+    tarefa e rode o executável num Prompt de Comando como Administrador para
+    ver as mensagens:
+      "C:\Program Files\SegurancaIntegral\SegurancaIntegral.exe"
+
+
+9. DESINSTALAR
+--------------
+
+Painel de Controle > Programas > Segurança Integral > Desinstalar. O programa
+e a tarefa são removidos. Os dados ficam, a não ser que você responda "Sim"
+quando o desinstalador perguntar se deve apagá-los (o padrão é "Não").

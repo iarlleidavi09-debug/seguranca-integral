@@ -319,7 +319,9 @@ def test_saude(student_client):
     assert student_client.get("/api/saude").get_json() == {"ok": True}
 
 
-def test_spa_sem_build_devolve_404_sem_quebrar(student_client):
+def test_spa_sem_build_devolve_404_sem_quebrar(student_client, tmp_path):
+    # pasta vazia: o build.ps1 gera app/static antes de rodar os testes
+    student_client.application.config["SI_STATIC"] = tmp_path / "sem-build"
     assert student_client.get("/").status_code == 404
     assert student_client.get("/alguma/rota").status_code == 404
 

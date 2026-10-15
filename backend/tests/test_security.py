@@ -34,7 +34,9 @@ def test_cabecalhos_presentes_nos_dois_apps(clientes, portal):
     ("coord", "post", "/api/denuncias", 404),
     ("coord", "post", "/api/login", 415),  # corpo que não é JSON
 ])
-def test_nosniff_em_toda_resposta(clientes, portal, metodo, caminho, status):
+def test_nosniff_em_toda_resposta(clientes, portal, metodo, caminho, status, tmp_path):
+    # "sem build" de verdade: o build.ps1 gera app/static antes dos testes
+    clientes[portal].application.config["SI_STATIC"] = tmp_path / "sem-build"
     r = getattr(clientes[portal], metodo)(caminho)
     assert r.status_code == status
     assert r.headers["X-Content-Type-Options"] == "nosniff"
