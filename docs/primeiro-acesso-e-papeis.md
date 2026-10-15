@@ -5,4 +5,4 @@
 - Papéis: `admin` e `coordenador`. Só o admin vê a aba Usuários e usa `/api/usuarios` (criar e desativar); os demais usam fila e casos.
 - Bancos da v1: ao iniciar, a coluna `papel` é criada e `coordenacao` (ou, na falta dela, o usuário de menor id) vira admin.
 - `--criar-admin` e `--redefinir-senha` continuam como recuperação; o usuário criado por `--criar-admin` é admin.
-- Pendente: o instalador (`instalador.iss`, `instalar-lan-teste.ps1`) ainda cria `coordenacao` na instalação, então a tela de primeiro acesso só aparece se esse passo for removido.
+- O instalador (`instalador.iss`) e o `instalar-lan-teste.ps1` não criam mais a conta `coordenacao` nem mostram senha: a conta nasce no primeiro acesso, aberto em `http://127.0.0.1:4000` no próprio servidor.

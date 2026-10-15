@@ -106,21 +106,21 @@ def test_iss_aplica_acl_so_admin_e_system():
     # SIDs, não nomes: no Windows em português o grupo é "Administradores"
     assert "*S-1-5-18:(OI)(CI)F" in texto
     assert "*S-1-5-32-544:(OI)(CI)F" in texto
-    # ACL antes de criar a chave e o banco, e a tarefa só depois do admin
+    # ACL antes de criar a chave e o banco; o admin nasce no primeiro acesso, não aqui
     corpo = re.search(r"procedure ConfigurarDados;\s*begin(.*?)end;", texto, re.S)
     assert corpo, "falta a procedure ConfigurarDados"
     passos = [p.strip() for p in corpo.group(1).split(";") if p.strip()]
-    assert passos == ["ProtegerPasta", "GravarConfig", "CriarAdmin", "RegistrarTarefa"]
+    assert passos == ["ProtegerPasta", "GravarConfig", "RegistrarTarefa"]
     assert "AfterInstall: ConfigurarDados" in texto
 
 
-def test_iss_trata_saidas_3_e_4_do_criar_admin():
+def test_iss_nao_cria_conta_nem_mostra_senha():
+    # a conta de administrador nasce no primeiro acesso ao portal, não no instalador
     texto = _ler(ISS)
-    assert "--criar-admin" in texto
-    assert re.search(r"Codigo\s*=\s*3", texto)
-    assert re.search(r"Codigo\s*=\s*4", texto)
-    assert "senha não alterada" in texto
-    assert "RaiseException" in texto
+    assert "--criar-admin" not in texto
+    assert "CriarAdmin" not in texto
+    assert "PaginaSenha" not in texto
+    assert "Senha inicial" not in texto
 
 
 def test_iss_nao_deixa_escolher_a_pasta_do_programa():
@@ -139,23 +139,10 @@ def test_iss_acl_alcanca_arquivos_ja_existentes():
     assert not re.search(r"/inheritance:r[^']*/T'", texto)
 
 
-def test_iss_silencioso_nao_cria_admin_nem_grava_senha():
-    texto = _ler(ISS)
-    corpo = re.search(r"procedure CriarAdmin;(.*?)\nend;", texto, re.S)
-    assert corpo, "falta a procedure CriarAdmin"
-    corpo = corpo.group(1)
-    silencioso = corpo.index("if WizardSilent then")
-    # o ramo silencioso sai ANTES de executar o programa com --criar-admin
-    assert silencioso < corpo.index("ExecAndCaptureOutput(")
-    ramo = corpo[silencioso:corpo.index("ExecAndCaptureOutput(")]
-    assert "Exit;" in ramo
-    assert "--criar-admin" in ramo  # a instrução vai na mensagem final
-    # nada de senha em log ou arquivo, em nenhum ramo
-    assert not re.search(r"Log\([^)]*Senha", texto)
-    assert "SaveStringToFile(ArquivoLog" not in texto
-    # mensagem final no ssDone, só no modo silencioso, respeitando /SUPPRESSMSGBOXES
-    assert re.search(r"CurStep = ssDone\) and WizardSilent", texto)
-    assert "SuppressibleMsgBox(TextoFinal" in texto
+def test_ps1_lan_nao_cria_admin():
+    texto = _ler(INSTALLER / "instalar-lan-teste.ps1")
+    assert "--criar-admin" not in texto
+    assert "admin-inicial" not in texto
 
 
 def test_iss_silencioso_nao_grava_endereco_vazio_no_config():

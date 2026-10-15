@@ -2,15 +2,13 @@
 # Rode num PowerShell COMO ADMINISTRADOR:
 #   powershell -NoProfile -ExecutionPolicy Bypass -File installer\instalar-lan-teste.ps1
 # Faz: instala em silencio, grava config.json com host 0.0.0.0 e os IPs da
-# maquina em allowed_hosts, cria o admin (senha em dist\admin-inicial.txt,
-# so voce le), abre as portas 3000 e 4000 no Firewall (perfis Privado e
-# Dominio) e sobe a tarefa. Desfazer: desinstalar o programa e
+# maquina em allowed_hosts, abre as portas 3000 e 4000 no Firewall (perfis
+# Privado e Dominio) e sobe a tarefa. Desfazer: desinstalar o programa e
 # Remove-NetFirewallRule -DisplayName 'SegurancaIntegral LAN teste'.
 # Arquivo so com ASCII: o PowerShell 5.1 le UTF-8 sem BOM como ANSI.
 $ErrorActionPreference = 'Stop'
 $Raiz = Split-Path -Parent $PSScriptRoot
 $Setup = Join-Path $Raiz 'dist\SegurancaIntegral-Setup.exe'
-$Exe = 'C:\Program Files\SegurancaIntegral\SegurancaIntegral.exe'
 $Dados = 'C:\ProgramData\SegurancaIntegral'
 
 $ips = @(Get-NetIPAddress -AddressFamily IPv4 |
@@ -31,14 +29,11 @@ if ($p.ExitCode -ne 0) { throw "Setup saiu com codigo $($p.ExitCode)" }
 
 & schtasks.exe /End /TN SegurancaIntegral | Out-Null
 
-$saida = Join-Path $Raiz 'dist\admin-inicial.txt'
-& $Exe --data-dir $Dados --criar-admin > $saida 2>&1
-if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne 3) { throw "--criar-admin saiu com $LASTEXITCODE" }
-
 New-NetFirewallRule -DisplayName 'SegurancaIntegral LAN teste' -Direction Inbound -Protocol TCP `
     -LocalPort 3000, 4000 -Profile Private, Domain -Action Allow | Out-Null
 & schtasks.exe /Run /TN SegurancaIntegral | Out-Null
 
 Write-Host 'Pronto. Aluno e coordenacao em:'
 foreach ($ip in $ips) { Write-Host "  http://${ip}:3000   http://${ip}:4000" }
-Write-Host "Senha do admin inicial: $saida"
+Write-Host 'Primeiro acesso: abra http://127.0.0.1:4000 NESTA maquina para criar a conta de administrador.'
+Write-Host '(pela rede a tela so orienta; a criacao so e aceita no proprio servidor)'

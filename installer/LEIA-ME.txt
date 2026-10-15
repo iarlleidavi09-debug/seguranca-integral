@@ -62,30 +62,38 @@ registros de rede da escola. O programa não grava endereço nenhum, mas a
 rede da escola pode gravar. Avise isso aos alunos.
 
 
-2. SENHA DA COORDENAÇÃO
------------------------
+2. PRIMEIRO ACESSO DA COORDENAÇÃO
+---------------------------------
 
-O instalador cria o usuário "coordenacao" e mostra a senha UMA vez, na página
-"Acesso da coordenação", logo depois da cópia dos arquivos. Ela não fica
-gravada em nenhum arquivo. Anote e guarde num lugar seguro.
+O instalador não cria nenhuma conta nem mostra senha. Depois de instalar, abra
+o portal da coordenação NO PRÓPRIO COMPUTADOR DO SERVIDOR:
 
-Se o instalador disser "usuário já existe; senha não alterada", é uma
-atualização: a senha continua a mesma de antes.
+  http://127.0.0.1:4000
 
-Instalação silenciosa (/SILENT ou /VERYSILENT): o usuário NÃO é criado, porque
-a senha não teria onde ser mostrada, e nada secreto vai para arquivo ou log. A
-mensagem final do instalador (e a linha do log, se usar /LOG) manda criar o
-usuário à mão. Num Prompt de Comando como Administrador:
+Enquanto não existir nenhuma conta, essa página mostra "Criar conta de
+administrador". Digite um nome e uma senha (pelo menos 10 caracteres) e
+confirme. Você já entra logado. Pela rede da escola ou pelo túnel a mesma página
+só orienta a abrir o portal no servidor: a criação do primeiro administrador
+não é aceita de fora. Depois que a conta existe, a tela some e o portal passa a
+mostrar o login normal.
+
+Só o administrador vê o menu Usuários e cria as contas das outras pessoas da
+equipe (uma para cada pessoa; não compartilhe a senha do administrador).
+
+Em instalação silenciosa (/SILENT ou /VERYSILENT) a página dos endereços não
+aparece: o config.json nasce só com 127.0.0.1 e localhost. Acrescente os dois
+endereços do túnel em "allowed_hosts" e reinicie a tarefa (seção 6); sem isso
+o programa recusa o acesso pelo túnel.
+
+Atualização de uma versão anterior: as contas existentes continuam como
+estavam. A conta "coordenacao" (ou, se ela não existir, a mais antiga) passa a
+ser administradora.
+
+Alternativa pela linha de comando, num Prompt de Comando como Administrador:
 
   "C:\Program Files\SegurancaIntegral\SegurancaIntegral.exe" --data-dir "C:\ProgramData\SegurancaIntegral" --criar-admin
 
-A senha aparece uma vez na tela. Em instalação silenciosa a página dos
-endereços também não aparece: o config.json nasce só com 127.0.0.1 e
-localhost. Acrescente os dois endereços do túnel em "allowed_hosts" e reinicie
-a tarefa (seção 6); sem isso o programa recusa o acesso pelo túnel.
-
-Outras pessoas da equipe: entre no portal da coordenação e crie um usuário
-para cada uma (menu Usuários). Não compartilhe a senha do "coordenacao".
+Cria o usuário "coordenacao" como administrador e mostra a senha uma vez.
 
 
 3. ESQUECI A SENHA

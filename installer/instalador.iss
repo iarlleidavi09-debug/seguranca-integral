@@ -6,10 +6,9 @@
 ;   2. copia o programa para {autopf}\SegurancaIntegral;
 ;   3. cria a pasta de dados e deixa acesso só para SYSTEM e Administradores;
 ;   4. grava o config.json com os dois endereços (só se ainda não existir);
-;   5. roda --criar-admin e mostra a senha uma vez, na página seguinte (em
-;      instalação /SILENT ou /VERYSILENT NÃO cria o admin: a senha não teria
-;      onde ser mostrada; a mensagem final manda rodar --criar-admin à mão);
-;   6. registra e inicia a tarefa agendada (tarefas.ps1).
+;   5. registra e inicia a tarefa agendada (tarefas.ps1).
+; Não cria nenhuma conta: o primeiro acesso ao portal da coordenação, aberto no
+; próprio servidor, mostra a tela de criação do administrador.
 ; A pasta do programa é fixa ({autopf}\SegurancaIntegral; não use /DIR=):
 ; o LEIA-ME cita esse caminho.
 ; Na desinstalação remove programa e tarefa; os dados ficam, salvo se a pessoa
@@ -64,8 +63,6 @@ Source: "..\dist\SegurancaIntegral\{#AppExe}"; DestDir: "{app}"; Flags: ignoreve
 [Code]
 var
   PaginaHosts: TInputQueryWizardPage;
-  PaginaSenha: TOutputMsgMemoWizardPage;
-  TextoFinal: String;
 
 function PastaDados: String;
 begin
@@ -121,11 +118,6 @@ begin
   PaginaHosts.Add('Portal do aluno (ex.: escola.exemplo.com.br):', False);
   PaginaHosts.Add('Portal da coordenação (ex.: coordenacao.exemplo.com.br):', False);
 
-  PaginaSenha := CreateOutputMsgMemoPage(wpInstalling,
-    'Acesso da coordenação',
-    'Anote agora. A senha não será exibida de novo.',
-    'Guarde a senha num lugar seguro e troque-a depois do primeiro acesso.',
-    '');
 end;
 
 function ShouldSkipPage(PageID: Integer): Boolean;
@@ -178,16 +170,7 @@ begin
   Result := '';
 end;
 
-{ --- pasta de dados, admin e tarefa ------------------------------------------ }
-
-function Juntar(const Linhas: TArrayOfString): String;
-var
-  I: Integer;
-begin
-  Result := '';
-  for I := 0 to GetArrayLength(Linhas) - 1 do
-    Result := Result + Linhas[I] + #13#10;
-end;
+{ --- pasta de dados e tarefa -------------------------------------------------- }
 
 procedure ProtegerPasta;
 var
@@ -233,55 +216,6 @@ begin
   end;
 end;
 
-procedure CriarAdmin;
-var
-  Codigo, I: Integer;
-  Saida: TExecOutput;
-  Senha: String;
-begin
-  { instalação silenciosa: não há onde mostrar a senha, então o admin não é
-    criado (nem a senha vai para arquivo ou log). A pessoa cria depois. }
-  if WizardSilent then
-  begin
-    TextoFinal := 'Instalação silenciosa: o usuário da coordenação NÃO foi criado.' + #13#10 +
-      'Num Prompt de Comando como Administrador, rode:' + #13#10 +
-      '"' + ExpandConstant('{app}\{#AppExe}') + '" --data-dir "' + PastaDados +
-      '" --criar-admin' + #13#10 +
-      'A senha aparece uma vez na tela. Se o usuário já existia, nada muda.';
-    Log('Instalação silenciosa: --criar-admin não executado; ver mensagem final.');
-    Exit;
-  end;
-
-  { a saída fica só na memória: a senha não passa por arquivo }
-  if not ExecAndCaptureOutput(ExpandConstant('{app}\{#AppExe}'),
-      '--data-dir "' + PastaDados + '" --criar-admin',
-      ExpandConstant('{app}'), SW_HIDE, ewWaitUntilTerminated, Codigo, Saida) then
-    RaiseException('Não foi possível executar {#AppExe}: ' + SysErrorMessage(Codigo));
-
-  if Codigo = 0 then
-  begin
-    Senha := '';
-    for I := 0 to GetArrayLength(Saida.StdOut) - 1 do
-      if Pos('Senha inicial:', Saida.StdOut[I]) = 1 then
-        Senha := Trim(Copy(Saida.StdOut[I], Length('Senha inicial:') + 1, MaxInt));
-    if Senha = '' then
-      RaiseException('O usuário foi criado, mas a senha não apareceu na saída. ' +
-        'Rode "{#AppExe} --redefinir-senha" num prompt de Administrador.');
-    TextoFinal := 'Usuário: coordenacao' + #13#10 + 'Senha: ' + Senha + #13#10 + #13#10 +
-      'Esta é a única vez que a senha aparece. Se ela se perder, veja ' +
-      '"Esqueci a senha" no LEIA-ME.';
-  end
-  else if Codigo = 3 then
-    TextoFinal := 'O usuário coordenacao já existe; senha não alterada.' + #13#10 +
-      'Use a senha atual. Se ela se perdeu, veja "Esqueci a senha" no LEIA-ME.'
-  else if Codigo = 4 then
-    RaiseException('O programa não conseguiu usar a pasta de dados ou o config.json ' +
-      '(código 4):' + #13#10 + Juntar(Saida.StdErr))
-  else
-    RaiseException('Falha ao criar o usuário da coordenação (código ' + IntToStr(Codigo) +
-      '):' + #13#10 + Juntar(Saida.StdErr));
-end;
-
 procedure RegistrarTarefa;
 var
   Codigo: Integer;
@@ -301,22 +235,7 @@ procedure ConfigurarDados;
 begin
   ProtegerPasta;
   GravarConfig;
-  CriarAdmin;
   RegistrarTarefa;
-end;
-
-procedure CurPageChanged(CurPageID: Integer);
-begin
-  if CurPageID = PaginaSenha.ID then
-    PaginaSenha.RichEditViewer.Lines.Text := TextoFinal;
-end;
-
-procedure CurStepChanged(CurStep: TSetupStep);
-begin
-  { silenciosa: a página da senha não existe; a instrução vai numa mensagem
-    final (suprimida só com /SUPPRESSMSGBOXES) e a mesma frase fica no log }
-  if (CurStep = ssDone) and WizardSilent and (TextoFinal <> '') then
-    SuppressibleMsgBox(TextoFinal, mbInformation, MB_OK, IDOK);
 end;
 
 { --- desinstalação ---------------------------------------------------------- }
