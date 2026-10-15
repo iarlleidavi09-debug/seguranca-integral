@@ -129,3 +129,4 @@
 @media (prefers-reduced-motion: no-preference) {
   .aluno-app .situacao { transition: background-color 150ms ease-out, border-color 150ms ease-out; }
 }
+.aluno-app .anexos .botao + .botao { margin-top: var(--espaco-2); }

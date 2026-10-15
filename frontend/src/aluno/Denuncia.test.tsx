@@ -1,6 +1,6 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import Denuncia from './Denuncia';
 import { salvarRascunho } from './rascunho';
@@ -286,6 +286,120 @@ describe('Anexos', () => {
     expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
     unmount();
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:miniatura');
+  });
+});
+
+describe('Girar imagem', () => {
+  let ultimo: { width: number; height: number };
+  const MSG_FALHA = 'Não foi possível girar esta imagem. Ela continua anexada como estava.';
+  let liberar: (() => void) | null;
+  let tamanhoBlob: number;
+  let falhar: boolean;
+  let contador: number;
+  beforeEach(() => {
+    liberar = null; tamanhoBlob = 8; falhar = false; contador = 0;
+    ultimo = { width: 0, height: 0 };
+    vi.mocked(URL.createObjectURL).mockImplementation(() => `blob:miniatura-${++contador}`);
+    vi.stubGlobal('createImageBitmap', vi.fn(async () => {
+      if (falhar) throw new Error('ruim');
+      await new Promise<void>(r => { liberar = r; });
+      return { width: 200, height: 100, close: () => {} };
+    }));
+    const original = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation(((tag: string, op?: ElementCreationOptions) => {
+      if (tag !== 'canvas') return original(tag, op);
+      return Object.assign(ultimo, {
+        getContext: () => ({ translate() {}, rotate() {}, drawImage() {} }),
+        toBlob: (cb: (b: Blob | null) => void, tipo?: string) => cb(new Blob([new Uint8Array(tamanhoBlob)], { type: tipo })),
+      });
+    }) as typeof document.createElement);
+  });
+  const arquivo = (nome: string, tipo: string) => new File(['original'], nome, { type: tipo });
+  async function comAnexo(nome = 'foto.png', tipo = 'image/png') {
+    const user = await provas();
+    fireEvent.change(screen.getByLabelText('Adicionar imagens'), { target: { files: [arquivo(nome, tipo)] } });
+    return user;
+  }
+  const terminar = () => act(async () => { liberar?.(); await new Promise(r => setTimeout(r, 0)); });
+
+  it.each([['foto.png', 'image/png'], ['foto.jpg', 'image/jpeg'], ['foto.webp', 'image/webp']])('mostra o botão Girar para %s', async (nome, tipo) => {
+    await comAnexo(nome, tipo);
+    expect(screen.getByRole('button', { name: `Girar ${nome}` })).toBeInTheDocument();
+  });
+  it('não mostra o botão para GIF', async () => {
+    await comAnexo('anim.gif', 'image/gif');
+    expect(screen.queryByRole('button', { name: /^Girar/ })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Remover anim.gif' })).toBeInTheDocument();
+  });
+  it('gira, troca a prévia, revoga a URL antiga e envia o arquivo girado', async () => {
+    const user = await comAnexo();
+    expect(screen.getByRole('img')).toHaveAttribute('src', 'blob:miniatura-1');
+    await user.click(screen.getByRole('button', { name: 'Girar foto.png' }));
+    await terminar();
+    await vi.waitFor(() => expect(screen.getByRole('img')).toHaveAttribute('src', 'blob:miniatura-2'));
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:miniatura-1');
+    expect(ultimo).toMatchObject({ width: 100, height: 200 });
+    responder({ codigo: 'K7M2-9QXD' }, 201);
+    await user.click(screen.getByRole('button', { name: 'Enviar pedido de ajuda' }));
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalled());
+    const enviados = (vi.mocked(fetch).mock.calls[0][1]?.body as FormData).getAll('anexos[]') as File[];
+    expect(enviados).toHaveLength(1);
+    expect(enviados[0].name).toBe('foto.png');
+    expect(enviados[0].size).toBe(8);
+  });
+  it('mantém a posição do anexo girado', async () => {
+    const user = await provas();
+    fireEvent.change(screen.getByLabelText('Adicionar imagens'), { target: { files: [arquivo('a.png', 'image/png'), arquivo('b.png', 'image/png')] } });
+    await user.click(screen.getByRole('button', { name: 'Girar a.png' }));
+    await terminar();
+    await vi.waitFor(() => expect(screen.getAllByRole('img')[0]).toHaveAttribute('src', 'blob:miniatura-3'));
+    expect(screen.getAllByRole('img')[1]).toHaveAttribute('src', 'blob:miniatura-2');
+    expect(screen.getAllByRole('img').map(i => i.getAttribute('alt'))).toEqual(['Prévia de a.png', 'Prévia de b.png']);
+  });
+  it('desabilita o botão enquanto gira', async () => {
+    const user = await comAnexo();
+    await user.click(screen.getByRole('button', { name: 'Girar foto.png' }));
+    expect(screen.getByRole('button', { name: 'Girar foto.png' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Remover foto.png' })).toBeEnabled();
+    await terminar();
+    await vi.waitFor(() => expect(screen.getByRole('button', { name: 'Girar foto.png' })).toBeEnabled());
+  });
+  it('falha mostra a mensagem e mantém o original', async () => {
+    falhar = true;
+    const user = await comAnexo();
+    await user.click(screen.getByRole('button', { name: 'Girar foto.png' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(MSG_FALHA);
+    expect(screen.getByRole('img')).toHaveAttribute('src', 'blob:miniatura-1');
+    expect(screen.getByRole('button', { name: 'Girar foto.png' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Enviar pedido de ajuda' })).toBeEnabled();
+    expect(URL.revokeObjectURL).not.toHaveBeenCalled();
+  });
+  it('resultado acima de 5 MB mostra a mensagem própria e mantém o original', async () => {
+    tamanhoBlob = 5 * 1024 * 1024 + 1;
+    const user = await comAnexo();
+    await user.click(screen.getByRole('button', { name: 'Girar foto.png' }));
+    await terminar();
+    expect(await screen.findByRole('alert')).toHaveTextContent('A imagem girada passa de 5 MB. Ela continua anexada como estava.');
+    expect(screen.getByRole('img')).toHaveAttribute('src', 'blob:miniatura-1');
+  });
+  it('remover durante a rotação não ressuscita o anexo nem lança erro', async () => {
+    const user = await comAnexo();
+    await user.click(screen.getByRole('button', { name: 'Girar foto.png' }));
+    await user.click(screen.getByRole('button', { name: 'Remover foto.png' }));
+    await terminar();
+    expect(screen.queryAllByRole('img')).toHaveLength(0);
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(contador).toBe(1);
+  });
+  it('desmontar durante a rotação não cria URL nem lança erro', async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(<Denuncia onEnviado={() => {}} />);
+    await ateProvas(user);
+    fireEvent.change(screen.getByLabelText('Adicionar imagens'), { target: { files: [arquivo('foto.png', 'image/png')] } });
+    await user.click(screen.getByRole('button', { name: 'Girar foto.png' }));
+    unmount();
+    await terminar();
+    expect(contador).toBe(1);
   });
 });
 

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import { enviarDenuncia, mensagemErro } from '../shared/api';
 import type { ResultadoDenuncia } from '../shared/api';
+import { girarImagem } from './girarImagem';
 import { apagarRascunho, lerRascunho, salvarRascunho } from './rascunho';
 import type { DadosRascunho } from './rascunho';
 import { LIMITE_RELATO, SITUACOES, comporRelato, tipoDe } from './situacoes';
@@ -22,7 +23,11 @@ export default function Denuncia({ onEnviado, onEnviando, passoInicial = 1, dado
   const [avisoRascunho, setAvisoRascunho] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [anexos, setAnexos] = useState<Anexo[]>([]);
+  const [girando, setGirando] = useState<number[]>([]);
   const urls = useRef(new Set<string>());
+  const ativo = useRef(true);
+  const atuais = useRef<Anexo[]>([]);
+  atuais.current = anexos;
   const sequencia = useRef(0);
   const titulo = useRef<HTMLHeadingElement>(null);
   const situacao = SITUACOES.find(s => s.id === dados.situacaoId);
@@ -47,7 +52,8 @@ export default function Denuncia({ onEnviado, onEnviando, passoInicial = 1, dado
   useEffect(() => { titulo.current?.focus(); }, [passo]);
   useEffect(() => {
     const criadas = urls.current;
-    return () => { criadas.forEach(url => URL.revokeObjectURL(url)); criadas.clear(); };
+    ativo.current = true;
+    return () => { ativo.current = false; criadas.forEach(url => URL.revokeObjectURL(url)); criadas.clear(); };
   }, []);
   function alterar<K extends keyof DadosRascunho>(campo: K, valor: DadosRascunho[K]) {
     setDados(anterior => ({ ...anterior, [campo]: valor }));
@@ -84,6 +90,25 @@ export default function Denuncia({ onEnviado, onEnviando, passoInicial = 1, dado
     urls.current.delete(anexo.url);
     setAnexos(atuais => atuais.filter(a => a.id !== anexo.id));
     setErroAnexos('');
+  }
+  async function girar(anexo: Anexo) {
+    setGirando(g => [...g, anexo.id]); setErroAnexos('');
+    try {
+      const girado = await girarImagem(anexo.arquivo, 90);
+      // o aluno pode ter removido o anexo, ou saído da tela, enquanto a imagem girava
+      if (!ativo.current || !atuais.current.some(a => a.id === anexo.id)) return;
+      const url = URL.createObjectURL(girado);
+      urls.current.add(url);
+      const antiga = atuais.current.find(a => a.id === anexo.id)!.url;
+      URL.revokeObjectURL(antiga);
+      urls.current.delete(antiga);
+      setAnexos(lista => lista.map(a => a.id === anexo.id ? { ...a, arquivo: girado, url } : a));
+    } catch (falha) {
+      if (!ativo.current) return;
+      setErroAnexos(falha instanceof Error && falha.message === 'girar-grande'
+        ? 'A imagem girada passa de 5 MB. Ela continua anexada como estava.'
+        : 'Não foi possível girar esta imagem. Ela continua anexada como estava.');
+    } finally { if (ativo.current) setGirando(g => g.filter(id => id !== anexo.id)); }
   }
   function validar(): string {
     if (passo === 1 && !situacao) return 'Escolha uma situação para continuar.';
@@ -164,6 +189,7 @@ export default function Denuncia({ onEnviado, onEnviando, passoInicial = 1, dado
             {erroAnexos && <p role="alert" className="erro">{erroAnexos}</p>}
             <ul className="anexos">{anexos.map(anexo => <li key={anexo.id}>
               <img src={anexo.url} alt={`Prévia de ${anexo.arquivo.name}`} /><p>{anexo.arquivo.name}</p>
+              {anexo.arquivo.type !== 'image/gif' && <button type="button" className="botao secundario" aria-label={`Girar ${anexo.arquivo.name}`} disabled={girando.includes(anexo.id)} onClick={() => void girar(anexo)}>Girar</button>}
               <button type="button" className="botao secundario" aria-label={`Remover ${anexo.arquivo.name}`} onClick={() => remover(anexo)}>Remover</button>
             </li>)}</ul>
             <p className="texto-pequeno">As imagens ficam nesta tela. Se você sair, será preciso adicioná-las novamente.</p>
