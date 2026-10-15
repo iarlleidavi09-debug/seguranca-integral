@@ -380,3 +380,34 @@ def test_criar_admin_e_redefinir_senha_sao_exclusivos(tmp_path):
     with pytest.raises(SystemExit) as saida:
         server.main(["--data-dir", str(tmp_path), "--criar-admin", "--redefinir-senha"])
     assert saida.value.code == 2
+
+
+def _subir_e_parar(config):
+    parar = threading.Event()
+    prontas: queue.Queue = queue.Queue()
+    t = threading.Thread(
+        target=server.servir, args=(config, parar),
+        kwargs={"ao_iniciar": lambda a, c: prontas.put(True)}, daemon=True)
+    t.start()
+    assert prontas.get(timeout=15)
+    parar.set()
+    t.join(15)
+    assert not t.is_alive()
+
+
+def test_aviso_na_partida_sem_allowed_hosts(tmp_path, caplog):
+    config = Config(data_dir=tmp_path, secret_key="x", student_port=0, coord_port=0)
+    with caplog.at_level(logging.INFO, logger="seguranca.servidor"):
+        _subir_e_parar(config)
+    avisos = [r for r in caplog.records
+              if r.levelno == logging.WARNING and "allowed_hosts" in r.getMessage()]
+    assert len(avisos) == 1
+    assert "127.0.0.1" not in avisos[0].getMessage()
+
+
+def test_sem_aviso_com_allowed_hosts(tmp_path, caplog):
+    config = Config(data_dir=tmp_path, secret_key="x", student_port=0, coord_port=0,
+                    allowed_hosts=("escola.exemplo.com.br",))
+    with caplog.at_level(logging.INFO, logger="seguranca.servidor"):
+        _subir_e_parar(config)
+    assert not [r for r in caplog.records if r.levelno >= logging.WARNING]

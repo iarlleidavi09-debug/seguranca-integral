@@ -210,6 +210,10 @@ def servir(config: Config, parar: threading.Event | None = None, *,
         if principal:
             anteriores = _instalar_sinais(parar)
         aluno, coord = (s.server_port for s in servidores)
+        if not config.allowed_hosts:
+            # sem endereços no log: só o aviso de que o Host não é validado
+            log.warning("allowed_hosts vazio no config.json: o cabecalho Host "
+                        "nao esta sendo validado; liste os dominios do tunel")
         # só as portas: o endereço de escuta não vai para o log
         log.info("portal do aluno na porta %d, coordenacao na porta %d", aluno, coord)
         if ao_iniciar is not None:
