@@ -71,8 +71,8 @@ function App() {
     switch (tela) {
       case 'inicio': return <Inicio onAjuda={() => ir('tipo')} onAcompanhar={() => ir('acompanhar')} />;
       case 'tipo': case 'relato': case 'provas': case 'identificacao':
-        return <Denuncia passoInicial={tela === 'tipo' ? 1 : tela === 'relato' ? 2 : 3}
-          chaveRascunho="si-previa-rascunho" dadosIniciais={{ tipo: 'perfil_falso', relato: 'Relato fictício para visualizar as etapas do pedido de ajuda.', anonimo: tela !== 'identificacao', nome: tela === 'identificacao' ? 'Aluno de exemplo' : '', turma: '' }}
+        return <Denuncia passoInicial={tela === 'tipo' ? 1 : tela === 'relato' ? 3 : 4}
+          dadosIniciais={{ situacaoId: 'perfil_falso', marcadas: ['Criaram um perfil fingindo ser eu.'], relato: 'Relato fictício para visualizar as etapas do pedido de ajuda.', anonimo: tela !== 'identificacao', nome: tela === 'identificacao' ? 'Aluno de exemplo' : '', turma: '' }}
           onEnviado={() => ir('confirmacao')} />;
       case 'confirmacao': return <Confirmacao resultado={{ codigo: 'PREVIA-001' }} onAcompanhar={() => ir('acompanhar')} />;
       case 'acompanhar': return <Acompanhar codigoInicial="PREVIA-001" />;

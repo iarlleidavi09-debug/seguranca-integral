@@ -48,7 +48,9 @@ describe('Casca do portal do aluno', () => {
     const user = userEvent.setup();
     render(<App />);
     await user.click(navegacao().getByRole('button', { name: 'Pedir ajuda' }));
-    await user.click(screen.getByLabelText('Ameaça'));
+    await user.click(screen.getByRole('radio', { name: /^Ameaças\./ }));
+    await user.click(screen.getByRole('button', { name: 'Continuar' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Disseram que vão me machucar.' }));
     await user.click(screen.getByRole('button', { name: 'Continuar' }));
     await user.type(screen.getByLabelText('O que aconteceu?'), 'Estão me ameaçando no aplicativo da turma.');
     await user.click(screen.getByRole('button', { name: 'Continuar' }));
@@ -83,10 +85,10 @@ describe('Casca do portal do aluno', () => {
     await user.click(inicio);
     expect(screen.getByRole('main')).not.toHaveFocus();
     await user.click(navegacao().getByRole('button', { name: 'Pedir ajuda' }));
-    await user.click(screen.getByLabelText('Ameaça'));
-    expect(screen.getByLabelText('Ameaça')).toHaveFocus();
+    await user.click(screen.getByRole('radio', { name: /^Ameaças\./ }));
+    expect(screen.getByRole('radio', { name: /^Ameaças\./ })).toHaveFocus();
     await user.click(navegacao().getByRole('button', { name: 'Pedir ajuda' }));
-    expect(screen.getByLabelText('Ameaça')).toBeChecked();
+    expect(screen.getByRole('radio', { name: /^Ameaças\./ })).toBeChecked();
     expect(screen.getByRole('main')).not.toHaveFocus();
     await user.click(navegacao().getByRole('button', { name: 'Acompanhar' }));
     expect(screen.getByRole('main')).toHaveFocus();

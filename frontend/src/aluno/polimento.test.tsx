@@ -4,68 +4,11 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import App from './App';
 import Confirmacao from './Confirmacao';
-import Denuncia from './Denuncia';
 import Acompanhar from './Acompanhar';
 
-const chave = 'si-aluno-rascunho-v1';
 const responder = (body: unknown, status = 200) => vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify(body), { status }));
 
-describe('Foco', () => {
-  it('ao entrar na denúncia e a cada passo, o título fica focado', async () => {
-    const user = userEvent.setup();
-    render(<App />);
-    await user.click(screen.getByRole('button', { name: 'Preciso de ajuda' }));
-    expect(screen.getByRole('heading', { name: 'Qual é a situação?' })).toHaveFocus();
-    await user.click(screen.getByLabelText('Ameaça'));
-    await user.click(screen.getByRole('button', { name: 'Continuar' }));
-    expect(screen.getByRole('heading', { name: 'O que aconteceu?' })).toHaveFocus();
-    await user.type(screen.getByLabelText('O que aconteceu?'), 'Estão me ameaçando no grupo.');
-    await user.click(screen.getByRole('button', { name: 'Continuar' }));
-    expect(screen.getByRole('heading', { name: 'Provas e identificação' })).toHaveFocus();
-    await user.click(screen.getByRole('button', { name: 'Voltar' }));
-    expect(screen.getByRole('heading', { name: 'O que aconteceu?' })).toHaveFocus();
-  });
-});
-
-describe('Rascunho', () => {
-  it('não grava nada enquanto não há texto e grava depois de digitar', async () => {
-    const user = userEvent.setup();
-    render(<Denuncia onEnviado={() => {}} />);
-    expect(localStorage.getItem(chave)).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Limpar rascunho' })).not.toBeInTheDocument();
-    await user.click(screen.getByLabelText('Golpe ou extorsão'));
-    expect(localStorage.getItem(chave)).toContain('golpe');
-    expect(screen.getByRole('button', { name: 'Limpar rascunho' })).toBeInTheDocument();
-  });
-
-  it('Limpar rascunho apaga o armazenamento e volta ao primeiro passo vazio', async () => {
-    const user = userEvent.setup();
-    render(<Denuncia onEnviado={() => {}} />);
-    await user.click(screen.getByLabelText('Ameaça'));
-    await user.click(screen.getByRole('button', { name: 'Continuar' }));
-    await user.type(screen.getByLabelText('O que aconteceu?'), 'Texto que será apagado.');
-    await user.click(screen.getByRole('button', { name: 'Limpar rascunho' }));
-    expect(localStorage.getItem(chave)).toBeNull();
-    expect(screen.getByRole('heading', { name: 'Qual é a situação?' })).toHaveFocus();
-    expect(screen.getByLabelText('Ameaça')).not.toBeChecked();
-    expect(screen.queryByRole('button', { name: 'Limpar rascunho' })).not.toBeInTheDocument();
-  });
-});
-
-describe('Miniaturas', () => {
-  it('revoga as URLs das miniaturas ao desmontar', async () => {
-    const user = userEvent.setup();
-    const { unmount } = render(<Denuncia onEnviado={() => {}} />);
-    await user.click(screen.getByLabelText('Ameaça'));
-    await user.click(screen.getByRole('button', { name: 'Continuar' }));
-    await user.type(screen.getByLabelText('O que aconteceu?'), 'Estão me ameaçando no grupo.');
-    await user.click(screen.getByRole('button', { name: 'Continuar' }));
-    await user.upload(screen.getByLabelText('Adicionar imagens'), new File(['x'], 'a.png', { type: 'image/png' }));
-    expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
-    unmount();
-    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:miniatura');
-  });
-});
+// Foco, rascunho e miniaturas do pedido migraram para Denuncia.test.tsx.
 
 describe('Confirmação', () => {
   it('copia o código e avisa; avisa também quando a cópia falha', async () => {
