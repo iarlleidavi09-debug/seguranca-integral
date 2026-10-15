@@ -64,7 +64,11 @@ def test_carga_envia_dez_e_sai_zero(subir):
     assert total == 10
     assert 0 < anonimos < total  # mistura de anônimas e identificadas
     assert tipos == 7  # todos os tipos em rodízio
-    anexos = connect(config).execute("SELECT COUNT(*) FROM anexos").fetchone()[0]
+    conn = connect(config)
+    try:
+        anexos = conn.execute("SELECT COUNT(*) FROM anexos").fetchone()[0]
+    finally:
+        conn.close()
     assert anexos == 5  # PNG válido em metade
 
 
