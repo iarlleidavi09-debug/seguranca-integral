@@ -129,9 +129,9 @@ PRIORIDADES = ("critica", "alta", "media", "baixa")  # ordem da fila
 RESUMO_MAX = 120
 
 _ORDEM_FILA = (
-    "CASE prioridade WHEN 'critica' THEN 0 WHEN 'alta' THEN 1 "
+    "CASE c.prioridade WHEN 'critica' THEN 0 WHEN 'alta' THEN 1 "
     "WHEN 'media' THEN 2 ELSE 3 END, "
-    "criado_em, id"
+    "c.criado_em, c.id"
 )
 
 
@@ -142,32 +142,72 @@ def _bools(d: dict) -> dict:
     return d
 
 
+BUSCA_MAX = 100
+
+
+def _escapar_like(texto: str) -> str:
+    return (texto.replace("\\", "\\\\").replace("%", "\\%")
+            .replace("_", "\\_"))
+
+
 def listar_fila(conn: sqlite3.Connection, status: str | None = None,
-                tipo: str | None = None) -> list[dict]:
+                prioridade: str | None = None, tipo: str | None = None,
+                q: str | None = None) -> list[dict]:
     """Fila da coordenação: prioridade (critica, alta, media, baixa) e depois antiguidade.
 
     Os filtros chegam já validados pela rota; aqui só entram como parâmetro.
+    `q` só com dígitos casa o número do caso ou o texto; senão, só o texto
+    do relato (sem diferenciar maiúsculas; `%`, `_` e a barra invertida valem como texto).
     """
     filtros, params = [], []
-    if status:
-        filtros.append("status = ?")
-        params.append(status)
-    if tipo:
-        filtros.append("tipo = ?")
-        params.append(tipo)
+    for coluna, valor in (("c.status", status), ("c.prioridade", prioridade),
+                          ("c.tipo", tipo)):
+        if valor:
+            filtros.append(f"{coluna} = ?")
+            params.append(valor)
+    if q:
+        trecho = "LOWER(c.relato) LIKE ? ESCAPE '\\'"
+        padrao = f"%{_escapar_like(q.lower())}%"
+        if q.isascii() and q.isdigit():
+            filtros.append(f"(c.id = ? OR {trecho})")
+            params.extend([int(q), padrao])
+        else:
+            filtros.append(trecho)
+            params.append(padrao)
     onde = f"WHERE {' AND '.join(filtros)} " if filtros else ""
     linhas = conn.execute(
-        "SELECT id, tipo, prioridade, pontos, status, em_andamento, anonimo, "
-        "simulacao, relato, criado_em, atualizado_em FROM casos "
+        "SELECT c.id, c.tipo, c.prioridade, c.pontos, c.status, c.em_andamento, "
+        "c.anonimo, c.simulacao, c.relato, c.criado_em, c.atualizado_em, "
+        "c.recorrencia_pendente, u.nome AS ultimo_acesso_por, c.ultimo_acesso_em "
+        "FROM casos c LEFT JOIN usuarios u ON u.id = c.ultimo_acesso_por "
         f"{onde}ORDER BY {_ORDEM_FILA}",
         params,
     ).fetchall()
     fila = []
     for linha in linhas:
         d = _bools(dict(linha))
+        d["recorrencia_pendente"] = bool(d["recorrencia_pendente"])
         d["resumo"] = d.pop("relato")[:RESUMO_MAX]
         fila.append(d)
     return fila
+
+
+def resumo(conn: sqlite3.Connection) -> dict:
+    """Contagens para o painel; todas as chaves aparecem, mesmo com zero."""
+    por_status = dict.fromkeys(STATUS, 0)
+    por_prioridade = dict.fromkeys(PRIORIDADES, 0)
+    for linha in conn.execute("SELECT status, COUNT(*) FROM casos GROUP BY status"):
+        if linha[0] in por_status:
+            por_status[linha[0]] = linha[1]
+    for linha in conn.execute(
+            "SELECT prioridade, COUNT(*) FROM casos GROUP BY prioridade"):
+        if linha[0] in por_prioridade:
+            por_prioridade[linha[0]] = linha[1]
+    recorrencia = conn.execute(
+        "SELECT COUNT(*) FROM casos WHERE recorrencia_pendente = 1"
+    ).fetchone()[0]
+    return {"status": por_status, "prioridade": por_prioridade,
+            "recorrencia_pendente": recorrencia}
 
 
 def existe_caso(conn: sqlite3.Connection, caso_id: int) -> bool:

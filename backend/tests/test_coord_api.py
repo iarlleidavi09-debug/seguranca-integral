@@ -66,6 +66,7 @@ ROTAS_PROTEGIDAS = [
     ("post", "/api/logout"),
     ("get", "/api/eu"),
     ("get", "/api/casos"),
+    ("get", "/api/resumo"),
     ("get", "/api/casos/1"),
     ("post", "/api/casos/1/status"),
     ("post", "/api/casos/1/prioridade"),
@@ -277,6 +278,110 @@ def test_filtros_status_e_tipo(coord_logado, config):
     assert sorted(ids("?status=&tipo=")) == sorted([um, dois, tres])
     assert coord_logado.get("/api/casos?status=apagado").status_code == 400
     assert coord_logado.get("/api/casos?tipo=xpto").status_code == 400
+
+
+
+# --- busca, filtro de prioridade, resumo e recorrencia ---------------------
+
+def _ids(cli, qs):
+    return [c["id"] for c in cli.get(f"/api/casos{qs}").get_json()["casos"]]
+
+
+def test_filtro_por_prioridade(coord_logado, config):
+    a, _ = _caso(config, prioridade="alta")
+    b, _ = _caso(config, prioridade="baixa")
+    assert _ids(coord_logado, "?prioridade=alta") == [a]
+    assert _ids(coord_logado, "?prioridade=baixa") == [b]
+    assert sorted(_ids(coord_logado, "?prioridade=")) == sorted([a, b])
+    assert coord_logado.get("/api/casos?prioridade=xyz").status_code == 400
+
+
+def test_busca_por_numero_e_por_texto(coord_logado, config):
+    ids = [_caso(config, relato=f"Relato comum numero {i}")[0] for i in range(12)]
+    alvo = _caso(config, relato="Fotos Intimas foram publicadas, não sei o que fazer")[0]
+    assert ids[-1] in _ids(coord_logado, f"?q={ids[-1]}")
+    assert 12 in _ids(coord_logado, "?q=12")
+    assert _ids(coord_logado, "?q=fotos%20INTIMAS") == [alvo]
+    assert _ids(coord_logado, "?q=naoexiste") == []
+    assert len(_ids(coord_logado, "?q=")) == 13
+    assert len(_ids(coord_logado, "")) == 13
+
+
+def test_busca_trata_curingas_como_texto(coord_logado, config):
+    com, _ = _caso(config, relato="Pediram 100% do dinheiro")
+    sub, _ = _caso(config, relato="Mandaram a_b no grupo")
+    barra, _ = _caso(config, relato="Caminho C:\\pasta secreta")
+    _caso(config, relato="Relato sem nada especial")
+    assert _ids(coord_logado, "?q=100%25") == [com]
+    assert _ids(coord_logado, "?q=%25") == [com]  # so o caso que tem % literal
+    assert _ids(coord_logado, "?q=a_b") == [sub]
+    assert _ids(coord_logado, "?q=a_") == [sub]
+    assert _ids(coord_logado, "?q=_") == [sub]
+    assert _ids(coord_logado, "?q=C:%5Cpasta") == [barra]
+    assert _ids(coord_logado, "?q=%27%20OR%201%3D1%20--") == []
+    assert coord_logado.get("/api/casos?q=%27").status_code == 200
+
+
+def test_busca_longa_demais_400(coord_logado):
+    assert coord_logado.get("/api/casos?q=" + "a" * 100).status_code == 200
+    r = coord_logado.get("/api/casos?q=" + "a" * 101)
+    assert r.status_code == 400
+    assert r.get_json() == {"erro": "busca longa demais"}
+
+
+def test_recorrencia_nao_muda_a_ordem(coord_logado, config):
+    alta, _ = _caso(config, prioridade="alta", criado_em="2026-01-01T08:00:00+00:00")
+    crit, _ = _caso(config, prioridade="critica", criado_em="2026-01-09T08:00:00+00:00")
+    c = connect(config)
+    c.execute("UPDATE casos SET recorrencia_pendente = 1 WHERE id = ?", (alta,))
+    c.commit()
+    c.close()
+    casos = coord_logado.get("/api/casos").get_json()["casos"]
+    assert [x["id"] for x in casos] == [crit, alta]
+    assert casos[0]["recorrencia_pendente"] is False
+    assert casos[1]["recorrencia_pendente"] is True
+
+
+def test_item_traz_quem_acessou_por_ultimo(coord_logado, config):
+    caso_id, _ = _caso(config)
+    sem, = coord_logado.get("/api/casos").get_json()["casos"]
+    assert sem["ultimo_acesso_por"] is None and sem["ultimo_acesso_em"] is None
+    c = connect(config)
+    c.execute("UPDATE casos SET ultimo_acesso_por = ?, ultimo_acesso_em = ? WHERE id = ?",
+              (_id_usuario(config), "2026-02-01T10:00:00+00:00", caso_id))
+    c.commit()
+    c.close()
+    item, = coord_logado.get("/api/casos").get_json()["casos"]
+    assert item["ultimo_acesso_por"] == "coord"
+    assert item["ultimo_acesso_em"] == "2026-02-01T10:00:00+00:00"
+    assert {"id", "tipo", "prioridade", "pontos", "status", "em_andamento", "anonimo",
+            "simulacao", "resumo", "criado_em", "atualizado_em"} <= set(item)
+
+
+def test_resumo_conta_tudo(coord_logado, config):
+    _caso(config, prioridade="critica")
+    _caso(config, prioridade="alta", status="em_investigacao")
+    b, _ = _caso(config, prioridade="alta", status="resolvido")
+    _caso(config, prioridade="baixa")
+    c = connect(config)
+    c.execute("UPDATE casos SET recorrencia_pendente = 1 WHERE id = ?", (b,))
+    c.commit()
+    c.close()
+    r = coord_logado.get("/api/resumo")
+    assert r.status_code == 200
+    assert r.get_json() == {
+        "status": {"novo": 2, "em_investigacao": 1, "resolvido": 1},
+        "prioridade": {"critica": 1, "alta": 2, "media": 0, "baixa": 1},
+        "recorrencia_pendente": 1,
+    }
+
+
+def test_resumo_com_banco_vazio_devolve_zeros(coord_logado):
+    assert coord_logado.get("/api/resumo").get_json() == {
+        "status": {"novo": 0, "em_investigacao": 0, "resolvido": 0},
+        "prioridade": {"critica": 0, "alta": 0, "media": 0, "baixa": 0},
+        "recorrencia_pendente": 0,
+    }
 
 
 def test_detalhe_traz_motivos_anexos_e_timeline(coord_logado, config):
@@ -618,6 +723,7 @@ def test_detalhe_nao_le_colunas_sensiveis(config):
 
 CAMINHOS_PROTEGIDOS = [
     "/api/casos",
+    "/api/resumo",
     "/api/casos/1",
     "/api/casos/1/status",
     "/api/casos/1/prioridade",

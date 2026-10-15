@@ -220,10 +220,19 @@ def _filtro(nome: str, permitidos: tuple[str, ...]):
 def fila():
     try:
         status = _filtro("status", casos.STATUS)
+        prioridade = _filtro("prioridade", casos.PRIORIDADES)
         tipo = _filtro("tipo", casos.TIPOS)
     except ValueError as erro:
         return _erro(f"filtro {erro} invalido")
-    return jsonify({"casos": casos.listar_fila(_db(), status, tipo)})
+    q = request.args.get("q", "").strip()
+    if len(q) > casos.BUSCA_MAX:
+        return _erro("busca longa demais")
+    return jsonify({"casos": casos.listar_fila(_db(), status, prioridade, tipo, q)})
+
+
+@bp.get("/api/resumo")
+def resumo():
+    return jsonify(casos.resumo(_db()))
 
 
 @bp.get("/api/casos/<int:caso_id>")
