@@ -101,11 +101,8 @@ def caso_por_codigo(conn: sqlite3.Connection, config: Config,
     ).fetchone()
 
 
-def listar_mensagens(conn: sqlite3.Connection, caso_id: int,
-                     apenas_publicas: bool = True) -> list[sqlite3.Row]:
+def listar_mensagens(conn: sqlite3.Connection, caso_id: int) -> list[sqlite3.Row]:
     """Mensagens do caso. Notas internas ficam em outra tabela e nunca entram."""
-    # `apenas_publicas` existe para a coordenação ampliar a lista no futuro;
-    # hoje toda mensagem é visível ao aluno.
     return conn.execute(
         "SELECT autor, texto, criado_em FROM mensagens WHERE caso_id = ? "
         "ORDER BY id",
@@ -178,13 +175,23 @@ def existe_caso(conn: sqlite3.Connection, caso_id: int) -> bool:
     ).fetchone() is not None
 
 
+# Colunas nomeadas: uma coluna sensível nova na tabela (como codigo_hash)
+# nunca vaza para a coordenação sem alguém incluí-la aqui de propósito.
+COLUNAS_DETALHE = (
+    "id", "tipo", "relato", "quando", "onde", "em_andamento", "anonimo",
+    "nome", "turma", "gravidade", "pontos", "motivos_json", "status",
+    "simulacao", "criado_em", "atualizado_em",
+)
+
+
 def detalhe_caso(conn: sqlite3.Connection, caso_id: int) -> dict | None:
     """Caso completo para a coordenação, sem o hash do código."""
-    linha = conn.execute("SELECT * FROM casos WHERE id = ?", (caso_id,)).fetchone()
+    linha = conn.execute(
+        f"SELECT {', '.join(COLUNAS_DETALHE)} FROM casos WHERE id = ?", (caso_id,)
+    ).fetchone()
     if linha is None:
         return None
     caso = _bools(dict(linha))
-    caso.pop("codigo_hash", None)
     caso["motivos"] = json.loads(caso.pop("motivos_json") or "[]")
     caso["anexos"] = [
         dict(a) for a in conn.execute(

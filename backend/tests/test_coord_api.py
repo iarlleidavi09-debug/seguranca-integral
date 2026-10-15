@@ -1,4 +1,5 @@
 """Testes da API da coordenação (porta 4000)."""
+import inspect
 import sqlite3
 import time
 
@@ -500,3 +501,22 @@ def test_log_de_acesso_da_coordenacao_sem_ip_nem_corpo(coord_client, config, cap
     for m in caplog.messages:
         for proibido in ("203.0.113.77", "127.0.0.1", SENHA_COORD, "x=1"):
             assert proibido not in m
+
+
+def test_detalhe_usa_so_colunas_conhecidas_do_caso(coord_logado, config):
+    caso_id, _ = _caso(config)
+    d = coord_logado.get(f"/api/casos/{caso_id}").get_json()
+    assert set(d) == {
+        "id", "tipo", "relato", "quando", "onde", "em_andamento", "anonimo",
+        "nome", "turma", "gravidade", "pontos", "motivos", "status",
+        "simulacao", "criado_em", "atualizado_em",
+        "anexos", "eventos", "mensagens", "notas",
+    }
+    assert not any("hash" in chave for chave in d)
+
+
+def test_detalhe_nao_le_colunas_sensiveis(config):
+    # a consulta nomeia as colunas: o hash nem chega a ser lido
+    from app import casos as modulo
+    assert "SELECT *" not in inspect.getsource(modulo.detalhe_caso)
+    assert "codigo_hash" not in modulo.COLUNAS_DETALHE
