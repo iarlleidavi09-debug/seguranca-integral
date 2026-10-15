@@ -7,12 +7,16 @@
 #   1. frontend: npm ci, npm run build:aluno, npm run build:coord
 #   2. backend: suite completa do pytest (pule com -SemTestes)
 #   3. PyInstaller -> dist\SegurancaIntegral\SegurancaIntegral.exe
-#   4. Inno Setup  -> dist\SegurancaIntegral-Setup.exe (pulado se o ISCC.exe nao existir)
+#   4. Inno Setup  -> dist\SegurancaIntegral-Setup.exe
+# Sem o ISCC.exe o script FALHA (antes de qualquer build), a menos que se
+# passe -SemInstalador (so o executavel). Um Setup antigo em dist\ e apagado
+# no inicio: nunca sobra instalador de outra versao.
 # Requer backend\.venv com requirements-dev.txt instalado.
 # Arquivo so com ASCII: o PowerShell 5.1 le UTF-8 sem BOM como ANSI.
 [CmdletBinding()]
 param(
-    [switch]$SemTestes
+    [switch]$SemTestes,
+    [switch]$SemInstalador
 )
 
 $ErrorActionPreference = 'Stop'
@@ -25,6 +29,7 @@ $Dist = Join-Path $Raiz 'dist'
 $Trabalho = Join-Path $Raiz 'build'
 $Spec = Join-Path $PSScriptRoot 'seguranca.spec'
 $Iss = Join-Path $PSScriptRoot 'instalador.iss'
+$Setup = Join-Path $Dist 'SegurancaIntegral-Setup.exe'
 
 # $ErrorActionPreference nao pega codigo de saida de programa nativo no
 # PowerShell 5.1: cada chamada passa por aqui e falha se o codigo nao for 0
@@ -70,6 +75,17 @@ if (-not (Test-Path -LiteralPath $Python -PathType Leaf)) {
     throw "Nao achei $Python. Crie o venv e instale backend\requirements-dev.txt."
 }
 
+# falha cedo, antes de gastar minutos de build: sem Inno nao ha instalador
+$Iscc = Find-Iscc
+if ($null -eq $Iscc -and -not $SemInstalador) {
+    throw 'ISCC.exe nao encontrado. Instale o Inno Setup 6.3 ou mais novo (https://jrsoftware.org/isdl.php) ou passe -SemInstalador para gerar so o executavel.'
+}
+
+# um Setup de uma rodada anterior nunca pode ser tomado pelo desta
+if (Test-Path -LiteralPath $Setup) {
+    Remove-Item -LiteralPath $Setup -Force
+}
+
 # npm.cmd e nao npm: a politica de execucao pode bloquear o npm.ps1
 Invoke-Passo -Titulo 'npm ci' -Pasta $Frontend -Programa 'npm.cmd' -Argumentos @('ci')
 Invoke-Passo -Titulo 'build do portal do aluno' -Pasta $Frontend -Programa 'npm.cmd' -Argumentos @('run', 'build:aluno')
@@ -92,13 +108,9 @@ if (-not (Test-Path -LiteralPath $Exe -PathType Leaf)) {
     throw "PyInstaller terminou sem gerar $Exe"
 }
 
-$Iscc = Find-Iscc
-$Setup = Join-Path $Dist 'SegurancaIntegral-Setup.exe'
-if ($null -eq $Iscc) {
+if ($SemInstalador) {
     Write-Host ''
-    Write-Host '==> Inno Setup PULADO: ISCC.exe nao encontrado.' -ForegroundColor Yellow
-    Write-Host '    Instale o Inno Setup 6.3 ou mais novo (https://jrsoftware.org/isdl.php)'
-    Write-Host '    e rode este script de novo para gerar o instalador.'
+    Write-Host '==> Inno Setup PULADO (-SemInstalador).' -ForegroundColor Yellow
     $Setup = $null
 } else {
     Invoke-Passo -Titulo 'Inno Setup' -Pasta $PSScriptRoot -Programa $Iscc -Argumentos @($Iss)

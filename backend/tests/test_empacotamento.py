@@ -123,6 +123,45 @@ def test_iss_trata_saidas_3_e_4_do_criar_admin():
     assert "RaiseException" in texto
 
 
+def test_iss_nao_deixa_escolher_a_pasta_do_programa():
+    # o LEIA-ME cita C:\Program Files\SegurancaIntegral: o caminho precisa ser verdade
+    texto = _ler(ISS)
+    assert re.search(r"^DisableDirPage=yes\s*$", texto, re.M)
+    assert re.search(r"^DefaultDirName=\{autopf\}\\SegurancaIntegral\s*$", texto, re.M)
+
+
+def test_iss_acl_alcanca_arquivos_ja_existentes():
+    texto = _ler(ISS)
+    assert re.search(r"/grant:r [^']*\(OI\)\(CI\)F /T'", texto)
+
+
+def test_iss_silencioso_nao_cria_admin_nem_grava_senha():
+    texto = _ler(ISS)
+    corpo = re.search(r"procedure CriarAdmin;(.*?)\nend;", texto, re.S)
+    assert corpo, "falta a procedure CriarAdmin"
+    corpo = corpo.group(1)
+    silencioso = corpo.index("if WizardSilent then")
+    # o ramo silencioso sai ANTES de executar o programa com --criar-admin
+    assert silencioso < corpo.index("ExecAndCaptureOutput(")
+    ramo = corpo[silencioso:corpo.index("ExecAndCaptureOutput(")]
+    assert "Exit;" in ramo
+    assert "--criar-admin" in ramo  # a instrução vai na mensagem final
+    # nada de senha em log ou arquivo, em nenhum ramo
+    assert not re.search(r"Log\([^)]*Senha", texto)
+    assert "SaveStringToFile(ArquivoLog" not in texto
+    # mensagem final no ssDone, só no modo silencioso, respeitando /SUPPRESSMSGBOXES
+    assert re.search(r"CurStep = ssDone\) and WizardSilent", texto)
+    assert "SuppressibleMsgBox(TextoFinal" in texto
+
+
+def test_iss_silencioso_nao_grava_endereco_vazio_no_config():
+    texto = _ler(ISS)
+    corpo = re.search(r"procedure GravarConfig;(.*?)\nend;", texto, re.S).group(1)
+    ramo_silencioso = corpo[corpo.index("if WizardSilent then"):corpo.index("else")]
+    assert '"127.0.0.1", "localhost"' in ramo_silencioso
+    assert "HostDigitado" not in ramo_silencioso
+
+
 def test_iss_basico():
     texto = _ler(ISS)
     assert "{autopf}\\SegurancaIntegral" in texto
@@ -144,6 +183,46 @@ def test_build_para_no_primeiro_erro():
     for trecho in ("npm.cmd", "'ci'", "build:aluno", "build:coord", "pytest",
                    "PyInstaller", "SemTestes", "ISCC.exe"):
         assert trecho in texto, trecho
+
+
+def test_build_toda_chamada_nativa_passa_pelo_verificador():
+    texto = _ler(BUILD)
+    # o único operador de chamada (&) do script fica dentro do verificador,
+    # seguido da checagem do código de saída
+    chamadas = re.findall(r"^\s*&\s+\S+", texto, re.M)
+    assert [c.strip() for c in chamadas] == ["& $Programa"], chamadas
+    funcao = re.search(r"function Invoke-Passo \{.*?^\}", texto, re.S | re.M).group(0)
+    assert re.search(r"& \$Programa @Argumentos\s+if \(\$LASTEXITCODE -ne 0\) \{\s+throw",
+                     funcao)
+    # as seis etapas nativas: npm ci, 2 builds, pytest, PyInstaller e Inno Setup
+    passos = re.findall(r"^\s*Invoke-Passo -Titulo '([^']+)'", texto, re.M)
+    assert passos == ["npm ci", "build do portal do aluno",
+                      "build do portal da coordenacao", "testes do backend (pytest)",
+                      "PyInstaller", "Inno Setup"]
+    # nenhum outro jeito de chamar programa externo
+    assert not re.search(r"Start-Process|\bcmd(\.exe)?\s+/c|Invoke-Expression|\biex\b",
+                         texto, re.I)
+
+
+def test_build_sem_iscc_falha_salvo_com_sem_instalador():
+    texto = _ler(BUILD)
+    assert "[switch]$SemInstalador" in texto
+    falha = re.search(
+        r"if \(\$null -eq \$Iscc -and -not \$SemInstalador\) \{\s+throw '[^']*ISCC\.exe",
+        texto)
+    assert falha, "falta o erro quando o ISCC.exe nao existe"
+    # a checagem vem antes de qualquer etapa de build
+    assert falha.start() < texto.index("Invoke-Passo -Titulo 'npm ci'")
+    assert "PULADO: ISCC.exe nao encontrado" not in texto  # o salto silencioso acabou
+
+
+def test_build_apaga_setup_antigo_antes_de_construir():
+    texto = _ler(BUILD)
+    remocao = re.search(
+        r"Test-Path -LiteralPath \$Setup\) \{\s+Remove-Item -LiteralPath \$Setup -Force",
+        texto)
+    assert remocao, "falta apagar o Setup antigo"
+    assert remocao.start() < texto.index("Invoke-Passo -Titulo 'npm ci'")
 
 
 @pytest.mark.parametrize("arquivo", [TAREFAS, BUILD], ids=lambda p: p.name)
@@ -186,6 +265,8 @@ def test_tarefas_simulacao_registrar():
     assert r"Pasta de trabalho: C:\Teste\SI" in saida
     assert "S-1-5-18" in saida
     assert "Gatilho: AtStartup" in saida
+    # vigia de 5 minutos (duração ISO 8601: PT5M), nem 1 nem 15
+    assert re.search(r"^Gatilho: repetir a cada PT5M\s*$", saida, re.M), saida
     assert "RestartCount: 3" in saida
     assert "RestartInterval: PT1M" in saida
     assert "ExecutionTimeLimit: PT0S" in saida
@@ -217,4 +298,23 @@ def test_leia_me():
     assert "Cloudflare Access" in texto
     assert "--redefinir-senha" in texto
     assert "backups" in texto
+    assert "C:\\Program Files\\SegurancaIntegral" in texto
+
+
+def test_leia_me_cobre_recuperacao_chave_limites_e_instalacao_silenciosa():
+    texto = " ".join(_ler(LEIA_ME).split())  # quebras de linha viram espaço
+    # recuperação quando RegistrarTarefa ou a atualização falham no meio
+    assert "Não foi possível registrar a tarefa agendada" in texto
+    assert "SE A INSTALAÇÃO OU A ATUALIZAÇÃO FALHAR NO MEIO" in texto
+    assert "Rode o instalador de novo" in texto
+    assert "tarefas.ps1" in texto
+    # ACL do secret.key: instalar antes de abrir o programa
+    assert "rode o instalador antes de abrir o programa" in texto
+    assert "icacls" in texto
+    # limites só para ensaio, com o formato [máximo, janela]
+    assert "SOMENTE PARA ENSAIO" in texto
+    assert '"limites"' in texto and '"denuncias": [500, 600]' in texto
+    # instalação silenciosa
+    assert "/VERYSILENT" in texto
+    assert "--criar-admin" in texto
     assert "\u2014" not in texto and "\u2013" not in texto  # sem travessões

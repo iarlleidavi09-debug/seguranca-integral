@@ -6,8 +6,12 @@
 ;   2. copia o programa para {autopf}\SegurancaIntegral;
 ;   3. cria a pasta de dados e deixa acesso só para SYSTEM e Administradores;
 ;   4. grava o config.json com os dois endereços (só se ainda não existir);
-;   5. roda --criar-admin e mostra a senha uma vez, na página seguinte;
+;   5. roda --criar-admin e mostra a senha uma vez, na página seguinte (em
+;      instalação /SILENT ou /VERYSILENT NÃO cria o admin: a senha não teria
+;      onde ser mostrada; a mensagem final manda rodar --criar-admin à mão);
 ;   6. registra e inicia a tarefa agendada (tarefas.ps1).
+; A pasta do programa é fixa ({autopf}\SegurancaIntegral; não use /DIR=):
+; o LEIA-ME cita esse caminho.
 ; Na desinstalação remove programa e tarefa; os dados ficam, salvo se a pessoa
 ; responder "Sim" à pergunta (padrão "Não").
 
@@ -26,6 +30,8 @@ AppName={#AppNome}
 AppVersion={#AppVersao}
 AppVerName={#AppNome} {#AppVersao}
 DefaultDirName={autopf}\SegurancaIntegral
+; o LEIA-ME cita este caminho, então a pasta não é escolhida na instalação
+DisableDirPage=yes
 DisableProgramGroupPage=yes
 PrivilegesRequired=admin
 ArchitecturesAllowed=x64compatible
@@ -189,10 +195,11 @@ var
 begin
   if not ForceDirectories(PastaDados) then
     RaiseException('Não foi possível criar ' + PastaDados + '.');
-  { sem herança; só SYSTEM (S-1-5-18) e Administradores (S-1-5-32-544).
+  { /T também nos arquivos que já existem (reinstalação corrige permissões
+    abertas demais). Sem herança; só SYSTEM (S-1-5-18) e Administradores (S-1-5-32-544).
     SIDs e não nomes: no Windows em português o grupo é "Administradores". }
   if not Exec(ExpandConstant('{sys}\icacls.exe'),
-      '"' + PastaDados + '" /inheritance:r /grant:r *S-1-5-18:(OI)(CI)F *S-1-5-32-544:(OI)(CI)F',
+      '"' + PastaDados + '" /inheritance:r /grant:r *S-1-5-18:(OI)(CI)F *S-1-5-32-544:(OI)(CI)F /T',
       '', SW_HIDE, ewWaitUntilTerminated, Codigo) or (Codigo <> 0) then
     RaiseException('Não foi possível ajustar as permissões de ' + PastaDados +
       ' (icacls, código ' + IntToStr(Codigo) + ').');
@@ -205,10 +212,17 @@ begin
   { atualização: nunca sobrescreve o config.json existente }
   if not FileExists(ArquivoConfig) then
   begin
-    { 127.0.0.1 e localhost: verificação local de saúde no próprio servidor }
-    Json := '{' + #13#10 +
-      '  "allowed_hosts": ["' + HostDigitado(0) + '", "' + HostDigitado(1) +
-      '", "127.0.0.1", "localhost"]' + #13#10 + '}' + #13#10;
+    { 127.0.0.1 e localhost: verificação local de saúde no próprio servidor.
+      Em instalação silenciosa a página dos endereços não aparece: só os
+      locais entram (o servidor avisa na partida e o LEIA-ME explica como
+      acrescentar os do túnel). Nunca grava endereço vazio. }
+    if WizardSilent then
+      Json := '{' + #13#10 +
+        '  "allowed_hosts": ["127.0.0.1", "localhost"]' + #13#10 + '}' + #13#10
+    else
+      Json := '{' + #13#10 +
+        '  "allowed_hosts": ["' + HostDigitado(0) + '", "' + HostDigitado(1) +
+        '", "127.0.0.1", "localhost"]' + #13#10 + '}' + #13#10;
     if not SaveStringToFile(ArquivoConfig, Json, False) then
       RaiseException('Não foi possível gravar ' + ArquivoConfig + '.');
   end;
@@ -220,6 +234,19 @@ var
   Saida: TExecOutput;
   Senha: String;
 begin
+  { instalação silenciosa: não há onde mostrar a senha, então o admin não é
+    criado (nem a senha vai para arquivo ou log). A pessoa cria depois. }
+  if WizardSilent then
+  begin
+    TextoFinal := 'Instalação silenciosa: o usuário da coordenação NÃO foi criado.' + #13#10 +
+      'Num Prompt de Comando como Administrador, rode:' + #13#10 +
+      '"' + ExpandConstant('{app}\{#AppExe}') + '" --data-dir "' + PastaDados +
+      '" --criar-admin' + #13#10 +
+      'A senha aparece uma vez na tela. Se o usuário já existia, nada muda.';
+    Log('Instalação silenciosa: --criar-admin não executado; ver mensagem final.');
+    Exit;
+  end;
+
   { a saída fica só na memória: a senha não passa por arquivo }
   if not ExecAndCaptureOutput(ExpandConstant('{app}\{#AppExe}'),
       '--data-dir "' + PastaDados + '" --criar-admin',
@@ -277,6 +304,14 @@ procedure CurPageChanged(CurPageID: Integer);
 begin
   if CurPageID = PaginaSenha.ID then
     PaginaSenha.RichEditViewer.Lines.Text := TextoFinal;
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  { silenciosa: a página da senha não existe; a instrução vai numa mensagem
+    final (suprimida só com /SUPPRESSMSGBOXES) e a mesma frase fica no log }
+  if (CurStep = ssDone) and WizardSilent and (TextoFinal <> '') then
+    SuppressibleMsgBox(TextoFinal, mbInformation, MB_OK, IDOK);
 end;
 
 { --- desinstalação ---------------------------------------------------------- }

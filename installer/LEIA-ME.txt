@@ -7,6 +7,10 @@ computador (127.0.0.1):
   Portal do aluno ........... http://127.0.0.1:3000
   Portal da coordenação ..... http://127.0.0.1:4000
 
+O programa fica sempre em C:\Program Files\SegurancaIntegral (o instalador
+não pergunta a pasta; não use /DIR=) e os dados em
+C:\ProgramData\SegurancaIntegral.
+
 Quem acessa de fora chega pelo Cloudflare Tunnel que já existe neste servidor.
 O instalador NÃO altera o cloudflared, a configuração do túnel nem o StarDust
 (que continua na porta 5000). As rotas abaixo são criadas à mão, no painel.
@@ -50,6 +54,18 @@ gravada em nenhum arquivo. Anote e guarde num lugar seguro.
 Se o instalador disser "usuário já existe; senha não alterada", é uma
 atualização: a senha continua a mesma de antes.
 
+Instalação silenciosa (/SILENT ou /VERYSILENT): o usuário NÃO é criado, porque
+a senha não teria onde ser mostrada, e nada secreto vai para arquivo ou log. A
+mensagem final do instalador (e a linha do log, se usar /LOG) manda criar o
+usuário à mão. Num Prompt de Comando como Administrador:
+
+  "C:\Program Files\SegurancaIntegral\SegurancaIntegral.exe" --data-dir "C:\ProgramData\SegurancaIntegral" --criar-admin
+
+A senha aparece uma vez na tela. Em instalação silenciosa a página dos
+endereços também não aparece: o config.json nasce só com 127.0.0.1 e
+localhost. Acrescente os dois endereços do túnel em "allowed_hosts" e reinicie
+a tarefa (seção 6); sem isso o programa recusa o acesso pelo túnel.
+
 Outras pessoas da equipe: entre no portal da coordenação e crie um usuário
 para cada uma (menu Usuários). Não compartilhe a senha do "coordenacao".
 
@@ -87,7 +103,14 @@ acompanhamento que os alunos já têm param de funcionar.
       config.json      endereços permitidos
       backups\         um backup por dia (backups\AAAA-MM-DD\), guardado por 7 dias
 
-Só SYSTEM e Administradores têm acesso a essa pasta.
+Só SYSTEM e Administradores têm acesso a essa pasta. O instalador ajusta essa
+permissão ANTES de qualquer arquivo nascer ali. Por isso rode o instalador
+antes de abrir o programa pela primeira vez: se o executável já tiver criado
+o secret.key e o banco numa pasta sem proteção (por exemplo ao testar o
+programa à mão), esses arquivos podem ter permissões mais abertas. Rodar o
+instalador de novo, por cima, reaplica a permissão a tudo o que já existe na
+pasta. Depois de instalar, confira com: icacls C:\ProgramData\SegurancaIntegral
+(devem aparecer só SYSTEM e Administradores).
 
 O programa faz um backup ao iniciar e depois a cada 24 horas: o banco e os
 anexos. O secret.key NÃO entra no backup. Copie a pasta backups\ e também o
@@ -147,7 +170,52 @@ Para conferir no próprio servidor, abra no navegador:
       os dados simulados no mesmo menu antes do uso real.
 
 
-8. O QUE AINDA NÃO FOI FEITO
+8. SE A INSTALAÇÃO OU A ATUALIZAÇÃO FALHAR NO MEIO
+--------------------------------------------------
+
+O instalador registra a tarefa agendada por último. Se aparecer "Não foi
+possível registrar a tarefa agendada", ou se a atualização parar no meio
+(queda de luz, antivírus, janela fechada), o programa pode ter ficado
+parado ou pela metade. Os dados (banco, anexos, chave) não são tocados.
+
+  a) Rode o instalador de novo, por cima. Ele para o que estiver rodando,
+     troca os arquivos do programa, mantém o config.json e os dados e tenta
+     registrar a tarefa outra vez.
+  b) Se o usuário da coordenação já existia, o instalador diz que a senha não
+     foi alterada. Se a senha se perdeu no caminho, rode:
+       "C:\Program Files\SegurancaIntegral\SegurancaIntegral.exe" --redefinir-senha
+  c) Confira com: schtasks /Query /TN SegurancaIntegral /V /FO LIST
+     e abra as páginas de saúde da seção 6.
+  d) Se a tarefa continuar sem registrar, rode num PowerShell como
+     Administrador:
+       powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Program Files\SegurancaIntegral\tarefas.ps1" -Exe "C:\Program Files\SegurancaIntegral\SegurancaIntegral.exe" -Iniciar
+     e leia a mensagem de erro.
+
+
+9. LIMITES DE ENVIO (SOMENTE PARA ENSAIO)
+-----------------------------------------
+
+Por padrão o portal aceita 5 denúncias, 20 consultas de código e 20 tentativas
+de login a cada 10 minutos por origem. Isso protege contra abuso e NÃO deve
+ser mudado no uso real. Para um teste de carga ou um ensaio com muitos alunos
+usando a mesma rede, é possível elevar os limites no config.json, sem mexer em
+código, e voltar ao padrão depois, apagando o campo:
+
+  {
+    "allowed_hosts": ["escola.exemplo.com.br", "coordenacao.exemplo.com.br",
+                      "127.0.0.1", "localhost"],
+    "limites": { "denuncias": [500, 600], "consultas": [500, 600],
+                 "login": [100, 600] }
+  }
+
+Cada limite é [máximo de pedidos, janela em segundos]. Aceita "denuncias",
+"consultas" e "login"; os não citados ficam no padrão. Valores inválidos
+(zero, negativo, texto, nome desconhecido) fazem o programa recusar a partida
+com uma mensagem clara. Depois de mudar, reinicie a tarefa (seção 6).
+Lembre-se de REMOVER o campo "limites" ao terminar o ensaio.
+
+
+10. O QUE AINDA NÃO FOI FEITO
 ----------------------------
 
   - O instalador não foi testado numa máquina limpa ou numa máquina virtual.
@@ -160,7 +228,7 @@ Para conferir no próprio servidor, abra no navegador:
       "C:\Program Files\SegurancaIntegral\SegurancaIntegral.exe"
 
 
-9. DESINSTALAR
+11. DESINSTALAR
 --------------
 
 Painel de Controle > Programas > Segurança Integral > Desinstalar. O programa
