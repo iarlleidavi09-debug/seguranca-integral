@@ -122,3 +122,17 @@ def test_limpar_nao_segue_link_para_fora(config, tmp_path_factory):
             pytest.skip("não foi possível criar link ou junção")
     assert limpar_antigos(config, AGORA) == 0
     assert (fora / "dado.txt").exists()
+
+
+def test_limpar_pula_item_quando_commonpath_falha(config, monkeypatch):
+    # outro drive no Windows: commonpath levanta ValueError; o item é pulado
+    for nome in ("2020-01-01", "2020-01-02"):
+        (config.backups_dir / nome).mkdir(parents=True)
+
+    def sem_caminho_comum(_caminhos):
+        raise ValueError("Paths don't have the same drive")
+
+    monkeypatch.setattr(os.path, "commonpath", sem_caminho_comum)
+    assert limpar_antigos(config, AGORA) == 0
+    assert sorted(p.name for p in config.backups_dir.iterdir()) == [
+        "2020-01-01", "2020-01-02"]

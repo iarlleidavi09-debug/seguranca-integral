@@ -73,8 +73,11 @@ def limpar_antigos(config: Config, agora: datetime, manter_dias: int = 7) -> int
                 or not _PADRAO_DATA.fullmatch(item.name)):
             continue
         # junção NTFS ou link que aponte para fora de backups_dir nunca é apagado
-        if os.path.commonpath([raiz, os.path.realpath(item)]) != raiz:
-            continue
+        try:
+            if os.path.commonpath([raiz, os.path.realpath(item)]) != raiz:
+                continue
+        except ValueError:
+            continue  # outro drive (ou caminho misto): não dá para provar, pula
         try:
             data = datetime.strptime(item.name, "%Y-%m-%d").date()
         except ValueError:
