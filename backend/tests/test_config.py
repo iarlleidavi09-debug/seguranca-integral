@@ -82,3 +82,58 @@ def test_main_sai_4_com_porta_invalida(tmp_path, capsys):
     erro = capsys.readouterr().err
     assert "student_port" in erro
     assert "Traceback" not in erro
+
+
+# --- config.json: limites de taxa (somente para ensaio) ------------------
+
+def test_limites_padrao_vazios(tmp_path):
+    assert load_config(tmp_path).limites == {}
+
+
+def test_config_json_define_limites(tmp_path):
+    _escrever(tmp_path, {"limites": {"denuncias": [500, 60], "login": [100, 30]}})
+    cfg = load_config(tmp_path)
+    assert cfg.limites == {"denuncias": (500, 60), "login": (100, 30)}
+
+
+@pytest.mark.parametrize("limites", [
+    [5, 600],                          # não é objeto
+    {"desconhecido": [5, 600]},        # nome fora da lista
+    {"denuncias": 5},                  # não é par
+    {"denuncias": [5]},
+    {"denuncias": [5, 600, 1]},
+    {"denuncias": [0, 600]},           # máximo precisa ser positivo
+    {"denuncias": [5, 0]},
+    {"denuncias": [-1, 600]},
+    {"denuncias": [5.0, 600]},
+    {"denuncias": ["5", 600]},
+    {"denuncias": [True, 600]},
+    {"denuncias": [10 ** 9, 600]},     # teto contra erro de digitação
+    {"consultas": [5, 10 ** 9]},
+])
+def test_limites_invalidos_levantam_valueerror(tmp_path, limites):
+    _escrever(tmp_path, {"limites": limites})
+    with pytest.raises(ValueError, match="limites"):
+        load_config(tmp_path)
+
+
+def test_apps_usam_limites_do_config(tmp_path):
+    from app import create_coord_app, create_student_app
+
+    _escrever(tmp_path, {"limites": {"denuncias": [2, 60], "login": [1, 60]}})
+    cfg = load_config(tmp_path)
+    aluno = create_student_app(cfg).extensions["limitadores"]
+    assert (aluno["denuncias"].max_eventos, aluno["denuncias"].janela_s) == (2, 60)
+    assert aluno["consultas"].max_eventos == 20  # padrão mantido
+    assert "login" not in aluno
+    coord = create_coord_app(cfg).extensions["limitadores"]
+    assert (coord["login"].max_eventos, coord["login"].janela_s) == (1, 60)
+    assert "denuncias" not in coord
+
+
+def test_parametro_limites_tem_prioridade_sobre_o_config(tmp_path):
+    from app import create_student_app
+
+    _escrever(tmp_path, {"limites": {"denuncias": [2, 60]}})
+    app = create_student_app(load_config(tmp_path), limites={"denuncias": (9, 30)})
+    assert app.extensions["limitadores"]["denuncias"].max_eventos == 9

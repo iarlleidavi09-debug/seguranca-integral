@@ -18,7 +18,9 @@ LIMITES_COORD = {"login": (20, 600)}
 
 
 def _limitadores(padrao: dict, limites: dict | None) -> dict:
-    efetivos = {**padrao, **(limites or {})}
+    # só os nomes deste portal; o config.json traz os de todos
+    sobrepostos = {n: v for n, v in (limites or {}).items() if n in padrao}
+    efetivos = {**padrao, **sobrepostos}
     return {nome: Limitador(maximo, janela) for nome, (maximo, janela) in efetivos.items()}
 
 
@@ -31,7 +33,8 @@ def create_student_app(config: Config, limites: dict | None = None) -> Flask:
     app.config["SI_CONFIG"] = config
     app.config["SI_STATIC"] = Path(__file__).parent / "static" / "aluno"
     app.config["MAX_CONTENT_LENGTH"] = 30 * 1024 * 1024
-    app.extensions["limitadores"] = _limitadores(LIMITES_PADRAO, limites)
+    app.extensions["limitadores"] = _limitadores(
+        LIMITES_PADRAO, config.limites if limites is None else limites)
     app.register_blueprint(bp)
     configurar_app(app)
     return app
@@ -59,7 +62,8 @@ def create_coord_app(config: Config, limites: dict | None = None) -> Flask:
         SESSION_COOKIE_SAMESITE="Strict",
         PERMANENT_SESSION_LIFETIME=DURACAO_SESSAO,
     )
-    app.extensions["limitadores"] = _limitadores(LIMITES_COORD, limites)
+    app.extensions["limitadores"] = _limitadores(
+        LIMITES_COORD, config.limites if limites is None else limites)
     app.register_blueprint(bp)
     configurar_app(app)
     return app

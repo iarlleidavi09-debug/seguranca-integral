@@ -3,13 +3,17 @@ from __future__ import annotations
 
 import json
 import secrets
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 DATA_DIR_PADRAO = Path(r"C:\ProgramData\SegurancaIntegral")
 # portas do config.json: fora das privilegiadas e dentro do limite do TCP
 PORTA_MIN = 1024
 PORTA_MAX = 65535
+# limites de taxa ajustáveis no config.json (só para ensaio): nome -> (máximo, janela em s)
+LIMITES_NOMES = ("denuncias", "consultas", "login")
+LIMITE_TETO_MAXIMO = 1_000_000
+LIMITE_TETO_JANELA = 86_400  # um dia
 
 
 @dataclass(frozen=True)
@@ -20,6 +24,8 @@ class Config:
     student_port: int = 3000
     coord_port: int = 4000
     allowed_hosts: tuple[str, ...] = ()
+    # vazio = limites padrão do código; ver _limites() para o formato
+    limites: dict = field(default_factory=dict)
 
     @property
     def db_path(self) -> Path:
@@ -68,6 +74,35 @@ def _porta(dados: dict, nome: str, padrao: int) -> int:
     return valor
 
 
+def _inteiro_positivo(valor, teto: int) -> bool:
+    # bool é subclasse de int: [true, 600] não vale
+    return type(valor) is int and 1 <= valor <= teto
+
+
+def _limites(dados: dict) -> dict:
+    """Valida `limites`: {"denuncias": [máximo, janela_s], ...}, só para ensaio."""
+    bruto = dados.get("limites", {})
+    if not isinstance(bruto, dict):
+        raise ValueError("config.json: limites precisa ser um objeto")
+    limites = {}
+    for nome, par in bruto.items():
+        if nome not in LIMITES_NOMES:
+            raise ValueError(
+                f"config.json: limites.{nome} desconhecido "
+                f"(use {', '.join(LIMITES_NOMES)})"
+            )
+        if (not isinstance(par, list) or len(par) != 2
+                or not _inteiro_positivo(par[0], LIMITE_TETO_MAXIMO)
+                or not _inteiro_positivo(par[1], LIMITE_TETO_JANELA)):
+            raise ValueError(
+                f"config.json: limites.{nome} precisa ser [maximo, janela_em_segundos] "
+                f"com inteiros positivos (maximo ate {LIMITE_TETO_MAXIMO}, "
+                f"janela ate {LIMITE_TETO_JANELA})"
+            )
+        limites[nome] = (par[0], par[1])
+    return limites
+
+
 def _ler_config_json(arquivo: Path) -> dict:
     """Lê e valida o config.json opcional; erro vira ValueError (saída 4)."""
     if not arquivo.exists():
@@ -85,4 +120,5 @@ def _ler_config_json(arquivo: Path) -> dict:
     coord = _porta(dados, "coord_port", 4000)
     if aluno == coord:
         raise ValueError("config.json: student_port e coord_port precisam ser diferentes")
-    return {"allowed_hosts": tuple(hosts), "student_port": aluno, "coord_port": coord}
+    return {"allowed_hosts": tuple(hosts), "student_port": aluno,
+            "coord_port": coord, "limites": _limites(dados)}
