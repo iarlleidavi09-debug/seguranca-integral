@@ -2,7 +2,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
-import { INTERVALO_MS } from './Fila';
+import { INTERVALO_MS } from './polling';
 import { chamadas, chamadasA, servidor } from './testes/servidor';
 import type { Resposta, Rota } from './testes/servidor';
 
@@ -37,7 +37,7 @@ describe('Entrada', () => {
     expect(await screen.findByRole('heading', { name: 'Portal da coordenação' })).toBeInTheDocument();
     expect(screen.getByLabelText('Nome')).toBeInTheDocument();
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
-    expect(screen.queryByText('Fila de casos')).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Casos' })).not.toBeInTheDocument();
     expect(chamadasA('GET', '/api/casos')).toHaveLength(0);
   });
 
@@ -97,90 +97,23 @@ describe('Entrada', () => {
   });
 });
 
-describe('Fila', () => {
+describe('Casos no App', () => {
   const abrirFila = async (rotas: Record<string, Rota> = {}) => {
     servidor({ 'GET /api/eu': logado, 'GET /api/casos': () => ({ corpo: { casos: filaMista } }), ...rotas });
     window.history.replaceState(null, '', '/#casos');
     render(<App />);
     await screen.findByText('Caso alto');
   };
-
-  it('ordena alta, média e baixa e destaca a gravidade com texto e forma', async () => {
-    await abrirFila();
-    const linhas = screen.getAllByRole('listitem').filter(li => li.classList.contains('fila-item'));
-    expect(linhas.map(li => li.textContent)).toEqual([
-      expect.stringContaining('Caso alto'), expect.stringContaining('Caso medio'),
-      expect.stringContaining('Caso baixo'), expect.stringContaining('Caso de treino'),
-    ]);
-    expect(linhas[0]).toHaveAttribute('data-gravidade', 'alta');
-    expect(within(linhas[0]).getByText('Alta')).toBeInTheDocument();
-    expect(within(linhas[0]).getByText('Alta').querySelector('svg')).not.toBeNull();
-    expect(within(linhas[1]).getByText('Média').querySelector('svg')).not.toBeNull();
-    expect(within(linhas[2]).getByText('Baixa').querySelector('svg')).not.toBeNull();
-    expect(within(linhas[0]).getByText('Ocorrendo agora')).toBeInTheDocument();
-  });
-
-  it('mostra o selo simulação só nos casos simulados', async () => {
-    await abrirFila();
-    const linhas = screen.getAllByRole('listitem').filter(li => li.classList.contains('fila-item'));
-    expect(within(linhas[3]).getByText('simulação')).toBeInTheDocument();
-    expect(screen.getAllByText('simulação')).toHaveLength(1);
-  });
-
-  it('aplica os filtros de status e tipo na consulta', async () => {
-    const user = userEvent.setup();
-    await abrirFila({ 'GET /api/casos': (_c, url) => ({ corpo: { casos: url.searchParams.get('status') === 'resolvido' ? [] : filaMista } }) });
-    await user.selectOptions(screen.getByLabelText('Status'), 'resolvido');
-    expect(await screen.findByText('Nenhum caso com esses filtros.')).toBeInTheDocument();
-    await user.selectOptions(screen.getByLabelText('Tipo'), 'golpe');
-    await waitFor(() => expect(chamadas().some(c => c.url === '/api/casos?status=resolvido&tipo=golpe')).toBe(true));
-    await user.click(screen.getByRole('button', { name: 'Limpar filtros' }));
-    expect(await screen.findByText('Caso alto')).toBeInTheDocument();
-  });
+  // ordem, filtros, busca, polling e avisos da fila ficam em Fila.test.tsx
 
   it('abre o caso e guarda só o número no endereço', async () => {
     const user = userEvent.setup();
     await abrirFila({ 'GET /api/casos/3': () => ({ corpo: detalhe({ id: 3 }) }) });
-    await user.click(screen.getByRole('button', { name: /Caso alto/ }));
+    await user.click(screen.getByRole('button', { name: 'Caso 3. Abrir.' }));
     expect(await screen.findByRole('heading', { name: /Caso 3/ })).toHaveFocus();
     expect(window.location.hash).toBe('#caso-3');
     expect(window.location.href).not.toMatch(/Relato|alto|Marina/);
     expect(localStorage.length).toBe(0);
-  });
-
-  it('atualiza a cada 8 segundos, pausa com a aba oculta e para ao desmontar', async () => {
-    vi.useFakeTimers();
-    servidor({ 'GET /api/eu': logado, 'GET /api/casos': () => ({ corpo: { casos: filaMista } }) });
-    window.history.replaceState(null, '', '/#casos');
-    const { unmount } = render(<App />);
-    await act(async () => { await vi.advanceTimersByTimeAsync(1); });
-    expect(chamadasA('GET', '/api/casos')).toHaveLength(1);
-    await act(async () => { await vi.advanceTimersByTimeAsync(INTERVALO_MS); });
-    expect(chamadasA('GET', '/api/casos')).toHaveLength(2);
-
-    const oculto = vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
-    await act(async () => { await vi.advanceTimersByTimeAsync(INTERVALO_MS * 3); });
-    expect(chamadasA('GET', '/api/casos')).toHaveLength(2);
-
-    oculto.mockReturnValue(false);
-    await act(async () => { document.dispatchEvent(new Event('visibilitychange')); await vi.advanceTimersByTimeAsync(1); });
-    expect(chamadasA('GET', '/api/casos')).toHaveLength(3);
-
-    unmount();
-    await act(async () => { await vi.advanceTimersByTimeAsync(INTERVALO_MS * 3); });
-    expect(chamadasA('GET', '/api/casos')).toHaveLength(3);
-    expect(vi.getTimerCount()).toBe(0);
-  });
-
-  it('avisa quando chega caso novo', async () => {
-    vi.useFakeTimers();
-    let rodada = 0;
-    servidor({ 'GET /api/eu': logado, 'GET /api/casos': () => ({ corpo: { casos: rodada++ === 0 ? filaMista.slice(0, 2) : filaMista } }) });
-    window.history.replaceState(null, '', '/#casos');
-    render(<App />);
-    await act(async () => { await vi.advanceTimersByTimeAsync(1); });
-    await act(async () => { await vi.advanceTimersByTimeAsync(INTERVALO_MS); });
-    expect(screen.getByText('Chegaram 2 casos novos.')).toBeInTheDocument();
   });
 
   it('401 em qualquer chamada devolve ao Login', async () => {
@@ -190,7 +123,7 @@ describe('Fila', () => {
     window.history.replaceState(null, '', '/#casos');
     render(<App />);
     await act(async () => { await vi.advanceTimersByTimeAsync(1); });
-    expect(screen.getByRole('heading', { name: 'Fila de casos' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Casos' })).toBeInTheDocument();
     await act(async () => { await vi.advanceTimersByTimeAsync(INTERVALO_MS); });
     expect(screen.getByLabelText('Senha')).toBeInTheDocument();
     expect(screen.getByText(/Sua sessão terminou/)).toBeInTheDocument();
@@ -406,7 +339,7 @@ describe('Usuários e ensaio', () => {
 });
 
 describe('Telas principais', () => {
-  it.each([['/', 'Cada pedido merece atenção'], ['/#casos', 'Fila de casos'], ['/#caso-5', 'Caso 5'], ['/#usuarios', 'Usuários'], ['/#ensaio', 'Ensaio']])(
+  it.each([['/', 'Cada pedido merece atenção'], ['/#casos', 'Casos'], ['/#caso-5', 'Caso 5'], ['/#usuarios', 'Usuários'], ['/#ensaio', 'Ensaio']])(
     'a tela %s não usa atributo style nem guarda dados no navegador', async (endereco, titulo) => {
       servidor({
         'GET /api/eu': logado, 'GET /api/casos': () => ({ corpo: { casos: filaMista } }), 'GET /api/resumo': () => ({ corpo: { status: { novo: 0, em_investigacao: 0, resolvido: 0 }, prioridade: { critica: 0, alta: 0, media: 0, baixa: 0 }, recorrencia_pendente: 0 } }),

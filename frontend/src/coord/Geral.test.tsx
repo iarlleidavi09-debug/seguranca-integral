@@ -2,7 +2,7 @@ import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import Geral from './Geral';
-import { INTERVALO_MS } from './Fila';
+import { INTERVALO_MS } from './polling';
 import { chamadasA, servidor } from './testes/servidor';
 import type { Resposta } from './testes/servidor';
 
@@ -54,7 +54,7 @@ describe('Visão geral', () => {
 
   it('contadores por prioridade têm texto e forma, com destaque para Crítica e Alta quando há casos', async () => {
     montar(resumo({ prioridade: { critica: 1, alta: 0, media: 3, baixa: 0 } }));
-    const grupo = await screen.findByRole('list', { name: 'Casos por prioridade' });
+    const grupo = await screen.findByRole('list', { name: 'Por prioridade' });
     const itens = within(grupo).getAllByRole('listitem');
     expect(itens).toHaveLength(4);
     expect(itens.map(i => i.textContent)).toEqual(['Crítica1', 'Alta0', 'Média3', 'Baixa0']);

@@ -2,7 +2,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
-import { INTERVALO_MS } from './Fila';
+import { INTERVALO_MS } from './polling';
 import { chamadas, chamadasA, servidor } from './testes/servidor';
 import type { Resposta, Rota } from './testes/servidor';
 
@@ -59,21 +59,23 @@ describe('Polimento da coordenação', () => {
     expect(chamadasA('DELETE', '/api/simulacao')).toHaveLength(0);
   });
 
-  // refeito na Task 4
-  it.skip('os filtros da fila sobrevivem a abrir e fechar um caso', async () => {
+  it('os filtros da fila sobrevivem a abrir e fechar um caso', async () => {
     base();
+    window.history.replaceState(null, '', '/#casos');
     render(<App />);
     const user = userEvent.setup();
     await screen.findByText('Caso alto');
-    await user.selectOptions(screen.getByLabelText('Status'), 'em_analise');
+    await user.selectOptions(screen.getByLabelText('Status'), 'em_investigacao');
+    await user.selectOptions(screen.getByLabelText('Prioridade'), 'alta');
     await user.selectOptions(screen.getByLabelText('Tipo'), 'golpe');
-    await user.click(await screen.findByRole('button', { name: /Caso alto/ }));
+    await user.click(await screen.findByRole('button', { name: 'Caso 3. Abrir.' }));
     await screen.findByRole('heading', { name: /Caso 3/ });
     await user.click(screen.getByRole('button', { name: 'Voltar à fila' }));
-    await screen.findByRole('heading', { name: 'Fila de casos' });
-    expect(screen.getByLabelText('Status')).toHaveValue('em_analise');
+    await screen.findByRole('heading', { level: 1, name: 'Casos' });
+    expect(screen.getByLabelText('Status')).toHaveValue('em_investigacao');
+    expect(screen.getByLabelText('Prioridade')).toHaveValue('alta');
     expect(screen.getByLabelText('Tipo')).toHaveValue('golpe');
-    await waitFor(() => expect(chamadas().at(-1)?.url).toBe('/api/casos?status=em_analise&tipo=golpe'));
+    await waitFor(() => expect(chamadasA('GET', '/api/casos').at(-1)?.url).toBe('/api/casos?status=em_investigacao&prioridade=alta&tipo=golpe'));
   });
 
   it('o que foi digitado durante o envio não é apagado', async () => {
@@ -88,27 +90,6 @@ describe('Polimento da coordenação', () => {
     await act(async () => { liberar(); });
     await screen.findByText('Mensagem enviada ao aluno.', { selector: '[role=status]' });
     expect(screen.getByLabelText('Mensagem ao aluno')).toHaveValue('Primeira parte e mais um pouco');
-  });
-
-  it('a fila ignora o tick de 8 s enquanto há requisição em curso, sem abortar', async () => {
-    vi.useFakeTimers();
-    let liberar!: () => void;
-    let rodada = 0;
-    servidor({
-      'GET /api/eu': logado,
-      'GET /api/casos': () => (rodada++ === 0 ? new Promise<Resposta>(r => { liberar = () => r({ corpo: { casos: fila } }); }) : { corpo: { casos: fila } }),
-    });
-    window.history.replaceState(null, '', '/#casos');
-    render(<App />);
-    await act(async () => { await vi.advanceTimersByTimeAsync(1); });
-    await act(async () => { await vi.advanceTimersByTimeAsync(INTERVALO_MS * 3); });
-    expect(chamadasA('GET', '/api/casos')).toHaveLength(1);
-    const sinal = vi.mocked(fetch).mock.calls.find(([u]) => String(u).startsWith('/api/casos'))?.[1]?.signal;
-    expect(sinal?.aborted).toBe(false);
-    await act(async () => { liberar(); await vi.advanceTimersByTimeAsync(1); });
-    expect(screen.getByText('Caso alto')).toBeInTheDocument();
-    await act(async () => { await vi.advanceTimersByTimeAsync(INTERVALO_MS); });
-    expect(chamadasA('GET', '/api/casos')).toHaveLength(2);
   });
 
   it('o painel de conversa tem título próprio antes dos autores', async () => {
@@ -126,6 +107,7 @@ describe('Polimento da coordenação', () => {
       'GET /api/eu': () => (++eu === 1 ? { status: 401 } : eu === 2 ? { status: 503 } : { corpo: { id: 1, nome: 'Marina', papel: 'admin' } }),
       'POST /api/login': () => ({ corpo: { nome: 'Marina' } }),
       'GET /api/casos': () => ({ corpo: { casos: [] } }),
+      'GET /api/resumo': () => ({ corpo: { status: { novo: 0, em_investigacao: 0, resolvido: 0 }, prioridade: { critica: 0, alta: 0, media: 0, baixa: 0 }, recorrencia_pendente: 0 } }),
     });
     render(<App />);
     const user = userEvent.setup();

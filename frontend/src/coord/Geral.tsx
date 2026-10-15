@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useRef, useState } from 'react';
 import { ErroApi, listarCasos, mensagemErroCoord, obterResumo } from '../shared/api';
 import type { CasoFila, FiltrosFila, Resumo } from '../shared/api';
-import { INTERVALO_MS } from './Fila';
+import { usePolling } from './polling';
 import { Prioridade, PRIORIDADES, Status, acessoLegivel, tipo as rotuloDoTipo } from './rotulos';
 
 const SEM_FILTROS: FiltrosFila = { status: '', prioridade: '', tipo: '', q: '' };
@@ -22,39 +22,22 @@ export default function Geral({ aoVerCasos, aoAbrirCaso }: {
   // o alerta falado vale só para a primeira exibição do bloco de recorrência
   const [alertaFalado, setAlertaFalado] = useState(false);
 
-  useEffect(() => {
-    let ativo = true;
-    let emCurso = false;
-    let exibiuBloco = false;
-    const controle = new AbortController();
+  // o bloco de recorrência só dispara o alerta falado na primeira exibição seguida
+  const exibiuBloco = useRef(false);
 
-    async function carregar() {
-      // um tick que cai durante uma requisição lenta é ignorado, não a cancela
-      if (emCurso) return;
-      emCurso = true;
-      try {
-        const [resumo, casos] = await Promise.all([obterResumo(controle.signal), listarCasos(SEM_FILTROS, controle.signal)]);
-        if (!ativo) return;
-        setDados({ resumo, casos }); setErro('');
-        if (resumo.recorrencia_pendente > 0 && !exibiuBloco) { exibiuBloco = true; setAlertaFalado(true); }
-        else setAlertaFalado(false);
-        if (resumo.recorrencia_pendente === 0) exibiuBloco = false;
-      } catch (falha) {
-        if (!ativo) return;
-        if (falha instanceof ErroApi && falha.status === 401) return;
-        setErro(mensagemErroCoord(falha));
-      } finally { emCurso = false; }
+  usePolling(async (sinal, ativo) => {
+    try {
+      const [resumo, casos] = await Promise.all([obterResumo(sinal), listarCasos(SEM_FILTROS, sinal)]);
+      if (!ativo()) return;
+      setDados({ resumo, casos }); setErro('');
+      if (resumo.recorrencia_pendente > 0 && !exibiuBloco.current) { exibiuBloco.current = true; setAlertaFalado(true); }
+      else setAlertaFalado(false);
+      if (resumo.recorrencia_pendente === 0) exibiuBloco.current = false;
+    } catch (falha) {
+      if (!ativo()) return;
+      if (falha instanceof ErroApi && falha.status === 401) return;
+      setErro(mensagemErroCoord(falha));
     }
-    void carregar();
-    const relogio = setInterval(() => { if (!document.hidden) void carregar(); }, INTERVALO_MS);
-    const aoMudarVisibilidade = () => { if (!document.hidden) void carregar(); };
-    document.addEventListener('visibilitychange', aoMudarVisibilidade);
-    return () => {
-      ativo = false;
-      clearInterval(relogio);
-      document.removeEventListener('visibilitychange', aoMudarVisibilidade);
-      controle.abort();
-    };
   }, []);
 
   const resumo = dados?.resumo;
@@ -91,7 +74,7 @@ export default function Geral({ aoVerCasos, aoAbrirCaso }: {
       </div>
 
       <h2 id="titulo-prioridades" className="geral-subtitulo">Por prioridade</h2>
-      <ul className="geral-prioridades" aria-label="Casos por prioridade">
+      <ul className="geral-prioridades" aria-labelledby="titulo-prioridades">
         {PRIORIDADES.map(p => {
           const n = resumo.prioridade[p];
           const destaque = (p === 'critica' || p === 'alta') && n > 0;

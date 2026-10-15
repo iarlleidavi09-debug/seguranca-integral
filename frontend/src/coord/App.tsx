@@ -36,6 +36,8 @@ export default function App() {
   // primeiro acesso: banco sem usuários; `local` diz se a criação é permitida deste aparelho
   const [setup, setSetup] = useState<EstadoSetup | null>(null);
   const [filtros, setFiltros] = useState<FiltrosFila>(FILTROS_VAZIOS);
+  // a Pós-resolução guarda os próprios filtros; o status dela é sempre resolvido
+  const [filtrosPos, setFiltrosPos] = useState<FiltrosFila>(FILTROS_VAZIOS);
   const [tela, setTela] = useState<Tela>(telaDoEndereco);
   const main = useRef<HTMLElement>(null);
   const atual = useRef(sessao);
@@ -92,7 +94,7 @@ export default function App() {
 
   async function encerrar() {
     try { await sair(); } catch { /* o cookie vence sozinho; a tela de entrada aparece de qualquer forma */ }
-    setPerdida(false); setSessao(null); setTela({ nome: 'geral' }); setFiltros(FILTROS_VAZIOS);
+    setPerdida(false); setSessao(null); setTela({ nome: 'geral' }); setFiltros(FILTROS_VAZIOS); setFiltrosPos(FILTROS_VAZIOS);
     window.history.replaceState(null, '', window.location.pathname);
   }
 
@@ -102,13 +104,11 @@ export default function App() {
   }
   if (sessao === null) {
     return <div className="coord-app"><Login aviso={perdida ? 'Sua sessão terminou. Entre de novo para continuar.' : undefined}
-      aoEntrar={usuario => { setPerdida(false); setFiltros(FILTROS_VAZIOS); setSessao(usuario); }} /></div>;
+      aoEntrar={usuario => { setPerdida(false); setFiltros(FILTROS_VAZIOS); setFiltrosPos(FILTROS_VAZIOS); setSessao(usuario); }} /></div>;
   }
 
   const admin = sessao.papel === 'admin';
-  // as telas Casos e Pós-resolução mostram a Fila atual até serem refeitas
-  const fila = <Fila aoAbrir={id => ir({ nome: 'caso', id })} filtros={{ status: filtros.status, tipo: filtros.tipo }}
-    aoFiltrar={f => setFiltros(anterior => ({ ...anterior, ...f }))} />;
+  const abrirCaso = (id: number) => ir({ nome: 'caso', id });
   return <div className="coord-app">
     <a className="pular" href="#conteudo" onClick={e => { e.preventDefault(); main.current?.focus(); }}>Pular para o conteúdo</a>
     <div className="coord-layout">
@@ -121,11 +121,10 @@ export default function App() {
       <div className="coord-coluna">
         <div className="coord-topo"><p><span className="ponto" aria-hidden="true" />Responsabilidade compartilhada</p></div>
         <main id="conteudo" ref={main} tabIndex={-1} className="painel">
-          {tela.nome === 'geral' && <Geral aoVerCasos={verCasos} aoAbrirCaso={id => ir({ nome: 'caso', id })} />}
-          {/* substituída na Task 4 */}
-          {tela.nome === 'casos' && fila}
-          {/* substituída na Task 6 */}
-          {tela.nome === 'pos' && fila}
+          {tela.nome === 'geral' && <Geral aoVerCasos={verCasos} aoAbrirCaso={abrirCaso} />}
+          {tela.nome === 'casos' && <Fila modo="casos" filtros={filtros} aoFiltrar={setFiltros} aoAbrir={abrirCaso} />}
+          {/* a revisão de recorrência entra na Task 6 */}
+          {tela.nome === 'pos' && <Fila modo="pos" filtros={filtrosPos} aoFiltrar={setFiltrosPos} aoAbrir={abrirCaso} />}
           {tela.nome === 'caso' && <Caso key={tela.id} id={tela.id} aoVoltar={() => ir({ nome: 'casos' })} />}
           {tela.nome === 'usuarios' && admin && <Usuarios meuId={sessao.id} />}
           {tela.nome === 'ensaio' && <Ensaio />}

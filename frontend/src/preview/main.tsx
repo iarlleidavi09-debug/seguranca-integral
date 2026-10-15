@@ -40,7 +40,7 @@ function App() {
   const doHash = () => telas.some(t => t.id === location.hash.slice(1)) ? location.hash.slice(1) : 'inicio';
   const [tela, setTela] = useState(doHash);
   const [versao, setVersao] = useState(0);
-  const [filtros, setFiltros] = useState({ status: '', tipo: '' });
+  const [filtros, setFiltros] = useState({ status: '', prioridade: '', tipo: '', q: '' });
   const atual = telas.find(t => t.id === tela)!;
   useEffect(() => {
     const navegar = () => setTela(doHash());
@@ -58,7 +58,7 @@ function App() {
       case 'confirmacao': return <Confirmacao resultado={{ codigo: 'PREVIA-001' }} onAcompanhar={() => ir('acompanhar')} />;
       case 'acompanhar': return <Acompanhar codigoInicial="PREVIA-001" />;
       case 'login': return <Login aoEntrar={() => ir('fila')} />;
-      case 'fila': return <Fila aoAbrir={() => ir('mensagens')} filtros={filtros} aoFiltrar={setFiltros} />;
+      case 'fila': return <Fila modo="casos" aoAbrir={() => ir('mensagens')} filtros={filtros} aoFiltrar={setFiltros} />;
       case 'mensagens': case 'notas': case 'anexo': return <Caso id={1} aoVoltar={() => ir('fila')} abaInicial={tela === 'notas' ? 'notas' : 'mensagens'} anexoInicial={tela === 'anexo' ? 1 : null} imagemPrevia={dados.imagem} />;
       case 'usuarios': case 'desativar': return <Usuarios meuId={1} confirmarInicial={tela === 'desativar' ? 2 : null} />;
       case 'ensaio': case 'remover': return <Ensaio confirmarInicial={tela === 'remover'} />;
@@ -81,7 +81,7 @@ function App() {
     <div className="indice-direita">
       <header className="indice-barra">
         <div><strong>{atual.grupo} / {atual.nome}</strong><p>{atual.gatilho}</p></div>
-        <button className="botao secundario" onClick={() => { dados.reiniciar(); setFiltros({ status: '', tipo: '' }); setVersao(v => v + 1); }}>Reiniciar prévia</button>
+        <button className="botao secundario" onClick={() => { dados.reiniciar(); setFiltros({ status: '', prioridade: '', tipo: '', q: '' }); setVersao(v => v + 1); }}>Reiniciar prévia</button>
       </header>
       <div className="indice-aviso" role="note">Modo de revisão · Visual original · Dados de exemplo</div>
       <div key={`${tela}-${versao}`}>
