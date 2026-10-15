@@ -19,7 +19,7 @@ $ips = @(Get-NetIPAddress -AddressFamily IPv4 |
 if ($ips.Count -eq 0) { throw 'Nenhum IPv4 de LAN encontrado.' }
 
 $p = Start-Process -FilePath $Setup -Wait -PassThru -ArgumentList @(
-    '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/LOG=$(Join-Path $Raiz 'dist\inno.log')")
+    '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', ('/LOG="' + (Join-Path $Raiz 'dist\inno.log') + '"'))
 if ($p.ExitCode -ne 0) { throw "Setup saiu com codigo $($p.ExitCode)" }
 
 & schtasks.exe /End /TN SegurancaIntegral | Out-Null
