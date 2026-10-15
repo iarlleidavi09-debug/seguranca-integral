@@ -14,8 +14,8 @@
 # Requer backend\.venv com requirements-dev.txt instalado.
 # Para guardar a saida num arquivo, NAO use a redirecao "*>" do PowerShell
 # 5.1: ela transforma o stderr do npm (avisos comuns) em erro e o build
-# para no passo do npm. Rode no console ou redirecione pelo cmd:
-#   cmd /c "powershell -NoProfile -ExecutionPolicy Bypass -File installer\build.ps1 > build.log 2>&1"
+# para no passo do npm. Rode no console ou, num Prompt de Comando (cmd.exe):
+#   powershell -NoProfile -ExecutionPolicy Bypass -File installer\build.ps1 > build.log 2>&1
 # Arquivo so com ASCII: o PowerShell 5.1 le UTF-8 sem BOM como ANSI.
 [CmdletBinding()]
 param(
