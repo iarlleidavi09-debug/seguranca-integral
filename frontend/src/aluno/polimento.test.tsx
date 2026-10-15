@@ -1,5 +1,5 @@
 import { StrictMode } from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import App from './App';
@@ -85,7 +85,7 @@ describe('Início', () => {
   it('pede o código quando o campo está vazio e não consulta', async () => {
     const user = userEvent.setup();
     render(<App />);
-    await user.click(screen.getByRole('button', { name: 'Acompanhar' }));
+    await user.click(within(screen.getByRole('main')).getByRole('button', { name: 'Acompanhar' }));
     expect(screen.getByRole('alert')).toHaveTextContent('Digite seu código');
     expect(fetch).not.toHaveBeenCalled();
   });

@@ -26,7 +26,20 @@ const temaCoord = {
   claro: { ...temaAluno.claro, ...coordClaro },
   escuro: { ...temaAluno.escuro, ...coordEscuro },
 };
-const temas = { claro: temaAluno.claro, escuro: temaAluno.escuro, 'coord claro': temaCoord.claro, 'coord escuro': temaCoord.escuro };
+// Tema do portal do aluno (ameixa e pêssego): o bloco .aluno-app (claro) e o do @media escuro, em src/aluno/aluno.css.
+const cssAluno = readFileSync(fileURLToPath(new URL('../src/aluno/aluno.css', import.meta.url)), 'utf8');
+const iniEscuroAluno = cssAluno.indexOf('@media (prefers-color-scheme: dark)');
+const fimTokensAluno = cssAluno.indexOf('/* fim dos tokens do tema */');
+if (iniEscuroAluno < 0 || fimTokensAluno < 0) throw new Error('aluno.css: faltam o bloco escuro ou o marcador "/* fim dos tokens do tema */".');
+const alunoClaro = ler(cssAluno.slice(0, iniEscuroAluno));
+const alunoEscuro = ler(cssAluno.slice(iniEscuroAluno, fimTokensAluno));
+const faltandoAluno = Object.keys(alunoClaro).filter(k => !(k in alunoEscuro));
+if (faltandoAluno.length) { console.log(`FALHA: tokens do .aluno-app sem versão escura: ${faltandoAluno.join(', ')}`); process.exit(1); }
+const temaPortalAluno = {
+  claro: { ...temaAluno.claro, ...alunoClaro },
+  escuro: { ...temaAluno.escuro, ...alunoEscuro },
+};
+const temas = { claro: temaAluno.claro, escuro: temaAluno.escuro, 'coord claro': temaCoord.claro, 'coord escuro': temaCoord.escuro, 'aluno claro': temaPortalAluno.claro, 'aluno escuro': temaPortalAluno.escuro };
 
 const canal = v => { const c = v / 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
 const luz = hex => { const n = parseInt(hex.slice(1), 16); return 0.2126 * canal(n >> 16) + 0.7152 * canal((n >> 8) & 255) + 0.0722 * canal(n & 255); };
@@ -77,11 +90,23 @@ const paresCoord = [
   ['primaria-base', 'fundo-superficie-2', T],
 ];
 
+// pares do portal do aluno: o fundo dos cartões, do bilhete e das áreas suaves, o texto e a primária sobre eles
+const paresAluno = [
+  ...['fundo-base', 'fundo-superficie', 'fundo-superficie-2', 'primaria-suave', 'bilhete-fundo'].flatMap(f => [['texto-principal', f, T], ['texto-secundario', f, T]]),
+  ['primaria-base', 'fundo-base', T], ['primaria-base', 'fundo-superficie', T], ['primaria-base', 'fundo-superficie-2', T], ['primaria-base', 'primaria-suave', T], ['primaria-base', 'bilhete-fundo', T],
+  ['primaria-hover', 'fundo-superficie', T], ['primaria-hover', 'primaria-suave', T],
+  ['texto-sobre-primaria', 'primaria-base', T], ['texto-sobre-primaria', 'primaria-hover', T],
+  ['perigo-base', 'perigo-suave', T], ['perigo-base', 'fundo-base', T], ['perigo-base', 'fundo-superficie', T], ['texto-sobre-perigo', 'perigo-base', T],
+  ['foco-anel', 'fundo-base', G], ['foco-anel', 'fundo-superficie', G], ['foco-anel', 'primaria-suave', G], ['foco-anel', 'bilhete-fundo', G], ['foco-anel', 'fundo-superficie-2', G],
+  ['borda-forte', 'fundo-base', G], ['borda-forte', 'fundo-superficie', G], ['borda-forte', 'fundo-superficie-2', G], ['borda-forte', 'primaria-suave', G],
+  ['primaria-base', 'primaria-suave', G],
+];
+
 const linhas = [];
 let falhas = 0;
 for (const [nome, cores] of Object.entries(temas)) {
-  const doCoord = nome.startsWith('coord');
-  for (const [a, b, minimo] of doCoord ? [...pares, ...paresCoord] : pares) {
+  const extras = nome.startsWith('coord') ? paresCoord : nome.startsWith('aluno') ? paresAluno : [];
+  for (const [a, b, minimo] of [...pares, ...extras]) {
     const r = razao(cores[a], cores[b]);
     const passou = r >= minimo;
     if (!passou) falhas += 1;
@@ -90,11 +115,13 @@ for (const [nome, cores] of Object.entries(temas)) {
 }
 if (process.argv.includes('--tabela')) {
   console.log('| Par (primeiro plano sobre fundo) | Mínimo | Claro | Escuro |\n| --- | --- | --- | --- |');
-  for (const [a, b, minimo] of [...pares, ...paresCoord]) {
-    const c = linhas.find(l => l.tema.endsWith('claro') && l.tema !== (paresCoord.some(p => p[0] === a && p[1] === b) ? 'claro' : 'coord claro') && l.a === a && l.b === b);
-    const e = linhas.find(l => l.tema.endsWith('escuro') && l.tema !== (paresCoord.some(p => p[0] === a && p[1] === b) ? 'escuro' : 'coord escuro') && l.a === a && l.b === b);
-    const f = l => `${l.r.toFixed(2)}${l.passou ? '' : ' FALHA'}`;
-    console.log(`| ${a} sobre ${b} | ${minimo}:1 | ${f(c)} | ${f(e)} |`);
+  const f = l => `${l.r.toFixed(2)}${l.passou ? '' : ' FALHA'}`;
+  const achar = (tema, a, b) => linhas.find(l => l.tema === tema && l.a === a && l.b === b);
+  for (const [grupo, lista] of [['', pares], ['coord ', paresCoord], ['aluno ', paresAluno]]) {
+    for (const [a, b, minimo] of lista) {
+      const c = achar(`${grupo}claro`.trim(), a, b), e = achar(`${grupo}escuro`.trim(), a, b);
+      console.log(`| ${grupo ? `(${grupo.trim()}) ` : ''}${a} sobre ${b} | ${minimo}:1 | ${f(c)} | ${f(e)} |`);
+    }
   }
 } else {
   for (const l of linhas.filter(x => !x.passou)) console.log(`FALHA ${l.tema}: ${l.a} (${l.ra}) sobre ${l.b} (${l.rb}) = ${l.r.toFixed(2)} (mínimo ${l.minimo})`);

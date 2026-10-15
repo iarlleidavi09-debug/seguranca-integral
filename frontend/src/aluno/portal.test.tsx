@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import App from './App';
@@ -106,7 +106,7 @@ describe('Portal do aluno', () => {
     render(<App />);
     responder({ status: 'aguardando_aluno', mensagens: [{ autor: 'coordenacao', texto: '<img src=x onerror=alert(1)>', criado_em: '2026-10-14T12:00:00Z' }] });
     await user.type(screen.getByLabelText('Acompanhar meu caso'), ' k7m2 9qxd ');
-    await user.click(screen.getByRole('button', { name: 'Acompanhar' }));
+    await user.click(within(screen.getByRole('main')).getByRole('button', { name: 'Acompanhar' }));
     expect(await screen.findByText('Aguardando sua resposta')).toBeInTheDocument();
     expect(screen.getByText('<img src=x onerror=alert(1)>')).toBeInTheDocument();
     expect(document.querySelector('img')).toBeNull();
@@ -124,7 +124,7 @@ describe('Portal do aluno', () => {
     render(<App />);
     responder({ erro: 'detalhe privado' }, 404);
     await user.type(screen.getByLabelText('Acompanhar meu caso'), 'invalido');
-    await user.click(screen.getByRole('button', { name: 'Acompanhar' }));
+    await user.click(within(screen.getByRole('main')).getByRole('button', { name: 'Acompanhar' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível encontrar o caso. Confira o código e tente de novo.');
     expect(screen.queryByText('detalhe privado')).not.toBeInTheDocument();
   });
