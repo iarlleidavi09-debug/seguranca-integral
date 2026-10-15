@@ -466,7 +466,7 @@ def test_criar_e_desativar_usuario(coord_logado, coord_app, config):
     novo_id = r.get_json()["id"]
     lista = coord_logado.get("/api/usuarios").get_json()["usuarios"]
     assert {"id": novo_id, "nome": "Ana", "ativo": True, "papel": "coordenador"} in lista
-    assert all(set(u) == {"id", "nome", "ativo"} for u in lista)
+    assert all(set(u) == {"id", "nome", "ativo", "papel"} for u in lista)
 
     for corpo in ({"nome": "Bia", "senha": "curta"}, {"nome": "ana", "senha": "outra-senha-forte"},
                   {"nome": "", "senha": "outra-senha-forte"}, {"nome": "Cid", "senha": "x" * 300},
