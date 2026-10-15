@@ -12,8 +12,8 @@ type Aba = 'mensagens' | 'notas';
 const TEXTO_MAX = 2000;
 const sessaoPerdida = (falha: unknown) => falha instanceof ErroApi && falha.status === 401;
 
-function Anexos({ caso }: { caso: CasoDetalhe }) {
-  const [aberto, setAberto] = useState<number | null>(null);
+function Anexos({ caso, anexoInicial = null, imagemPrevia }: { caso: CasoDetalhe; anexoInicial?: number | null; imagemPrevia?: string }) {
+  const [aberto, setAberto] = useState<number | null>(anexoInicial);
   const origem = useRef<HTMLElement | null>(null);
   const fechar = useRef<HTMLButtonElement>(null);
   useEffect(() => { if (aberto !== null) fechar.current?.focus(); }, [aberto]);
@@ -28,13 +28,13 @@ function Anexos({ caso }: { caso: CasoDetalhe }) {
       {caso.anexos.map((a, i) => <li key={a.id}>
         <button type="button" className="miniatura" aria-label={`Ampliar anexo ${i + 1}`}
           onClick={e => { origem.current = e.currentTarget; setAberto(a.id); }}>
-          <img src={urlAnexo(caso.id, a.id)} alt={`Anexo ${i + 1} do caso ${caso.id}`} loading="lazy" />
+          <img src={imagemPrevia ?? urlAnexo(caso.id, a.id)} alt={`Anexo ${i + 1} do caso ${caso.id}`} loading="lazy" />
         </button>
       </li>)}
     </ul>
     {aberto !== null && <div className="fundo-janela" onClick={fecharJanela}>
       <div className="janela" role="dialog" aria-modal="true" aria-label="Anexo ampliado" onKeyDown={teclas} onClick={e => e.stopPropagation()}>
-        <img src={urlAnexo(caso.id, aberto)} alt={`Anexo ampliado do caso ${caso.id}`} />
+        <img src={imagemPrevia ?? urlAnexo(caso.id, aberto)} alt={`Anexo ampliado do caso ${caso.id}`} />
         <button type="button" ref={fechar} className="botao secundario" onClick={fecharJanela}>Fechar</button>
       </div>
     </div>}
@@ -64,13 +64,13 @@ function Conversa({ titulo, campo, rotulo, ajuda, botao, itens, texto, aoMudar, 
   </div>;
 }
 
-export default function Caso({ id, aoVoltar }: { id: number; aoVoltar: () => void }) {
+export default function Caso({ id, aoVoltar, abaInicial = 'mensagens', anexoInicial = null, imagemPrevia }: { id: number; aoVoltar: () => void; abaInicial?: Aba; anexoInicial?: number | null; imagemPrevia?: string }) {
   const [caso, setCaso] = useState<CasoDetalhe | null>(null);
   const [erroCarga, setErroCarga] = useState('');
   const [erro, setErro] = useState('');
   const [aviso, setAviso] = useState('');
   const [ocupado, setOcupado] = useState(false);
-  const [aba, setAba] = useState<Aba>('mensagens');
+  const [aba, setAba] = useState<Aba>(abaInicial);
   const [rascunho, setRascunho] = useState({ mensagens: '', notas: '' });
   const titulo = useRef<HTMLHeadingElement>(null);
   const abas = useRef<Record<Aba, HTMLButtonElement | null>>({ mensagens: null, notas: null });
@@ -174,7 +174,7 @@ export default function Caso({ id, aoVoltar }: { id: number; aoVoltar: () => voi
           {caso.onde && <><dt>Onde</dt><dd>{caso.onde}</dd></>}
         </dl>}
         <h2>Anexos</h2>
-        <Anexos caso={caso} />
+        <Anexos caso={caso} anexoInicial={anexoInicial} imagemPrevia={imagemPrevia} />
         <h2>Motivos da triagem</h2>
         {caso.motivos.length === 0 ? <p className="vazio">Sem motivos registrados.</p>
           : <ul className="motivos">{caso.motivos.map(m => <li key={m}>{motivo(m)}</li>)}</ul>}

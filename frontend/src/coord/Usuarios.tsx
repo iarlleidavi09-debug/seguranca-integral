@@ -5,13 +5,13 @@ import type { UsuarioLista } from '../shared/api';
 const SENHA_MIN = 10;
 const semSessao = (falha: unknown) => falha instanceof ErroApi && falha.status === 401;
 
-export default function Usuarios({ meuId }: { meuId: number }) {
+export default function Usuarios({ meuId, confirmarInicial = null }: { meuId: number; confirmarInicial?: number | null }) {
   const [lista, setLista] = useState<UsuarioLista[] | null>(null);
   const [erro, setErro] = useState('');
   const [aviso, setAviso] = useState('');
   const [nome, setNome] = useState('');
   const [senha, setSenha] = useState('');
-  const [confirmando, setConfirmando] = useState<number | null>(null);
+  const [confirmando, setConfirmando] = useState<number | null>(confirmarInicial);
   const [ocupado, setOcupado] = useState(false);
   const trabalhando = useRef(false);
   const montado = useRef(true);

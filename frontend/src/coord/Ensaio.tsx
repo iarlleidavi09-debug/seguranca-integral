@@ -3,10 +3,10 @@ import { carregarSimulacao, ErroApi, mensagemErroCoord, removerSimulacao } from 
 
 const plural = (n: number, um: string, varios: string) => (n === 1 ? um : varios);
 
-export default function Ensaio() {
+export default function Ensaio({ confirmarInicial = false }: { confirmarInicial?: boolean }) {
   const [aviso, setAviso] = useState('');
   const [erro, setErro] = useState('');
-  const [confirmando, setConfirmando] = useState(false);
+  const [confirmando, setConfirmando] = useState(confirmarInicial);
   const [ocupado, setOcupado] = useState(false);
   const trabalhando = useRef(false);
   const gatilho = useRef<HTMLButtonElement>(null);

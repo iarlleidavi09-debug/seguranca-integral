@@ -10,7 +10,7 @@ const tipos = [
 const chave = 'si-aluno-rascunho-v1';
 type Rascunho = { tipo: string; relato: string; quando: string; onde: string; em_andamento: boolean; anonimo: boolean; nome: string; turma: string };
 const vazio: Rascunho = { tipo: '', relato: '', quando: '', onde: '', em_andamento: false, anonimo: true, nome: '', turma: '' };
-function restaurar(): Rascunho {
+function restaurar(chave: string): Rascunho {
   try {
     const salvo: unknown = JSON.parse(localStorage.getItem(chave) ?? 'null');
     if (!salvo || typeof salvo !== 'object') return { ...vazio };
@@ -27,9 +27,10 @@ function restaurar(): Rascunho {
 }
 type Anexo = { arquivo: File; url: string; id: number };
 
-export default function Denuncia({ onEnviado, onEnviando }: { onEnviado: (resultado: ResultadoDenuncia) => void; onEnviando?: (enviando: boolean) => void }) {
-  const [dados, setDados] = useState(restaurar);
-  const [passo, setPasso] = useState(1);
+export default function Denuncia({ onEnviado, onEnviando, passoInicial = 1, dadosIniciais, chaveRascunho = chave }: { onEnviado: (resultado: ResultadoDenuncia) => void; onEnviando?: (enviando: boolean) => void; passoInicial?: 1 | 2 | 3; dadosIniciais?: Partial<Rascunho>; chaveRascunho?: string }) {
+  const chave = chaveRascunho;
+  const [dados, setDados] = useState(() => dadosIniciais ? { ...vazio, ...dadosIniciais } : restaurar(chave));
+  const [passo, setPasso] = useState<number>(passoInicial);
   const [erro, setErro] = useState('');
   const [erroAnexos, setErroAnexos] = useState('');
   const [avisoRascunho, setAvisoRascunho] = useState('');
@@ -45,7 +46,7 @@ export default function Denuncia({ onEnviado, onEnviando }: { onEnviado: (result
       if (temRascunho) localStorage.setItem(chave, JSON.stringify(dados));
       else localStorage.removeItem(chave);
     } catch { setAvisoRascunho('Este navegador não permite salvar o rascunho. Mantenha esta tela aberta até enviar.'); }
-  }, [dados, temRascunho]);
+  }, [dados, temRascunho, chave]);
   function limparRascunho() {
     setDados({ ...vazio }); setPasso(1); setErro(''); setAvisoRascunho('Rascunho apagado.');
     titulo.current?.focus();
