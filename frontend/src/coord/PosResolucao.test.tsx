@@ -16,7 +16,7 @@ describe('PosResolucao', () => {
     render(<PosResolucao caso={caso({ recorrencia_pendente: true, resolucoes: [resolucao()] as any })} aoRevisar={aoRevisar} ocupado={false} />);
     const alerta = screen.getByRole('alert');
     expect(within(alerta).getByRole('heading', { name: 'Situação voltou a acontecer' })).toBeInTheDocument();
-    expect(alerta).toHaveTextContent('Revise o resultado da intervenção anterior e avalie medidas mais efetivas');
+    expect(alerta).toHaveTextContent('Revise o resultado da intervenção anterior e avalie medidas mais efetivas.');
     expect(alerta.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
     await user.click(screen.getByRole('button', { name: 'Registrar revisão' }));
     expect(aoRevisar).toHaveBeenCalledTimes(1);
@@ -52,6 +52,11 @@ describe('PosResolucao', () => {
     expect(screen.getByText(/^Voltou a acontecer/, { selector: 'li' })).toBeInTheDocument();
     expect(screen.getByText(/Revisado por Rita/)).toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(/intervencao_realizada|voltou\b/);
+  });
+
+  it('avisa que providências e resultado são visíveis ao aluno', () => {
+    render(<PosResolucao caso={caso({ resolucoes: [resolucao()] as any })} aoRevisar={vi.fn()} ocupado={false} />);
+    expect(screen.getByText('Providências e resultado são visíveis para o aluno.')).toBeInTheDocument();
   });
 
   it('sem registros mostra os avisos vazios sem quebrar', () => {

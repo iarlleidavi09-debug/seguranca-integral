@@ -22,7 +22,7 @@ const ABAS: { id: Aba; nome: string }[] = [
 ];
 const sessaoPerdida = (falha: unknown) => falha instanceof ErroApi && falha.status === 401;
 
-export default function Caso({ id, aoVoltar, abaInicial = 'relato', anexoInicial = null, imagemPrevia }: { id: number; aoVoltar: () => void; abaInicial?: Aba; anexoInicial?: number | null; imagemPrevia?: string }) {
+export default function Caso({ id, aoVoltar, aoMudar, abaInicial = 'relato', anexoInicial = null, imagemPrevia }: { id: number; aoVoltar: () => void; aoMudar?: () => void; abaInicial?: Aba; anexoInicial?: number | null; imagemPrevia?: string }) {
   const [caso, setCaso] = useState<CasoDetalhe | null>(null);
   const [erroCarga, setErroCarga] = useState('');
   const [erro, setErro] = useState('');
@@ -78,7 +78,7 @@ export default function Caso({ id, aoVoltar, abaInicial = 'relato', anexoInicial
         if (montado.current) titulo.current?.focus(); // o formulário some com a recarga; o foco vai ao título
       } else if (!sessaoPerdida(falha) && montado.current) setErro(mensagemErroCoord(falha));
       return false;
-    } finally { trabalhando.current = false; if (montado.current) setOcupado(false); }
+    } finally { trabalhando.current = false; if (montado.current) setOcupado(false); aoMudar?.(); }
   }
 
   function textoValido(texto: string): string | null {
@@ -167,7 +167,7 @@ export default function Caso({ id, aoVoltar, abaInicial = 'relato', anexoInicial
         {caso.prioridade_original && caso.prioridade_original !== caso.prioridade
           && <p className="resumo-prioridade">Classificação original: <b>{prioridade(caso.prioridade_original)}</b></p>}
       </aside>
-      <div className="caso-principal">
+      <div>
         <div role="tablist" aria-label="Conteúdo do caso" className="abas">
           {ABAS.map(a => <button key={a.id} type="button" role="tab" id={`aba-${a.id}`} aria-selected={aba === a.id} aria-controls={aba === a.id ? `painel-${a.id}` : undefined}
             tabIndex={aba === a.id ? 0 : -1} ref={el => { abas.current[a.id] = el; }}

@@ -14,8 +14,8 @@ const CARTOES = [
 
 type Panorama = { resumo: Resumo; casos: CasoFila[] };
 
-export default function Geral({ aoVerCasos, aoAbrirCaso }: {
-  aoVerCasos: (parcial: Partial<FiltrosFila>) => void; aoAbrirCaso: (id: number) => void;
+export default function Geral({ aoVerCasos, aoAbrirCaso, aoResumo }: {
+  aoVerCasos: (parcial: Partial<FiltrosFila>) => void; aoAbrirCaso: (id: number) => void; aoResumo?: (pendentes: number) => void;
 }) {
   const [dados, setDados] = useState<Panorama | null>(null);
   const [erro, setErro] = useState('');
@@ -30,6 +30,7 @@ export default function Geral({ aoVerCasos, aoAbrirCaso }: {
       const [resumo, casos] = await Promise.all([obterResumo(sinal), listarCasos(SEM_FILTROS, sinal)]);
       if (!ativo()) return;
       setDados({ resumo, casos }); setErro('');
+      aoResumo?.(resumo.recorrencia_pendente);
       if (resumo.recorrencia_pendente > 0 && !exibiuBloco.current) { exibiuBloco.current = true; setAlertaFalado(true); }
       else setAlertaFalado(false);
       if (resumo.recorrencia_pendente === 0) exibiuBloco.current = false;

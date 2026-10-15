@@ -20,7 +20,7 @@ function telaDoEndereco(): Tela {
   if (caso) return { nome: 'caso', id: Number(caso[1]) };
   if (hash === '#casos') return { nome: 'casos' };
   if (hash === '#pos-resolucao') return { nome: 'pos' };
-  if (hash === '#usuarios') return { nome: 'usuarios' };
+  if (hash === '#usuarios') return { nome: 'usuarios' }; // quem não é admin cai na Visão geral (ver telaVisivel)
   if (hash === '#ensaio') return { nome: 'ensaio' };
   return { nome: 'geral' };
 }
@@ -76,7 +76,9 @@ export default function App() {
     ir({ nome: 'casos' });
   }, [ir]);
   const [pendencias, setPendencias] = useState(0);
-  const chaveTela = tela.nome === 'caso' ? `caso-${tela.id}` : tela.nome;
+  const ehAdmin = typeof sessao === 'object' && sessao !== null && sessao.papel === 'admin';
+  const telaVisivel: Tela = tela.nome === 'usuarios' && !ehAdmin ? { nome: 'geral' } : tela;
+  const chaveTela = telaVisivel.nome === 'caso' ? `caso-${telaVisivel.id}` : telaVisivel.nome;
   const anterior = useRef(chaveTela);
   useEffect(() => {
     if (anterior.current !== chaveTela) main.current?.focus();
@@ -85,12 +87,17 @@ export default function App() {
 
   // contador da navegação; se o resumo falhar, a casca segue sem contador
   const logada = typeof sessao === 'object' && sessao !== null;
+  const rodadaResumo = useRef(0);
+  const atualizarResumo = useCallback(() => {
+    const minha = ++rodadaResumo.current;
+    obterResumo().then(r => { if (minha === rodadaResumo.current) setPendencias(r.recorrencia_pendente); })
+      .catch(() => { if (minha === rodadaResumo.current) setPendencias(0); });
+  }, []);
   useEffect(() => {
-    if (!logada) { setPendencias(0); return; }
-    let ativo = true;
-    obterResumo().then(r => { if (ativo) setPendencias(r.recorrencia_pendente); }).catch(() => { if (ativo) setPendencias(0); });
-    return () => { ativo = false; };
-  }, [logada, chaveTela]);
+    if (!logada) { rodadaResumo.current += 1; setPendencias(0); return; }
+    atualizarResumo();
+    return () => { rodadaResumo.current += 1; };
+  }, [logada, chaveTela, atualizarResumo]);
 
   async function encerrar() {
     try { await sair(); } catch { /* o cookie vence sozinho; a tela de entrada aparece de qualquer forma */ }
@@ -114,20 +121,19 @@ export default function App() {
     <div className="coord-layout">
       <div className="coord-lateral">
         <p className="marca">Segurança Integral <span>Coordenação</span></p>
-        <Navegacao tela={tela} admin={admin} pendencias={pendencias} aoIr={ir} />
+        <Navegacao tela={telaVisivel} admin={admin} pendencias={pendencias} aoIr={ir} />
         <div className="sessao"><span className="sessao-nome">{sessao.nome}</span>
           <button type="button" className="botao secundario" onClick={() => void encerrar()}>Sair</button></div>
       </div>
       <div className="coord-coluna">
         <div className="coord-topo"><p><span className="ponto" aria-hidden="true" />Responsabilidade compartilhada</p></div>
         <main id="conteudo" ref={main} tabIndex={-1} className="painel">
-          {tela.nome === 'geral' && <Geral aoVerCasos={verCasos} aoAbrirCaso={abrirCaso} />}
-          {tela.nome === 'casos' && <Fila modo="casos" filtros={filtros} aoFiltrar={setFiltros} aoAbrir={abrirCaso} />}
-          {/* a revisão de recorrência entra na Task 6 */}
-          {tela.nome === 'pos' && <Fila modo="pos" filtros={filtrosPos} aoFiltrar={setFiltrosPos} aoAbrir={abrirCaso} />}
-          {tela.nome === 'caso' && <Caso key={tela.id} id={tela.id} aoVoltar={() => ir({ nome: 'casos' })} />}
-          {tela.nome === 'usuarios' && admin && <Usuarios meuId={sessao.id} />}
-          {tela.nome === 'ensaio' && <Ensaio />}
+          {telaVisivel.nome === 'geral' && <Geral aoVerCasos={verCasos} aoAbrirCaso={abrirCaso} aoResumo={setPendencias} />}
+          {telaVisivel.nome === 'casos' && <Fila modo="casos" filtros={filtros} aoFiltrar={setFiltros} aoAbrir={abrirCaso} />}
+          {telaVisivel.nome === 'pos' && <Fila modo="pos" filtros={filtrosPos} aoFiltrar={setFiltrosPos} aoAbrir={abrirCaso} />}
+          {telaVisivel.nome === 'caso' && <Caso key={telaVisivel.id} id={telaVisivel.id} aoVoltar={() => ir({ nome: 'casos' })} aoMudar={atualizarResumo} />}
+          {telaVisivel.nome === 'usuarios' && <Usuarios meuId={sessao.id} />}
+          {telaVisivel.nome === 'ensaio' && <Ensaio />}
         </main>
       </div>
     </div>

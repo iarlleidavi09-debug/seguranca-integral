@@ -147,3 +147,15 @@ describe('ReavaliarPrioridade: acessibilidade do erro', () => {
     await vi.waitFor(() => expect(screen.getByLabelText('Justificativa')).toHaveFocus());
   });
 });
+
+describe('ReavaliarPrioridade: aria-controls', () => {
+  it('só aponta para o formulário quando ele está aberto', async () => {
+    const user = userEvent.setup();
+    render(<ReavaliarPrioridade atual="media" aoConfirmar={vi.fn()} ocupado={false} />);
+    const gatilho = screen.getByRole('button', { name: 'Reavaliar prioridade' });
+    expect(gatilho).not.toHaveAttribute('aria-controls');
+    await user.click(gatilho);
+    expect(gatilho).toHaveAttribute('aria-controls', 'form-reavaliar');
+    expect(document.getElementById('form-reavaliar')).not.toBeNull();
+  });
+});

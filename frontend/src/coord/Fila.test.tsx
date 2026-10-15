@@ -236,33 +236,50 @@ describe('Fila de Pós-resolução', () => {
     caso(13, { status: 'resolvido', prioridade: 'baixa', resumo: 'Outro com retorno', recorrencia_pendente: true }),
   ];
 
-  it('mostra o título, consulta só resolvidos, esconde o seletor de status e põe a recorrência primeiro', async () => {
+  it('mostra o título, consulta sem status, esconde o seletor de status e põe a recorrência primeiro', async () => {
     servidor({ 'GET /api/casos': () => ({ corpo: { casos: resolvidos } }) });
     render(<Harness modo="pos" />);
     await screen.findByText('Resolvido alto');
     expect(screen.getByRole('heading', { level: 1, name: 'O cuidado continua.' })).toBeInTheDocument();
     expect(screen.queryByLabelText('Status')).toBeNull();
-    expect(consultas()[0]).toBe('/api/casos?status=resolvido');
+    expect(consultas()[0]).toBe('/api/casos');
     expect(linhas().map(l => l.textContent)).toEqual([
       expect.stringContaining('Resolvido com retorno'), expect.stringContaining('Outro com retorno'),
       expect.stringContaining('Resolvido alto'), expect.stringContaining('Resolvido baixo'),
     ]);
   });
 
-  it('mantém status resolvido ao filtrar e ao limpar', async () => {
+  it('não envia status ao filtrar nem ao limpar', async () => {
     servidor({ 'GET /api/casos': () => ({ corpo: { casos: resolvidos } }) });
     render(<Harness modo="pos" />);
     await screen.findByText('Resolvido alto');
     const user = userEvent.setup();
     await user.selectOptions(screen.getByLabelText('Prioridade'), 'alta');
-    await waitFor(() => expect(consultas()).toContain('/api/casos?status=resolvido&prioridade=alta'));
+    await waitFor(() => expect(consultas()).toContain('/api/casos?prioridade=alta'));
     await user.click(screen.getByRole('button', { name: 'Limpar filtros' }));
-    await waitFor(() => expect(consultas().at(-1)).toBe('/api/casos?status=resolvido'));
+    await waitFor(() => expect(consultas().at(-1)).toBe('/api/casos'));
+  });
+
+  it('inclui o caso reaberto com recorrência pendente e deixa de fora o que não é resolvido nem pendente', async () => {
+    servidor({ 'GET /api/casos': () => ({ corpo: { casos: [
+      caso(20, { status: 'em_investigacao', resumo: 'Reaberto sem retorno' }),
+      caso(21, { status: 'em_investigacao', resumo: 'Reaberto com retorno', recorrencia_pendente: true }),
+      caso(22, { status: 'resolvido', resumo: 'Resolvido simples' }),
+      caso(23, { status: 'novo', resumo: 'Novo qualquer' }),
+    ] } }) });
+    render(<Harness modo="pos" />);
+    await screen.findByText('Resolvido simples');
+    expect(linhas().map(l => l.textContent)).toEqual([
+      expect.stringContaining('Reaberto com retorno'), expect.stringContaining('Resolvido simples'),
+    ]);
+    expect(screen.queryByText('Reaberto sem retorno')).toBeNull();
+    expect(screen.queryByText('Novo qualquer')).toBeNull();
+    expect(screen.getByText('2 casos resolvidos ou com recorrência.', { selector: '[role=status]' })).toBeInTheDocument();
   });
 
   it('estado vazio próprio', async () => {
     servidor({ 'GET /api/casos': () => ({ corpo: { casos: [] } }) });
     render(<Harness modo="pos" />);
-    expect(await screen.findByText('Nenhum caso resolvido ainda.')).toBeInTheDocument();
+    expect(await screen.findByText('Nenhum caso resolvido ou com recorrência ainda.')).toBeInTheDocument();
   });
 });

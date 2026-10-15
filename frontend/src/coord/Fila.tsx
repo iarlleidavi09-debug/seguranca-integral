@@ -35,7 +35,8 @@ function Retorno() {
 
 export default function Fila({ modo, filtros, aoFiltrar, aoAbrir }: Props) {
   const pos = modo === 'pos';
-  const status = pos ? 'resolvido' : filtros.status;
+  // a Pós-resolução não filtra por status na API: traz resolvidos e reabertos com recorrência pendente, e o filtro é feito aqui
+  const status = pos ? '' : filtros.status;
   const { prioridade, tipo } = filtros;
   const q = filtros.q.trim();
 
@@ -65,19 +66,21 @@ export default function Fila({ modo, filtros, aoFiltrar, aoAbrir }: Props) {
     try {
       const recebidos = await listarCasos({ status, prioridade, tipo, q }, sinal);
       if (!ativo()) return;
-      const ordenados = ordenar(recebidos, modo);
+      const ordenados = ordenar(pos ? recebidos.filter(c => c.status === 'resolvido' || c.recorrencia_pendente) : recebidos, modo);
       const anteriores = vistos.current;
       const novos = anteriores ? ordenados.filter(c => !anteriores.has(c.id)).length : 0;
       vistos.current = new Set(ordenados.map(c => c.id));
       setCasos(ordenados); setErro('');
       if (novos > 0) setAnuncio(novos === 1 ? 'Chegou 1 caso novo.' : `Chegaram ${novos} casos novos.`);
-      else if (!anteriores) setAnuncio(ordenados.length === 1 ? '1 caso na fila.' : `${ordenados.length} casos na fila.`);
+      else if (!anteriores) setAnuncio(pos
+        ? (ordenados.length === 1 ? '1 caso resolvido ou com recorrência.' : `${ordenados.length} casos resolvidos ou com recorrência.`)
+        : (ordenados.length === 1 ? '1 caso na fila.' : `${ordenados.length} casos na fila.`));
     } catch (falha) {
       if (!ativo()) return;
       if (falha instanceof ErroApi && falha.status === 401) return;
       setErro(mensagemErroCoord(falha));
     }
-  }, [status, prioridade, tipo, q, modo]);
+  }, [status, prioridade, tipo, q, modo, pos]);
 
   const filtrando = Boolean((pos ? '' : filtros.status) || prioridade || tipo || filtros.q || busca);
   const mudar = (parcial: Partial<FiltrosFila>) => aoFiltrar({ ...filtros, ...parcial });
@@ -86,7 +89,7 @@ export default function Fila({ modo, filtros, aoFiltrar, aoAbrir }: Props) {
   return <section aria-labelledby="titulo-fila" className="casos">
     <h1 id="titulo-fila" tabIndex={-1}>{pos ? 'O cuidado continua.' : 'Casos'}</h1>
     <p className="casos-intro">{pos
-      ? 'Acompanhe o que já foi resolvido. Os casos em que a situação voltou a acontecer aparecem primeiro.'
+      ? 'Acompanhe os casos resolvidos e os que tiveram recorrência. Os casos em que a situação voltou a acontecer aparecem primeiro.'
       : 'Todos os pedidos da equipe, dos mais urgentes aos menos urgentes.'}</p>
     <form className="filtros" role="search" aria-label="Buscar e filtrar casos" onSubmit={e => e.preventDefault()}>
       <div className="filtro-busca"><label htmlFor="filtro-busca">Buscar por assunto ou número do caso</label>
@@ -108,7 +111,7 @@ export default function Fila({ modo, filtros, aoFiltrar, aoAbrir }: Props) {
     <p className="texto-pequeno" role="status" aria-live="polite">{anuncio}</p>
     {erro && <p className="erro" role="alert">{erro} A fila tenta de novo sozinha.</p>}
     {casos === null && !erro && <p className="vazio">Carregando a fila.</p>}
-    {casos !== null && casos.length === 0 && <p className="vazio">{filtrando ? 'Nenhum caso com esses filtros.' : pos ? 'Nenhum caso resolvido ainda.' : 'Nenhum caso na fila.'}</p>}
+    {casos !== null && casos.length === 0 && <p className="vazio">{filtrando ? 'Nenhum caso com esses filtros.' : pos ? 'Nenhum caso resolvido ou com recorrência ainda.' : 'Nenhum caso na fila.'}</p>}
     {casos !== null && casos.length > 0 && <table className="casos-tabela" role="table" aria-labelledby="titulo-fila">
       <thead role="rowgroup"><tr role="row">
         <th role="columnheader" scope="col">Caso e situação</th><th role="columnheader" scope="col">Prioridade</th>

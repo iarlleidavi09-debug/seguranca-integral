@@ -53,7 +53,7 @@ export default function RegistrarResolucao({ aoConfirmar, ocupado }: {
   return <form className="form-acao form-resolucao" aria-labelledby="titulo-resolucao" noValidate
     onSubmit={e => { e.preventDefault(); void enviar(); }}>
     <h2 id="titulo-resolucao">Registrar resolução</h2>
-    <p className="texto-pequeno">Para resolver, registre a resolução</p>
+    <p className="texto-pequeno">Para resolver, registre a resolução.</p>
     <fieldset className="grupo-desfecho" aria-describedby={erros.desfecho ? 'erro-desfecho' : undefined}>
       <legend>Desfecho</legend>
       {DESFECHOS.map((d, i) => <label key={d} className="opcao-desfecho" htmlFor={`desfecho-${d}`}>
@@ -65,20 +65,20 @@ export default function RegistrarResolucao({ aoConfirmar, ocupado }: {
       {erros.desfecho && <p id="erro-desfecho" className="erro">{erros.desfecho}</p>}
     </fieldset>
     <label htmlFor="resolucao-providencias">Providências</label>
-    <p id="ajuda-providencias" className="texto-pequeno">Visível para o aluno</p>
+    <p id="ajuda-providencias" className="texto-pequeno">Visível para o aluno.</p>
     <textarea id="resolucao-providencias" ref={campoProvidencias} rows={4} maxLength={TEXTO_MAX} value={providencias} disabled={travado}
       {...ligacao('providencias', 'ajuda-providencias')}
       onChange={e => { setProvidencias(e.target.value); limpar('providencias'); }} />
     <p className="texto-pequeno contador">{providencias.length} de {TEXTO_MAX}</p>
     {erros.providencias && <p id="erro-providencias" className="erro">{erros.providencias}</p>}
     <label htmlFor="resolucao-resultado">Resultado observado</label>
-    <p id="ajuda-resultado" className="texto-pequeno">Visível para o aluno</p>
+    <p id="ajuda-resultado" className="texto-pequeno">Visível para o aluno.</p>
     <textarea id="resolucao-resultado" ref={campoResultado} rows={3} maxLength={TEXTO_MAX} value={resultado} disabled={travado}
       {...ligacao('resultado', 'ajuda-resultado')}
       onChange={e => { setResultado(e.target.value); limpar('resultado'); }} />
     <p className="texto-pequeno contador">{resultado.length} de {TEXTO_MAX}</p>
     {erros.resultado && <p id="erro-resultado" className="erro">{erros.resultado}</p>}
-    <p className="texto-pequeno">Registrado automaticamente com o seu nome e a data de hoje</p>
+    <p className="texto-pequeno">Registrado automaticamente com o seu nome e a data de hoje.</p>
     <div className="acoes">
       <button type="submit" className="botao principal" disabled={travado}>Registrar resolução</button>
     </div>

@@ -20,9 +20,9 @@ describe('RegistrarResolucao', () => {
     opcoes.forEach(o => expect(o).not.toBeChecked());
     expect(screen.getByLabelText('Providências')).toHaveAttribute('maxlength', '2000');
     expect(screen.getByLabelText('Resultado observado')).toHaveAttribute('maxlength', '2000');
-    expect(screen.getAllByText('Visível para o aluno')).toHaveLength(2);
-    expect(screen.getByText('Registrado automaticamente com o seu nome e a data de hoje')).toBeInTheDocument();
-    expect(screen.getByText('Para resolver, registre a resolução')).toBeInTheDocument();
+    expect(screen.getAllByText('Visível para o aluno.')).toHaveLength(2);
+    expect(screen.getByText('Registrado automaticamente com o seu nome e a data de hoje.')).toBeInTheDocument();
+    expect(screen.getByText('Para resolver, registre a resolução.')).toBeInTheDocument();
   });
 
   it('sem desfecho ou sem providências mostra a mensagem do campo e não envia', async () => {

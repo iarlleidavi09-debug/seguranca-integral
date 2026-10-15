@@ -104,3 +104,25 @@ describe('Casca da coordenação', () => {
     await waitFor(() => expect(screen.queryByText(/pendente/)).toBeNull());
   });
 });
+
+describe('Casca: contador e acesso', () => {
+  it('depois de Registrar revisão o contador some sem trocar de tela', async () => {
+    let pendente = 1;
+    const user = userEvent.setup();
+    abrir(admin, '/#caso-12', {
+      'GET /api/resumo': () => resumo(pendente)(null, new URL('http://x')),
+      'GET /api/casos/12': () => ({ corpo: { ...detalhe(), status: 'resolvido', recorrencia_pendente: pendente > 0, resolucoes: [], situacoes: [], revisoes_recorrencia: [] } }),
+      'POST /api/casos/12/revisao-recorrencia': () => { pendente = 0; return { status: 201, corpo: { ok: true } }; },
+    });
+    expect(await screen.findByText('1 pendente')).toBeInTheDocument();
+    await user.click(await screen.findByRole('button', { name: 'Registrar revisão' }));
+    await waitFor(() => expect(screen.queryByText('1 pendente')).toBeNull());
+    expect(window.location.hash).toBe('#caso-12');
+  });
+
+  it('#usuarios aberto por quem não é admin cai na Visão geral', async () => {
+    abrir(coordenador, '/#usuarios');
+    expect(await screen.findByRole('heading', { name: 'Cada pedido merece atenção.' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Visão geral' })).toHaveAttribute('aria-current', 'page');
+  });
+});

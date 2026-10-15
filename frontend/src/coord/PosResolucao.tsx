@@ -45,7 +45,7 @@ export default function PosResolucao({ caso, aoRevisar, ocupado }: {
       </svg>
       <div>
         <h3 id="titulo-recorrencia-caso">Situação voltou a acontecer</h3>
-        <p>Revise o resultado da intervenção anterior e avalie medidas mais efetivas</p>
+        <p>Revise o resultado da intervenção anterior e avalie medidas mais efetivas.</p>
       </div>
       <button type="button" ref={botao} className="botao" disabled={ocupado} onClick={() => void revisar()}>Registrar revisão</button>
     </div>}
@@ -53,6 +53,7 @@ export default function PosResolucao({ caso, aoRevisar, ocupado }: {
     <h3>Resolução mais recente</h3>
     {resolucao === null ? <p className="vazio">Nenhuma resolução registrada.</p> : <div className="pos-registro">
       <p className="pos-quem"><b>{maiuscula(nomeDesfecho(resolucao.desfecho))}</b> por {resolucao.usuario ?? 'pessoa da coordenação'}, <time dateTime={resolucao.criado_em}>{dataLegivel(resolucao.criado_em)}</time></p>
+      <p className="texto-pequeno">Providências e resultado são visíveis para o aluno.</p>
       <dl className="detalhes">
         <dt>Providências</dt><dd>{resolucao.providencias}</dd>
         <dt>Resultado observado</dt><dd>{resolucao.resultado || 'Sem resultado informado'}</dd>

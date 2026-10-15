@@ -44,7 +44,7 @@ export default function ReavaliarPrioridade({ atual, aoConfirmar, ocupado }: {
   }
 
   return <div className="reavaliar">
-    <button type="button" ref={gatilho} className="botao secundario" aria-expanded={aberto} aria-controls="form-reavaliar"
+    <button type="button" ref={gatilho} className="botao secundario" aria-expanded={aberto} aria-controls={aberto ? 'form-reavaliar' : undefined}
       disabled={travado} onClick={() => (aberto ? fechar() : abrir())}>Reavaliar prioridade</button>
     {aberto && <form id="form-reavaliar" className="form-acao" aria-labelledby="titulo-reavaliar" onKeyDown={teclas}
       onSubmit={e => { e.preventDefault(); void enviar(); }}>

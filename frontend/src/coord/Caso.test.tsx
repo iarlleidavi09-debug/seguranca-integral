@@ -101,7 +101,7 @@ describe('Caso: status', () => {
     await abrirCaso();
     const seletor = await screen.findByLabelText('Status');
     expect(Array.from((seletor as HTMLSelectElement).options).map(o => o.text)).toEqual(['Novo', 'Em investigação']);
-    expect(screen.getByText('Para resolver, registre a resolução')).toBeInTheDocument();
+    expect(screen.getByText('Para resolver, registre a resolução.')).toBeInTheDocument();
     expect(screen.queryByText('Caso resolvido.')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Reabrir para investigação' })).not.toBeInTheDocument();
   });
@@ -129,7 +129,7 @@ describe('Caso: status', () => {
   it('resolvido troca o seletor pelo aviso e oferece reabrir', async () => {
     const user = await abrirCaso({ status: 'resolvido' });
     expect(await screen.findByText('Caso resolvido.', { selector: '.caso-meta-status p' })).toBeInTheDocument();
-    expect(screen.queryByText('Para resolver, registre a resolução')).not.toBeInTheDocument();
+    expect(screen.queryByText('Para resolver, registre a resolução.')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Status')).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Reabrir para investigação' }));
     await screen.findByText('Status alterado para Em investigação.', { selector: '[role=status]' });
