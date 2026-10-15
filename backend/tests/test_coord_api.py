@@ -478,7 +478,7 @@ def test_criar_e_desativar_usuario(coord_logado, coord_app, config):
     r = coord_logado.post(f"/api/usuarios/{novo_id}/desativar", json={})
     assert r.status_code == 200
     lista = coord_logado.get("/api/usuarios").get_json()["usuarios"]
-    assert {"id": novo_id, "nome": "Ana", "ativo": False} in lista
+    assert {"id": novo_id, "nome": "Ana", "ativo": False, "papel": "coordenador"} in lista
     ana = coord_app.test_client()
     r = ana.post("/api/login", json={"nome": "Ana", "senha": "outra-senha-forte"})
     assert r.status_code == 401
