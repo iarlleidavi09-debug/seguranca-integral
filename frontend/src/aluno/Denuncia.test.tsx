@@ -364,6 +364,15 @@ describe('Girar imagem', () => {
     await terminar();
     await vi.waitFor(() => expect(screen.getByRole('button', { name: 'Girar foto.png' })).toBeEnabled());
   });
+  it('não envia nem avança enquanto houver rotação em andamento', async () => {
+    const user = await comAnexo();
+    await user.click(screen.getByRole('button', { name: 'Girar foto.png' }));
+    expect(screen.getByRole('button', { name: 'Enviar pedido de ajuda' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'Enviar pedido de ajuda' }));
+    expect(fetch).not.toHaveBeenCalled();
+    await terminar();
+    await vi.waitFor(() => expect(screen.getByRole('button', { name: 'Enviar pedido de ajuda' })).toBeEnabled());
+  });
   it('falha mostra a mensagem e mantém o original', async () => {
     falhar = true;
     const user = await comAnexo();

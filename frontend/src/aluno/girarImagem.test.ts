@@ -7,6 +7,7 @@ let ctx: { translate: ReturnType<typeof vi.fn>; rotate: ReturnType<typeof vi.fn>
 let fechar: ReturnType<typeof vi.fn>;
 let tamanhoBlob: number;
 let blobNulo: boolean;
+let tipoDevolvido: string | undefined;
 
 beforeEach(() => {
   canvas = { width: 0, height: 0 };
@@ -14,12 +15,13 @@ beforeEach(() => {
   fechar = vi.fn();
   tamanhoBlob = 10;
   blobNulo = false;
+  tipoDevolvido = undefined;
   vi.stubGlobal('createImageBitmap', vi.fn(async () => ({ width: 200, height: 100, close: fechar })));
   vi.spyOn(document, 'createElement').mockImplementation(((tag: string) => {
     if (tag !== 'canvas') throw new Error('só canvas');
     return Object.assign(canvas, {
       getContext: () => ctx,
-      toBlob: (cb: (b: Blob | null) => void, tipo?: string) => cb(blobNulo ? null : new Blob([new Uint8Array(tamanhoBlob)], { type: tipo })),
+      toBlob: (cb: (b: Blob | null) => void, tipo?: string) => cb(blobNulo ? null : new Blob([new Uint8Array(tamanhoBlob)], { type: tipoDevolvido ?? tipo })),
     });
   }) as unknown as typeof document.createElement);
 });
@@ -31,6 +33,16 @@ describe('girarImagem', () => {
   it('90 graus troca largura e altura do canvas', async () => {
     await girarImagem(png(), 90);
     expect(canvas).toMatchObject({ width: 100, height: 200 });
+  });
+  it('90 graus gira no sentido horário em torno do centro', async () => {
+    await girarImagem(png(), 90);
+    expect(ctx.translate).toHaveBeenCalledWith(50, 100);
+    expect(ctx.rotate).toHaveBeenCalledWith(Math.PI / 2);
+    expect(ctx.drawImage).toHaveBeenCalledWith(expect.anything(), -100, -50);
+  });
+  it('tipo devolvido diferente do original rejeita girar-indisponivel', async () => {
+    tipoDevolvido = 'image/png';
+    await expect(girarImagem(new File(['x'], 'f.webp', { type: 'image/webp' }), 90)).rejects.toThrow('girar-indisponivel');
   });
   it('270 graus também troca; 180 mantém', async () => {
     await girarImagem(png(), 270);

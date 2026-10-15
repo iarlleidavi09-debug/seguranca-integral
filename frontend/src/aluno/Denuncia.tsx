@@ -129,7 +129,7 @@ export default function Denuncia({ onEnviado, onEnviando, passoInicial = 1, dado
     setPasso(passo === 3 && !temDetalhes ? 1 : (passo - 1) as Passo);
   }
   async function continuar() {
-    if (enviando) return;
+    if (enviando || girando.length > 0) return;
     const problema = validar();
     if (problema) { setErro(problema); return; }
     if (passo < 4) { setErro(''); setPasso(passo === 1 && !temDetalhes ? 3 : (passo + 1) as Passo); return; }
@@ -206,7 +206,7 @@ export default function Denuncia({ onEnviado, onEnviando, passoInicial = 1, dado
       {erro && <p className="erro" role="alert">{erro}</p>}
       <div className="acoes fim-etapa">
         {passo > 1 && <button type="button" className="botao secundario" disabled={enviando} onClick={voltar}>Voltar</button>}
-        <button className="botao principal" disabled={enviando}>{enviando ? 'Enviando pedido…' : passo === 4 ? 'Enviar pedido de ajuda' : 'Continuar'}</button>
+        <button className="botao principal" disabled={enviando || girando.length > 0}>{enviando ? 'Enviando pedido…' : passo === 4 ? 'Enviar pedido de ajuda' : 'Continuar'}</button>
       </div>
       {enviando && <p role="status">Enviando. Aguarde nesta tela.</p>}
     </form>

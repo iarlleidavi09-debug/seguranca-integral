@@ -18,6 +18,8 @@ export async function girarImagem(arquivo: File, graus: 90 | 180 | 270): Promise
     contexto.drawImage(bitmap, -bitmap.width / 2, -bitmap.height / 2);
     const blob = await new Promise<Blob | null>(resolver => canvas.toBlob(resolver, arquivo.type));
     if (!blob) throw new Error('sem blob');
+    // o navegador pode devolver outro formato; rotular o arquivo com o tipo errado seria pior que não girar
+    if (blob.type !== arquivo.type) throw new Error('sem o mesmo tipo');
     if (blob.size > LIMITE) throw new Error('girar-grande');
     return new File([blob], arquivo.name, { type: arquivo.type, lastModified: arquivo.lastModified });
   } catch (falha) {
