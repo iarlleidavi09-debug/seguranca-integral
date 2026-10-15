@@ -12,19 +12,19 @@ Origem: pasta `D:\Prototipo Segurança Integral front` (README, `MAPA-INTERFACES
 
 | # | Pedido do front | Hoje na v1 | Mudança necessária |
 | --- | --- | --- | --- |
-| 1 | Status: Novo, Em investigação, Resolvido | novo, em_analise, aguardando_aluno, encaminhado, resolvido | Reduzir para 3 valores (`novo`, `em_investigacao`, `resolvido`), migrar casos existentes, atualizar API, fila, filtros e rótulos |
-| 2 | Prioridade: Crítica, Alta, Média, Baixa | gravidade baixa, media, alta | Quarta faixa `critica`; renomear campo para prioridade; manter `prioridade_original` |
-| 3 | Reavaliar prioridade com justificativa, preservando a classificação original e a autoria | muda gravidade sem justificativa | Endpoint exige `justificativa`; evento com autor, valor anterior, novo e motivo; original nunca é sobrescrita |
-| 4 | Motivos visíveis e alertas independentes da soma | motivos da triagem já existem | Alertas fixos (ex.: ameaça física em andamento) que elevam a prioridade mesmo com poucos pontos; regra a definir |
-| 5 | Último acesso ao caso (quem e quando) | não existe | Gravar `ultimo_acesso_por` e `ultimo_acesso_em` ao abrir o detalhe; mostrar na fila e no caso; "Ainda não acessado" |
-| 6 | Autoria separada de ações, mensagens, notas e status | eventos e notas têm autor; mensagem da coordenação só diz "coordenacao" | Guardar `usuario_id` em cada mensagem da coordenação |
-| 7 | Responsabilidade compartilhada, sem responsável individual | já é assim | Nada a fazer; só não criar "responsável" |
-| 8 | Registro de resolução: desfecho (solucionada ou intervenção realizada), providências, resultado observado, data, autoria automática, anexos opcionais | status resolvido sem registro | Tabela `resolucoes`; endpoint "registrar resolução" (exige providências); anexos opcionais reaproveitam `uploads`; campos individuais ainda não confirmados pelo usuário |
-| 9 | Pós-resolução: aluno conversa com a equipe e informa "melhorou" ou "voltou a acontecer" | aluno só responde mensagens | `POST /api/acompanhar/situacao` {codigo, situacao}; guardar histórico das respostas; caso continua resolvido |
-| 10 | Alerta de recorrência destacado até a equipe revisar; guardar quem revisou e quando | não existe | Campo de recorrência pendente no caso; `POST /api/casos/<id>/revisao-recorrencia`; fila com filtro e contador de pendências |
-| 11 | Visão geral (contagens por status e pendências) | não existe | `GET /api/resumo` com contagens por status, prioridade e pendências |
-| 12 | Acompanhamento do aluno em 3 estados e área pós-resolução | aluno vê o status e as mensagens | Resposta de `/api/acompanhar` inclui status novo, resolução resumida (sem notas internas) e flag de pós-resolução |
-| 13 | Busca por número ou assunto na fila | só filtros por status e tipo | `GET /api/casos?q=` (texto no resumo e id) |
+| 1 | Status: Novo, Em investigação, Resolvido | novo, em_analise, aguardando_aluno, encaminhado, resolvido | Reduzir para 3 valores (`novo`, `em_investigacao`, `resolvido`), migrar casos existentes, atualizar API, fila, filtros e rótulos **Entregue no backend.** |
+| 2 | Prioridade: Crítica, Alta, Média, Baixa | gravidade baixa, media, alta | Quarta faixa `critica`; renomear campo para prioridade; manter `prioridade_original` **Entregue no backend.** |
+| 3 | Reavaliar prioridade com justificativa, preservando a classificação original e a autoria | muda gravidade sem justificativa | Endpoint exige `justificativa`; evento com autor, valor anterior, novo e motivo; original nunca é sobrescrita **Entregue no backend.** |
+| 4 | Motivos visíveis e alertas independentes da soma | motivos da triagem já existem | Alertas fixos (ex.: ameaça física em andamento) que elevam a prioridade mesmo com poucos pontos; regra a definir **Entregue no backend.** |
+| 5 | Último acesso ao caso (quem e quando) | não existe | Gravar `ultimo_acesso_por` e `ultimo_acesso_em` ao abrir o detalhe; mostrar na fila e no caso; "Ainda não acessado" **Entregue no backend.** |
+| 6 | Autoria separada de ações, mensagens, notas e status | eventos e notas têm autor; mensagem da coordenação só diz "coordenacao" | Guardar `usuario_id` em cada mensagem da coordenação **Entregue no backend.** |
+| 7 | Responsabilidade compartilhada, sem responsável individual | já é assim | Nada a fazer; só não criar "responsável" **Entregue (nada a fazer).** |
+| 8 | Registro de resolução: desfecho (solucionada ou intervenção realizada), providências, resultado observado, data, autoria automática, anexos opcionais | status resolvido sem registro | Tabela `resolucoes`; endpoint "registrar resolução" (exige providências); anexos opcionais reaproveitam `uploads`; campos individuais ainda não confirmados pelo usuário **Entregue no backend, exceto anexos da resolução e dados opcionais (ficam para depois).** |
+| 9 | Pós-resolução: aluno conversa com a equipe e informa "melhorou" ou "voltou a acontecer" | aluno só responde mensagens | `POST /api/acompanhar/situacao` {codigo, situacao}; guardar histórico das respostas; caso continua resolvido **Entregue no backend.** |
+| 10 | Alerta de recorrência destacado até a equipe revisar; guardar quem revisou e quando | não existe | Campo de recorrência pendente no caso; `POST /api/casos/<id>/revisao-recorrencia`; fila com filtro e contador de pendências **Entregue no backend.** |
+| 11 | Visão geral (contagens por status e pendências) | não existe | `GET /api/resumo` com contagens por status, prioridade e pendências **Entregue no backend.** |
+| 12 | Acompanhamento do aluno em 3 estados e área pós-resolução | aluno vê o status e as mensagens | Resposta de `/api/acompanhar` inclui status novo, resolução resumida (sem notas internas) e flag de pós-resolução **Entregue no backend.** |
+| 13 | Busca por número ou assunto na fila | só filtros por status e tipo | `GET /api/casos?q=` (texto no resumo e id) **Entregue no backend.** |
 
 Migração: o banco da v1 só tem dados de teste; a migração de status e gravidade pode ser simples (mapa fixo), mas precisa de teste e de backup antes.
 
@@ -47,3 +47,89 @@ Mudanças previstas: modelo de dados do questionário (versionado), `GET /api/qu
 - Texto de consentimento do aluno: acrescentar o aviso "Para anonimato total, use dados móveis (4G), não o Wi-Fi da escola; o horário do envio pode ser cruzado com os registros de rede da escola."
 - Rascunho da denúncia: hoje fica no `localStorage` sem prazo. Ele deve expirar em 24 horas ou passar para o `sessionStorage`, para não sobrar num aparelho compartilhado.
 - O servidor agora remove os metadados das imagens (EXIF, GPS, XMP, comentários). A orientação EXIF também sai, então uma foto de celular pode aparecer deitada na tela da coordenação; se isso incomodar, o front pode girar a imagem no navegador antes do envio (canvas) ou oferecer um botão de girar na visualização.
+
+
+## Contrato final da API v2 A (backend entregue)
+
+Conferido contra `backend/app/routes_coord.py`, `routes_student.py`, `casos.py` e `triage.py` em 15/10/2026. Se este texto divergir do código, o código vence. Toda rota de escrita da coordenação exige `Content-Type: application/json` (senão 415) e sessão (senão 401). Caso inexistente dá sempre `404 {"erro": "nao encontrado"}`.
+
+Valores fixos: status `novo`, `em_investigacao`, `resolvido`; prioridade `critica`, `alta`, `media`, `baixa`; desfecho `solucionada`, `intervencao_realizada`; situação do aluno `melhorou`, `voltou`.
+
+### Coordenação (porta 4000)
+
+| Método e rota | Corpo | Sucesso | Erros |
+| --- | --- | --- | --- |
+| GET `/api/casos` | query opcional: `status`, `prioridade`, `tipo`, `q` | 200 `{"casos": [...]}` | 400 `filtro <nome> invalido`; 400 `busca longa demais` (q com mais de 100 caracteres) |
+| GET `/api/resumo` | nenhum | 200 `{"status": {novo, em_investigacao, resolvido}, "prioridade": {critica, alta, media, baixa}, "recorrencia_pendente": n}` (todas as chaves, mesmo com zero) | |
+| GET `/api/casos/<id>` | nenhum | 200 caso completo (abaixo); grava o acesso | 404 |
+| POST `/api/casos/<id>/status` | `{"status": "novo" ou "em_investigacao"}` | 200 `{"ok": true, "status": ...}` | 400 `status invalido` (inclui `resolvido`); 404 |
+| POST `/api/casos/<id>/prioridade` | `{"prioridade": ..., "justificativa": "1 a 2000 caracteres"}` | 200 `{"ok": true, "prioridade": ...}` | 400 `prioridade invalida` ou `justificativa deve ter de 1 a 2000 caracteres`; 404 |
+| POST `/api/casos/<id>/resolucao` | `{"desfecho": ..., "providencias": "1 a 2000", "resultado": "opcional, até 2000"}` | 201 `{"ok": true}` | 400 `desfecho invalido`, `providencias deve ter de 1 a 2000 caracteres`, `resultado deve ter ate 2000 caracteres`; 409 `caso ja resolvido`; 404 |
+| POST `/api/casos/<id>/revisao-recorrencia` | `{}` (o corpo JSON é exigido pela regra de Content-Type; o conteúdo é ignorado) | 201 `{"ok": true}` | 409 `sem recorrencia pendente`; 404 |
+| POST `/api/casos/<id>/mensagens` | `{"texto": "1 a 2000"}` | 201 `{"ok": true}` | 400; 404 |
+| POST `/api/casos/<id>/notas` | `{"texto": "1 a 2000"}` | 201 `{"ok": true}` | 400; 404 |
+
+Item da fila (`GET /api/casos`), ordenada por prioridade (critica, alta, media, baixa) e depois do mais antigo para o mais novo: `id`, `tipo`, `prioridade`, `pontos`, `status`, `em_andamento`, `anonimo`, `simulacao`, `criado_em`, `atualizado_em`, `recorrencia_pendente` (bool), `resumo` (primeiros 120 caracteres do relato), `ultimo_acesso_por` (nome ou `null`) e `ultimo_acesso_em` (ISO ou `null`; `null` significa "Ainda não acessado").
+
+Busca `q`: sem diferenciar maiúsculas nem acentos, no texto do relato; se `q` tiver só dígitos, casa também o número do caso. Os filtros se combinam (E).
+
+Detalhe (`GET /api/casos/<id>`):
+
+- Caso: `id`, `tipo`, `relato`, `quando`, `onde`, `em_andamento`, `anonimo`, `nome`, `turma`, `prioridade`, `prioridade_original` (nunca muda), `pontos`, `motivos` (lista de textos), `status`, `simulacao`, `criado_em`, `atualizado_em`, `recorrencia_pendente`. O hash do código nunca sai.
+- `ultimo_acesso`: `{"por": nome, "em": ISO}` do acesso anterior a este, ou `null` se ninguém abriu antes. Abrir o caso grava o acesso atual, sem evento e sem mexer em `atualizado_em`.
+- `anexos`: `[{id, tipo, tamanho}]` (arquivo em `GET /api/casos/<id>/anexos/<anexo_id>`).
+- `mensagens`: `[{autor ("aluno" ou "coordenacao"), texto, criado_em, usuario_id, usuario}]`; `usuario` é o nome de quem da coordenação escreveu e vem `null` nas mensagens do aluno.
+- `notas`: `[{id, usuario_id, usuario, texto, criado_em}]` (internas, nunca vão ao aluno).
+- `resolucoes`: `[{desfecho, providencias, resultado, usuario, criado_em}]`, em ordem.
+- `situacoes`: `[{situacao, criado_em}]` informadas pelo aluno depois da resolução.
+- `revisoes_recorrencia`: `[{usuario, criado_em}]`.
+- `eventos`: `[{id, tipo, usuario_id, usuario, detalhe, criado_em}]`, em ordem.
+
+Eventos (`tipo` e formato do `detalhe`):
+
+| tipo | autor | detalhe |
+| --- | --- | --- |
+| `criado` | nenhum (`null`) | `prioridade <valor>` (prioridade inicial da triagem) |
+| `status` | coordenação | `status: <anterior> -> <novo>` |
+| `prioridade` | coordenação | `<anterior> -> <novo>: <justificativa>` |
+| `resolucao` | coordenação | o desfecho (`solucionada` ou `intervencao_realizada`) |
+| `recorrencia` | nenhum (aluno) | `voltou a acontecer` |
+| `revisao_recorrencia` | coordenação | vazio |
+| `mensagem_coordenacao` | coordenação | vazio |
+| `mensagem_aluno` | nenhum | vazio |
+| `nota_interna` | coordenação | vazio |
+
+Mudar para o mesmo valor (status ou prioridade) não grava evento. Bancos migrados da v1 têm os eventos antigos reescritos: `gravidade` virou `prioridade` (tipo e prefixo do detalhe).
+
+Recorrência: `voltou` liga `recorrencia_pendente`; `melhorou` só entra no histórico e nunca desliga a pendência; só `revisao-recorrencia` desliga. O caso continua `resolvido`. Reabrir um caso resolvido é `POST status` com `novo` ou `em_investigacao`.
+
+Alertas críticos (`triage.py`): elevam a prioridade a `critica` depois da soma, sem mudar `pontos`, e entram em `motivos`:
+
+| Motivo | Condição |
+| --- | --- |
+| `alerta: ameaca com violencia em andamento` | tipo `ameaca` ou `aliciamento`, em andamento, e termos de risco de `violencia` ou `automutilacao` |
+| `alerta: risco de automutilacao em andamento` | em andamento e termos de `automutilacao` |
+| `alerta: conteudo intimo com extorsao` | termos de `nudes` e de `extorsao` no mesmo relato |
+
+Sem alerta, a prioridade vem dos pontos: 6 ou mais `alta`, 3 ou mais `media`, senão `baixa`.
+
+### Aluno (porta 3000)
+
+| Método e rota | Corpo | Sucesso | Erros |
+| --- | --- | --- | --- |
+| POST `/api/acompanhar` | `{"codigo": ...}` | 200 (abaixo) | 404 `codigo nao encontrado` (malformado e inexistente iguais); 429 |
+| POST `/api/acompanhar/situacao` | `{"codigo": ..., "situacao": "melhorou" ou "voltou"}` | 201 `{"ok": true}` | 400 `situacao invalida`; 409 `caso ainda nao resolvido`; 404; 429 |
+| POST `/api/acompanhar/mensagens` | `{"codigo": ..., "texto": "1 a 2000"}` | 201 `{"ok": true}` | 400; 404; 429 |
+
+Resposta de `/api/acompanhar`: `status` (um dos três), `mensagens` `[{autor, texto, criado_em}]` (sem autoria individual da equipe), `resolucao` (`null` ou a mais recente: `{desfecho, providencias, resultado, criado_em}`), `pos_resolucao` (bool, verdadeiro quando `status` é `resolvido`) e `ultima_situacao` (`null`, `melhorou` ou `voltou`). Prioridade, notas, autor da resolução e motivos nunca saem para o aluno.
+
+### Rulings
+
+- Anexos da resolução ficam para depois (o registro aceita só texto por enquanto).
+- `POST /status` não aceita `resolvido`: o caso só é resolvido por `POST /resolucao`, que exige providências.
+- A revisão de recorrência exige corpo JSON (`{}`), por causa da regra de Content-Type das rotas de escrita.
+- Migração: ao subir um banco da v1 com casos, o servidor copia `seguranca.db` para `seguranca.db.pre-v2.bak` antes de migrar e aborta se a cópia falhar ou sumir. Mapa: `novo` fica `novo`; `em_analise`, `aguardando_aluno` e `encaminhado` viram `em_investigacao`; `resolvido` fica. `gravidade` vira `prioridade` e é copiada em `prioridade_original`. O ensaio numa cópia (6 casos, 14 eventos) conferiu contagens iguais, integridade ok e segunda execução sem mudanças.
+
+### O que falta para o front
+
+O front ainda usa rótulos e `api.ts` da v1: a adaptação das telas (status em 3 valores, quarta faixa crítica, justificativa de prioridade, fila com busca e último acesso, registro de resolução, área pós-resolução do aluno, alerta de recorrência) é o trabalho dos planos 2 e 3. Anexos da resolução e dados opcionais seguem pendentes.
