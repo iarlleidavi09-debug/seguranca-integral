@@ -292,6 +292,17 @@ def registrar_resolucao(caso_id: int):
     return jsonify({"ok": True}), 201
 
 
+@bp.post("/api/casos/<int:caso_id>/revisao-recorrencia")
+def revisar_recorrencia(caso_id: int):
+    conn = _db()
+    r = casos.revisar_recorrencia(conn, caso_id, g.usuario["id"])
+    if r == "nao_encontrado":
+        return _nao_encontrado()
+    if r == "nao_pendente":
+        return _erro("sem recorrencia pendente", 409)
+    return jsonify({"ok": True}), 201
+
+
 @bp.post("/api/casos/<int:caso_id>/prioridade")
 def mudar_prioridade(caso_id: int):
     conn = _db()

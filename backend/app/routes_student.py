@@ -130,13 +130,46 @@ def acompanhar():
         if caso is None:
             return jsonify(ERRO_CODIGO[0]), ERRO_CODIGO[1]
         msgs = casos.listar_mensagens(conn, caso["id"])
+        # campos nomeados: nada interno (autor da resolução, prioridade) sai daqui
+        res = conn.execute(
+            "SELECT desfecho, providencias, resultado, criado_em FROM resolucoes "
+            "WHERE caso_id = ? ORDER BY id DESC LIMIT 1", (caso["id"],)
+        ).fetchone()
+        sit = conn.execute(
+            "SELECT situacao FROM situacoes_aluno WHERE caso_id = ? "
+            "ORDER BY id DESC LIMIT 1", (caso["id"],)
+        ).fetchone()
         return jsonify({
             "status": caso["status"],
             "mensagens": [
                 {"autor": m["autor"], "texto": m["texto"], "criado_em": m["criado_em"]}
                 for m in msgs
             ],
+            "resolucao": None if res is None else {
+                "desfecho": res["desfecho"], "providencias": res["providencias"],
+                "resultado": res["resultado"], "criado_em": res["criado_em"],
+            },
+            "pos_resolucao": caso["status"] == "resolvido",
+            "ultima_situacao": None if sit is None else sit["situacao"],
         })
+
+
+@bp.post("/api/acompanhar/situacao")
+def informar_situacao():
+    if _limite_estourado("consultas"):
+        return _erro("muitas consultas, tente mais tarde", 429)
+    config = current_app.config["SI_CONFIG"]
+    dados = _json_dict()
+    with closing(connect(config)) as conn:
+        caso = casos.caso_por_codigo(conn, config, dados.get("codigo"))
+        if caso is None:
+            return jsonify(ERRO_CODIGO[0]), ERRO_CODIGO[1]
+        situacao = dados.get("situacao")
+        if not isinstance(situacao, str) or situacao not in casos.SITUACOES:
+            return _erro("situacao invalida")
+        if casos.registrar_situacao(conn, caso["id"], situacao) != "ok":
+            return _erro("caso ainda nao resolvido", 409)
+    return jsonify({"ok": True}), 201
 
 
 @bp.post("/api/acompanhar/mensagens")

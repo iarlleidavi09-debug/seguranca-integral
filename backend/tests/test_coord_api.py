@@ -73,6 +73,7 @@ ROTAS_PROTEGIDAS = [
     ("post", "/api/casos/1/mensagens"),
     ("post", "/api/casos/1/notas"),
     ("post", "/api/casos/1/resolucao"),
+    ("post", "/api/casos/1/revisao-recorrencia"),
     ("get", "/api/casos/1/anexos/1"),
     ("get", "/api/usuarios"),
     ("post", "/api/usuarios"),
@@ -779,6 +780,7 @@ def test_detalhe_usa_so_colunas_conhecidas_do_caso(coord_logado, config):
         "motivos", "status", "recorrencia_pendente", "ultimo_acesso",
         "simulacao", "criado_em", "atualizado_em",
         "anexos", "eventos", "mensagens", "notas", "resolucoes",
+        "situacoes", "revisoes_recorrencia",
     }
     assert not any("hash" in chave for chave in d)
 
@@ -801,6 +803,7 @@ CAMINHOS_PROTEGIDOS = [
     "/api/casos/1/mensagens",
     "/api/casos/1/notas",
     "/api/casos/1/resolucao",
+    "/api/casos/1/revisao-recorrencia",
     "/api/casos/1/anexos/1",
     "/api/simulacao",
     "/api/simulacao/carregar",
@@ -1127,3 +1130,70 @@ def test_registrar_resolucao_funcao(coord_client, config):
         assert modulo.DESFECHOS == ("solucionada", "intervencao_realizada")
     finally:
         c.close()
+
+
+# --- situações do aluno e revisão de recorrência ---------------------------
+
+def _voltou(config, caso_id):
+    from app import casos
+    c = connect(config)
+    try:
+        c.execute("UPDATE casos SET status = 'resolvido' WHERE id = ?", (caso_id,))
+        c.commit()
+        return casos.registrar_situacao(c, caso_id, "voltou")
+    finally:
+        c.close()
+
+
+def test_detalhe_traz_situacoes_e_revisoes(coord_logado, config):
+    caso_id, _ = _caso(config)
+    d = coord_logado.get(f"/api/casos/{caso_id}").get_json()
+    assert d["situacoes"] == [] and d["revisoes_recorrencia"] == []
+    assert _voltou(config, caso_id) == "ok"
+    d = coord_logado.get(f"/api/casos/{caso_id}").get_json()
+    assert [s["situacao"] for s in d["situacoes"]] == ["voltou"]
+    assert set(d["situacoes"][0]) == {"situacao", "criado_em"}
+    assert d["recorrencia_pendente"] is True
+
+
+def test_revisao_desliga_flag_e_grava_revisor(coord_logado, config):
+    caso_id, _ = _caso(config)
+    _voltou(config, caso_id)
+    r = coord_logado.post(f"/api/casos/{caso_id}/revisao-recorrencia", json={})
+    assert r.status_code == 201 and r.get_json() == {"ok": True}
+    d = coord_logado.get(f"/api/casos/{caso_id}").get_json()
+    assert d["recorrencia_pendente"] is False
+    assert [x["usuario"] for x in d["revisoes_recorrencia"]] == ["coord"]
+    assert set(d["revisoes_recorrencia"][0]) == {"usuario", "criado_em"}
+    ev = _consulta(config, "SELECT usuario_id FROM eventos WHERE caso_id = ? "
+                           "AND tipo = 'revisao_recorrencia'", (caso_id,))
+    assert [e[0] for e in ev] == [_id_usuario(config)]
+
+
+def test_revisao_sem_pendencia_409_e_inexistente_404(coord_logado, config):
+    caso_id, _ = _caso(config)
+    r = coord_logado.post(f"/api/casos/{caso_id}/revisao-recorrencia", json={})
+    assert r.status_code == 409
+    assert r.get_json() == {"erro": "sem recorrencia pendente"}
+    assert _consulta(config, "SELECT COUNT(*) FROM revisoes_recorrencia")[0][0] == 0
+    assert coord_logado.post("/api/casos/999/revisao-recorrencia", json={}).status_code == 404
+
+
+def test_revisao_funciona_de_novo_apos_novo_voltou(coord_logado, config):
+    caso_id, _ = _caso(config)
+    url = f"/api/casos/{caso_id}/revisao-recorrencia"
+    _voltou(config, caso_id)
+    assert coord_logado.post(url, json={}).status_code == 201
+    assert coord_logado.post(url, json={}).status_code == 409
+    _voltou(config, caso_id)
+    assert coord_logado.post(url, json={}).status_code == 201
+    assert _consulta(config, "SELECT COUNT(*) FROM revisoes_recorrencia")[0][0] == 2
+
+
+def test_fila_e_resumo_mostram_pendencia_da_recorrencia(coord_logado, config):
+    caso_id, _ = _caso(config)
+    _voltou(config, caso_id)
+    assert coord_logado.get("/api/resumo").get_json()["recorrencia_pendente"] == 1
+    assert coord_logado.get("/api/casos").get_json()["casos"][0]["recorrencia_pendente"] is True
+    coord_logado.post(f"/api/casos/{caso_id}/revisao-recorrencia", json={})
+    assert coord_logado.get("/api/resumo").get_json()["recorrencia_pendente"] == 0

@@ -130,6 +130,7 @@ def adicionar_mensagem(conn: sqlite3.Connection, caso_id: int, autor: str,
 
 STATUS = ("novo", "em_investigacao", "resolvido")
 DESFECHOS = ("solucionada", "intervencao_realizada")
+SITUACOES = ("melhorou", "voltou")
 PRIORIDADES = ("critica", "alta", "media", "baixa")  # ordem da fila
 RESUMO_MAX = 120
 
@@ -289,6 +290,19 @@ def detalhe_caso(conn: sqlite3.Connection, caso_id: int) -> dict | None:
             (caso_id,),
         )
     ]
+    caso["situacoes"] = [
+        dict(s) for s in conn.execute(
+            "SELECT situacao, criado_em FROM situacoes_aluno "
+            "WHERE caso_id = ? ORDER BY id", (caso_id,),
+        )
+    ]
+    caso["revisoes_recorrencia"] = [
+        dict(r) for r in conn.execute(
+            "SELECT u.nome AS usuario, r.criado_em FROM revisoes_recorrencia r "
+            "LEFT JOIN usuarios u ON u.id = r.usuario_id "
+            "WHERE r.caso_id = ? ORDER BY r.id", (caso_id,),
+        )
+    ]
     return caso
 
 
@@ -401,6 +415,79 @@ def registrar_resolucao(conn: sqlite3.Connection, caso_id: int, desfecho: str,
             (agora, caso_id),
         )
         registrar_evento(conn, caso_id, "resolucao", usuario_id, desfecho,
+                         commit=False)
+        conn.commit()
+        return "ok"
+    except BaseException:
+        conn.rollback()
+        raise
+
+
+def registrar_situacao(conn: sqlite3.Connection, caso_id: int,
+                       situacao: str) -> str:
+    """Grava a situação informada pelo aluno depois da resolução.
+
+    Devolve "ok" ou "nao_resolvido" (sem gravar). `voltou` liga a pendência de
+    recorrência; `melhorou` só entra no histórico e nunca desliga a pendência.
+    """
+    if situacao not in SITUACOES:
+        raise ValueError("situacao invalida")
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        linha = conn.execute(
+            "SELECT status FROM casos WHERE id = ?", (caso_id,)
+        ).fetchone()
+        if linha is None or linha[0] != "resolvido":
+            conn.rollback()
+            return "nao_resolvido"
+        agora = _agora()
+        conn.execute(
+            "INSERT INTO situacoes_aluno (caso_id, situacao, criado_em) "
+            "VALUES (?,?,?)", (caso_id, situacao, agora),
+        )
+        if situacao == "voltou":
+            conn.execute(
+                "UPDATE casos SET recorrencia_pendente = 1 WHERE id = ?",
+                (caso_id,),
+            )
+            registrar_evento(conn, caso_id, "recorrencia", None,
+                             "voltou a acontecer", commit=False)
+        conn.execute("UPDATE casos SET atualizado_em = ? WHERE id = ?",
+                     (agora, caso_id))
+        conn.commit()
+        return "ok"
+    except BaseException:
+        conn.rollback()
+        raise
+
+
+def revisar_recorrencia(conn: sqlite3.Connection, caso_id: int,
+                        usuario_id: int) -> str:
+    """Marca a recorrência como revisada: zera a pendência e registra quem.
+
+    Devolve "ok", "nao_encontrado" ou "nao_pendente" (sem gravar).
+    """
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        linha = conn.execute(
+            "SELECT recorrencia_pendente FROM casos WHERE id = ?", (caso_id,)
+        ).fetchone()
+        if linha is None:
+            conn.rollback()
+            return "nao_encontrado"
+        if not linha[0]:
+            conn.rollback()
+            return "nao_pendente"
+        agora = _agora()
+        conn.execute(
+            "UPDATE casos SET recorrencia_pendente = 0, atualizado_em = ? "
+            "WHERE id = ?", (agora, caso_id),
+        )
+        conn.execute(
+            "INSERT INTO revisoes_recorrencia (caso_id, usuario_id, criado_em) "
+            "VALUES (?,?,?)", (caso_id, usuario_id, agora),
+        )
+        registrar_evento(conn, caso_id, "revisao_recorrencia", usuario_id, "",
                          commit=False)
         conn.commit()
         return "ok"

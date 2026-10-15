@@ -472,3 +472,198 @@ def test_prioridade_original_igual_a_prioridade_na_criacao(student_client, confi
     finally:
         c.close()
     assert det == f"prioridade {linha['prioridade']}"
+
+
+# --- pós-resolução do aluno -----------------------------------------------
+
+def _caso_do_aluno(client, config):
+    codigo = _enviar(client).get_json()["codigo"]
+    c = connect(config)
+    try:
+        caso_id = c.execute("SELECT MAX(id) FROM casos").fetchone()[0]
+    finally:
+        c.close()
+    return codigo, caso_id
+
+
+def _resolver(config, caso_id, desfecho="solucionada", providencias="Conversa"):
+    from app import casos
+    c = connect(config)
+    try:
+        return casos.registrar_resolucao(c, caso_id, desfecho, providencias,
+                                         "Tudo certo", 1)
+    finally:
+        c.close()
+
+
+def _sql(config, sql, params=()):
+    c = connect(config)
+    try:
+        return c.execute(sql, params).fetchall()
+    finally:
+        c.close()
+
+
+def _situacao(client, codigo, situacao):
+    return client.post("/api/acompanhar/situacao",
+                       json={"codigo": codigo, "situacao": situacao})
+
+
+def _usuario_coord(config):
+    from app.auth import criar_usuario
+    c = connect(config)
+    try:
+        return criar_usuario(c, "coord", "senha-forte-123", "admin")
+    finally:
+        c.close()
+
+
+def test_situacao_em_caso_nao_resolvido_409(student_client, config):
+    codigo, caso_id = _caso_do_aluno(student_client, config)
+    r = _situacao(student_client, codigo, "voltou")
+    assert r.status_code == 409
+    assert r.get_json() == {"erro": "caso ainda nao resolvido"}
+    c = connect(config)
+    c.execute("UPDATE casos SET status = 'em_investigacao' WHERE id = ?", (caso_id,))
+    c.commit()
+    c.close()
+    assert _situacao(student_client, codigo, "melhorou").status_code == 409
+    assert _contar(config, "situacoes_aluno") == 0
+
+
+def test_situacao_voltou_liga_flag_historico_e_evento(student_client, config):
+    codigo, caso_id = _caso_do_aluno(student_client, config)
+    _usuario_coord(config)
+    _resolver(config, caso_id)
+    r = _situacao(student_client, codigo, "voltou")
+    assert r.status_code == 201 and r.get_json() == {"ok": True}
+    assert _sql(config, "SELECT recorrencia_pendente FROM casos WHERE id = ?",
+                (caso_id,))[0][0] == 1
+    assert [x[0] for x in _sql(config, "SELECT situacao FROM situacoes_aluno")] == ["voltou"]
+    ev = _sql(config, "SELECT usuario_id, detalhe FROM eventos "
+                      "WHERE caso_id = ? AND tipo = 'recorrencia'", (caso_id,))
+    assert [tuple(e) for e in ev] == [(None, "voltou a acontecer")]
+
+
+def test_situacao_melhorou_nao_mexe_na_flag(student_client, config):
+    codigo, caso_id = _caso_do_aluno(student_client, config)
+    _usuario_coord(config)
+    _resolver(config, caso_id)
+    assert _situacao(student_client, codigo, "melhorou").status_code == 201
+    pend = "SELECT recorrencia_pendente FROM casos WHERE id = ?"
+    assert _sql(config, pend, (caso_id,))[0][0] == 0
+    assert _sql(config, "SELECT COUNT(*) FROM eventos WHERE tipo = 'recorrencia'")[0][0] == 0
+    _situacao(student_client, codigo, "voltou")
+    _situacao(student_client, codigo, "melhorou")
+    assert _sql(config, pend, (caso_id,))[0][0] == 1
+
+
+def test_situacao_voltou_duas_vezes_grava_duas_linhas(student_client, config):
+    codigo, caso_id = _caso_do_aluno(student_client, config)
+    _usuario_coord(config)
+    _resolver(config, caso_id)
+    _situacao(student_client, codigo, "voltou")
+    _situacao(student_client, codigo, "voltou")
+    assert _contar(config, "situacoes_aluno") == 2
+    assert _sql(config, "SELECT recorrencia_pendente FROM casos WHERE id = ?",
+                (caso_id,))[0][0] == 1
+
+
+def test_situacao_invalida_400_e_codigo_ruim_404(student_client, config):
+    codigo, caso_id = _caso_do_aluno(student_client, config)
+    _usuario_coord(config)
+    _resolver(config, caso_id)
+    for valor in ("outra", "", None, 3, ["voltou"]):
+        r = _situacao(student_client, codigo, valor)
+        assert r.status_code == 400
+        assert r.get_json()["erro"].isascii()
+    assert _contar(config, "situacoes_aluno") == 0
+    ruim = student_client.post("/api/acompanhar/situacao",
+                               json={"codigo": "!!", "situacao": "voltou"})
+    inexistente = student_client.post("/api/acompanhar/situacao",
+                                      json={"codigo": "AAAA-AAAA", "situacao": "voltou"})
+    esperado = student_client.post("/api/acompanhar", json={"codigo": "!!"})
+    assert ruim.status_code == inexistente.status_code == 404
+    assert ruim.get_data() == inexistente.get_data() == esperado.get_data()
+
+
+def test_situacao_aplica_limitador_consultas(config):
+    app = create_student_app(
+        config, limites={"denuncias": (100, 600), "consultas": (2, 600)}
+    )
+    client = app.test_client()
+    corpo = {"codigo": "x", "situacao": "voltou"}
+    assert client.post("/api/acompanhar/situacao", json=corpo).status_code == 404
+    assert client.post("/api/acompanhar/situacao", json=corpo).status_code == 404
+    assert client.post("/api/acompanhar/situacao", json=corpo).status_code == 429
+
+
+def test_acompanhar_caso_nao_resolvido_sem_resolucao(student_client, config):
+    codigo, _ = _caso_do_aluno(student_client, config)
+    d = student_client.post("/api/acompanhar", json={"codigo": codigo}).get_json()
+    assert d["resolucao"] is None
+    assert d["pos_resolucao"] is False
+    assert d["ultima_situacao"] is None
+    assert set(d) == {"status", "mensagens", "resolucao", "pos_resolucao",
+                      "ultima_situacao"}
+
+
+def test_acompanhar_resolvido_traz_ultima_resolucao_e_situacao(student_client, config):
+    codigo, caso_id = _caso_do_aluno(student_client, config)
+    _usuario_coord(config)
+    _resolver(config, caso_id, "solucionada", "Primeira")
+    # reabre e resolve de novo: a última resolução é a que vale
+    c = connect(config)
+    c.execute("UPDATE casos SET status = 'em_investigacao' WHERE id = ?", (caso_id,))
+    c.commit()
+    c.close()
+    _resolver(config, caso_id, "intervencao_realizada", "Segunda")
+    d = student_client.post("/api/acompanhar", json={"codigo": codigo}).get_json()
+    assert d["pos_resolucao"] is True
+    assert set(d["resolucao"]) == {"desfecho", "providencias", "resultado", "criado_em"}
+    assert d["resolucao"]["desfecho"] == "intervencao_realizada"
+    assert d["resolucao"]["providencias"] == "Segunda"
+    assert d["ultima_situacao"] is None
+    _situacao(student_client, codigo, "voltou")
+    _situacao(student_client, codigo, "melhorou")
+    d = student_client.post("/api/acompanhar", json={"codigo": codigo}).get_json()
+    assert d["ultima_situacao"] == "melhorou"
+    _situacao(student_client, codigo, "voltou")
+    d = student_client.post("/api/acompanhar", json={"codigo": codigo}).get_json()
+    assert d["ultima_situacao"] == "voltou"
+
+
+CHAVES_PROIBIDAS = {"prioridade", "prioridade_original", "notas", "usuario",
+                    "usuario_id", "pontos", "motivos", "id", "codigo_hash",
+                    "ultimo_acesso"}
+
+
+def _chaves(obj):
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            yield k
+            yield from _chaves(v)
+    elif isinstance(obj, list):
+        for v in obj:
+            yield from _chaves(v)
+
+
+def test_acompanhar_nao_vaza_dados_internos(student_client, config):
+    from app import casos
+    codigo, caso_id = _caso_do_aluno(student_client, config)
+    uid = _usuario_coord(config)
+    c = connect(config)
+    try:
+        casos.adicionar_nota(c, caso_id, uid, "nota interna secreta")
+        casos.adicionar_mensagem(c, caso_id, "coordenacao", "Estamos vendo",
+                                 usuario_id=uid)
+        casos.mudar_prioridade(c, caso_id, "baixa", "justificativa", uid)
+    finally:
+        c.close()
+    _resolver(config, caso_id)
+    _situacao(student_client, codigo, "voltou")
+    r = student_client.post("/api/acompanhar", json={"codigo": codigo})
+    d = r.get_json()
+    assert d["mensagens"] and d["mensagens"][0]["autor"] == "coordenacao"
+    assert not CHAVES_PROIBIDAS & set(_chaves(d))
+    assert "secreta" not in r.get_data(as_text=True)
