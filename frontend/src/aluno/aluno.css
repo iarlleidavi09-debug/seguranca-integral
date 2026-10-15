@@ -130,3 +130,23 @@
   .aluno-app .situacao { transition: background-color 150ms ease-out, border-color 150ms ease-out; }
 }
 .aluno-app .anexos .botao + .botao { margin-top: var(--espaco-2); }
+
+/* Acompanhamento: linha do tempo de três etapas e área pós-resolução */
+.aluno-app .etapas { list-style: none; display: grid; grid-template-columns: 1fr; gap: var(--espaco-2); margin: var(--espaco-4) 0 var(--espaco-8); padding: 0; }
+.aluno-app .etapa { display: grid; grid-template-columns: auto 1fr; column-gap: var(--espaco-3); align-items: center; padding: var(--espaco-3) var(--espaco-4); border: var(--linha-fina) solid var(--borda-suave); border-radius: var(--raio-md); background: var(--fundo-superficie); color: var(--texto-secundario); }
+.aluno-app .etapa-marca { grid-row: span 2; display: grid; place-items: center; width: 32px; height: 32px; border-radius: var(--raio-pill); border: var(--linha-fina) solid var(--borda-forte); font-weight: 700; }
+.aluno-app .etapa-nome { font-weight: 700; }
+.aluno-app .etapa-estado { font-size: var(--texto-pequeno); }
+.aluno-app .etapa[data-estado='atual'] { background: var(--primaria-suave); border-color: var(--primaria-base); color: var(--texto-principal); }
+.aluno-app .etapa[data-estado='atual'] .etapa-marca { background: var(--primaria-base); border-color: var(--primaria-base); color: var(--texto-sobre-primaria); }
+.aluno-app .etapa[data-estado='feita'] .etapa-marca { border-color: var(--primaria-base); color: var(--primaria-base); }
+.aluno-app .pos-resolucao { background: var(--fundo-superficie); border: var(--linha-fina) solid var(--borda-suave); border-radius: var(--raio-lg); padding: var(--espaco-5); margin-bottom: var(--espaco-8); }
+.aluno-app .pos-resolucao h2:focus { outline: var(--linha-foco) solid var(--foco-anel); outline-offset: var(--espaco-1); }
+.aluno-app .pos-desfecho { font-weight: 700; }
+.aluno-app .texto-livre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.aluno-app .pos-pergunta { border-top: var(--linha-fina) solid var(--borda-suave); margin-top: var(--espaco-5); padding-top: var(--espaco-5); }
+.aluno-app .pos-botoes { display: flex; flex-wrap: wrap; gap: var(--espaco-3); }
+.aluno-app .pos-botoes .botao { min-height: 44px; min-width: 44px; }
+@media (min-width: 768px) {
+  .aluno-app .etapas { grid-template-columns: repeat(3, 1fr); }
+}

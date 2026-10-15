@@ -1,12 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { acompanhar, enviarMensagem, mensagemErro } from '../shared/api';
-import type { Caso } from '../shared/api';
+import { acompanhar, enviarMensagem, enviarSituacao, ErroApi, mensagemErro } from '../shared/api';
+import type { Caso, Situacao } from '../shared/api';
+import PosResolucao from './PosResolucao';
+import { dataLegivel, rotuloStatus } from './rotulos';
 
-const status: Record<string, string> = { novo: 'Recebido', em_analise: 'Em análise', aguardando_aluno: 'Aguardando sua resposta', encaminhado: 'Encaminhado', resolvido: 'Resolvido' };
-function dataLegivel(valor: string) {
-  const data = new Date(valor);
-  return Number.isNaN(data.getTime()) ? 'Data indisponível' : data.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
-}
+const etapas = ['Recebido', 'Em investigação', 'Resolvido'];
 
 export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: string }) {
   const [codigo, setCodigo] = useState(codigoInicial);
@@ -17,6 +15,8 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
   const [texto, setTexto] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [aviso, setAviso] = useState('');
+  const [informando, setInformando] = useState(false);
+  const [erroSituacao, setErroSituacao] = useState('');
   const consulta = useRef(0);
   const responder = useRef(false);
   const montado = useRef(true);
@@ -59,6 +59,22 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
     catch (falha) { setErro(mensagemErro(falha)); }
     finally { setCarregando(false); }
   }
+  async function informarSituacao(situacao: Situacao) {
+    setInformando(true); setErroSituacao('');
+    try {
+      await enviarSituacao(codigoAtivo, situacao);
+    } catch (falha) {
+      if (falha instanceof ErroApi && falha.status === 409) {
+        setErroSituacao(mensagemErro(falha, 'situacao'));
+        try { setCaso(await acompanhar(codigoAtivo)); } catch { /* a mensagem de 409 já explica; Atualizar conversa tenta de novo */ }
+      }
+      throw falha;
+    } finally { setInformando(false); }
+    // o agradecimento não depende de a recarga dar certo
+    try { setCaso(await acompanhar(codigoAtivo)); } catch { setAviso('Não foi possível atualizar agora. Use Atualizar conversa.'); }
+  }
+  const atual = caso ? etapas.indexOf(rotuloStatus(caso.status)) : -1;
+  const blocoVisivel = !!caso && caso.pos_resolucao && !!caso.resolucao;
   return <section>
     <h1>Acompanhar meu caso</h1>
     {!caso && !carregando && <form noValidate onSubmit={e => { e.preventDefault(); void consultar(); }}>
@@ -70,7 +86,16 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
     {carregando && <p role="status">Buscando seu caso…</p>}
     {erro && <p role="alert" className="erro">{erro}</p>}
     {caso && <>
-      <p className="status-caso"><span className="status-ponto" data-status={caso.status} aria-hidden="true" />{status[caso.status] ?? 'Status indisponível'}</p>
+      <ol className="etapas" aria-label="Etapas do caso">
+        {etapas.map((nome, i) => <li key={nome} className="etapa" data-estado={i < atual ? 'feita' : i === atual ? 'atual' : 'proxima'} aria-current={i === atual ? 'step' : undefined}>
+          <span className="etapa-marca" aria-hidden="true">{i < atual ? '✓' : i + 1}</span>
+          <span className="etapa-nome">{nome}</span>
+          <span className="etapa-estado">{i < atual ? 'Concluída' : i === atual ? 'Etapa atual' : 'Próxima'}</span>
+        </li>)}
+      </ol>
+      {atual < 0 && <p className="texto-pequeno">Status indisponível no momento.</p>}
+      {erroSituacao && !blocoVisivel && <p role="alert" className="erro">{erroSituacao}</p>}
+      <PosResolucao caso={caso} aoInformar={informarSituacao} ocupado={informando} />
       <h2>Conversa com a coordenação</h2>
       <div role="log" aria-live="polite" aria-label="Mensagens do caso" className="mensagens">
         {!caso.mensagens.length && <p className="vazio">Ainda não há mensagens. Você pode escrever para a coordenação por aqui.</p>}

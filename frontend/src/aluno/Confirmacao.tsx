@@ -8,8 +8,8 @@ export default function Confirmacao({ resultado, onAcompanhar }: { resultado: Re
     catch { setAviso('Não foi possível copiar. Anote o código ou selecione o texto para copiar.'); }
   }
   return <section className="confirmacao">
-    <h1>Seu pedido foi recebido.</h1>
-    <p>A coordenação poderá analisar o que você contou. Use este código para acompanhar e conversar com a escola.</p>
+    <h1>Você deu o primeiro passo.</h1>
+    <p>Seu pedido chegou à coordenação. Use o código abaixo para acompanhar e conversar com a escola.</p>
     <div className="codigo-bloco">
       <h2>Seu código de acompanhamento</h2>
       <p className="codigo">{resultado.codigo}</p>
