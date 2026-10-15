@@ -5,14 +5,18 @@ import Denuncia from './Denuncia';
 import Confirmacao from './Confirmacao';
 import Acompanhar from './Acompanhar';
 
-type Tela = { nome: 'inicio' } | { nome: 'denuncia' } | { nome: 'confirmacao'; resultado: ResultadoDenuncia } | { nome: 'acompanhar'; codigo: string };
+type Tela = { nome: 'inicio' } | { nome: 'denuncia' } | { nome: 'confirmacao'; resultado: ResultadoDenuncia } | { nome: 'acompanhar'; codigo: string; consulta: number };
 
 export default function App() {
   const [tela, setTela] = useState<Tela>({ nome: 'inicio' });
   const [enviandoDenuncia, setEnviandoDenuncia] = useState(false);
   const main = useRef<HTMLElement>(null);
   const telaAnterior = useRef(tela);
-  const inicio = () => setTela({ nome: 'inicio' });
+  // clicar na tela em que já está não troca de tela, então não refoca o main
+  const ir = (nova: Tela) => setTela(atual => (atual.nome === nova.nome && nova.nome !== 'acompanhar' ? atual : nova));
+  const inicio = () => ir({ nome: 'inicio' });
+  // cada pedido de consulta ganha um número novo, que recria o Acompanhar e descarta o resultado antigo
+  const consultar = (codigo: string) => setTela(atual => ({ nome: 'acompanhar', codigo, consulta: atual.nome === 'acompanhar' ? atual.consulta + 1 : 0 }));
   useEffect(() => {
     // a denúncia foca o próprio título a cada passo; o main não pode tomar o foco dela
     if (telaAnterior.current !== tela && tela.nome !== 'denuncia') main.current?.focus();
@@ -33,16 +37,16 @@ export default function App() {
       </button>
       <nav className="navegacao" aria-label="Principal">
         {item('Início', 'inicio', inicio)}
-        {item('Pedir ajuda', 'pedir', () => setTela({ nome: 'denuncia' }))}
-        {item('Acompanhar', 'acompanhar', () => setTela({ nome: 'acompanhar', codigo: '' }))}
+        {item('Pedir ajuda', 'pedir', () => ir({ nome: 'denuncia' }))}
+        {item('Acompanhar', 'acompanhar', () => consultar(''))}
       </nav>
     </div></header>
     <main id="conteudo" ref={main} tabIndex={-1} className="portal">
       {tela.nome !== 'inicio' && <button type="button" className="botao-texto" disabled={enviandoDenuncia} onClick={inicio}>Voltar ao início</button>}
-      {tela.nome === 'inicio' && <Inicio onAjuda={() => setTela({ nome: 'denuncia' })} onAcompanhar={codigo => setTela({ nome: 'acompanhar', codigo })} />}
+      {tela.nome === 'inicio' && <Inicio onAjuda={() => ir({ nome: 'denuncia' })} onAcompanhar={consultar} />}
       {tela.nome === 'denuncia' && <Denuncia onEnviando={setEnviandoDenuncia} onEnviado={resultado => setTela({ nome: 'confirmacao', resultado })} />}
-      {tela.nome === 'confirmacao' && <Confirmacao resultado={tela.resultado} onAcompanhar={() => setTela({ nome: 'acompanhar', codigo: tela.resultado.codigo })} />}
-      {tela.nome === 'acompanhar' && <Acompanhar codigoInicial={tela.codigo} />}
+      {tela.nome === 'confirmacao' && <Confirmacao resultado={tela.resultado} onAcompanhar={() => consultar(tela.resultado.codigo)} />}
+      {tela.nome === 'acompanhar' && <Acompanhar key={tela.consulta} codigoInicial={tela.codigo} />}
     </main>
     <footer className="rodape">Um canal da escola para ouvir e cuidar.</footer>
   </div>;

@@ -35,14 +35,14 @@ describe('Casca do portal do aluno', () => {
     expect(navegacao().getByRole('button', { name: 'Acompanhar' })).toHaveAttribute('aria-current', 'page');
     expect(fetch).not.toHaveBeenCalled();
     await user.click(navegacao().getByRole('button', { name: 'Início' }));
-    expect(screen.getByRole('heading', { name: 'Você pode pedir ajuda.' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Você não precisa lidar com isso sozinho.' })).toBeInTheDocument();
   });
   it('a marca leva ao início', async () => {
     const user = userEvent.setup();
     render(<App />);
     await user.click(navegacao().getByRole('button', { name: 'Acompanhar' }));
     await user.click(screen.getByRole('button', { name: 'Segurança Integral' }));
-    expect(screen.getByRole('heading', { name: 'Você pode pedir ajuda.' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Você não precisa lidar com isso sozinho.' })).toBeInTheDocument();
   });
   it('desabilita a navegação enquanto o pedido é enviado e a reabilita depois', async () => {
     const user = userEvent.setup();
@@ -65,6 +65,30 @@ describe('Casca do portal do aluno', () => {
     const user = userEvent.setup();
     render(<App />);
     await user.click(screen.getByRole('link', { name: 'Pular para o conteúdo' }));
+    expect(screen.getByRole('main')).toHaveFocus();
+  });
+  it('clicar em Acompanhar já em Acompanhar recomeça a consulta, sem deixar resultado antigo', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(navegacao().getByRole('button', { name: 'Acompanhar' }));
+    await user.type(screen.getByLabelText('Código de acompanhamento'), 'invalido');
+    expect(screen.getByLabelText('Código de acompanhamento')).toHaveValue('invalido');
+    await user.click(navegacao().getByRole('button', { name: 'Acompanhar' }));
+    expect(screen.getByLabelText('Código de acompanhamento')).toHaveValue('');
+  });
+  it('clicar na navegação da tela atual não refoca o conteúdo', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const inicio = navegacao().getByRole('button', { name: 'Início' });
+    await user.click(inicio);
+    expect(screen.getByRole('main')).not.toHaveFocus();
+    await user.click(navegacao().getByRole('button', { name: 'Pedir ajuda' }));
+    await user.click(screen.getByLabelText('Ameaça'));
+    expect(screen.getByLabelText('Ameaça')).toHaveFocus();
+    await user.click(navegacao().getByRole('button', { name: 'Pedir ajuda' }));
+    expect(screen.getByLabelText('Ameaça')).toBeChecked();
+    expect(screen.getByRole('main')).not.toHaveFocus();
+    await user.click(navegacao().getByRole('button', { name: 'Acompanhar' }));
     expect(screen.getByRole('main')).toHaveFocus();
   });
 });
