@@ -17,27 +17,27 @@ def termos():
 
 def test_aliciamento_sozinho_e_media(termos):
     r = classificar("aliciamento", "", False, termos)
-    assert (r.pontos, r.gravidade) == (4, "media")
+    assert (r.pontos, r.prioridade) == (4, "media")
 
 
 def test_aliciamento_em_andamento_e_alta(termos):
     r = classificar("aliciamento", "", True, termos)
-    assert (r.pontos, r.gravidade) == (6, "alta")
+    assert (r.pontos, r.prioridade) == (6, "alta")
 
 
 def test_cyberbullying_sozinho_e_baixa(termos):
     r = classificar("cyberbullying", "", False, termos)
-    assert (r.pontos, r.gravidade) == (2, "baixa")
+    assert (r.pontos, r.prioridade) == (2, "baixa")
 
 
 def test_cyberbullying_em_andamento_e_media(termos):
     r = classificar("cyberbullying", "", True, termos)
-    assert (r.pontos, r.gravidade) == (4, "media")
+    assert (r.pontos, r.prioridade) == (4, "media")
 
 
 def test_ameaca_com_termo_violencia_e_alta(termos):
     r = classificar("ameaca", "ele disse que tem uma arma", False, termos)
-    assert (r.pontos, r.gravidade) == (7, "alta")
+    assert (r.pontos, r.prioridade) == (7, "alta")
 
 
 def test_acentos_e_maiusculas_acionam_termo(termos):
@@ -118,3 +118,54 @@ def test_deposito_e_deposita_acionam_extorsao(termos):
     for relato in ("ele mandou eu fazer um deposito", "deposita agora", "DEPÓSITO"):
         r = classificar("outro", relato, False, termos)
         assert "termos de risco: extorsao" in r.motivos, relato
+
+
+A_VIOL = "alerta: ameaca com violencia em andamento"
+A_AUTO = "alerta: risco de automutilacao em andamento"
+A_NUDE = "alerta: conteudo intimo com extorsao"
+
+
+def test_ameaca_violencia_em_andamento_e_critica(termos):
+    r = classificar("ameaca", "ele disse vou te bater", True, termos)
+    assert r.prioridade == "critica"
+    assert A_VIOL in r.motivos
+    assert r.pontos == 4 + 2 + 3  # alerta não altera a soma
+
+
+def test_ameaca_violencia_sem_andamento_nao_e_critica(termos):
+    r = classificar("ameaca", "ele disse vou te bater", False, termos)
+    assert r.prioridade != "critica"
+    assert A_VIOL not in r.motivos
+
+
+def test_aliciamento_faca_em_andamento_critica_sem_andamento_alta(termos):
+    assert classificar("aliciamento", "ele tem uma faca", True, termos).prioridade == "critica"
+    r = classificar("aliciamento", "ele tem uma faca", False, termos)
+    assert r.prioridade == "alta"
+
+
+def test_tipo_outro_com_violencia_em_andamento_nao_dispara_regra_1(termos):
+    r = classificar("outro", "ele tem uma faca", True, termos)
+    assert r.prioridade != "critica"
+
+
+def test_automutilacao_em_andamento_critica_em_qualquer_tipo(termos):
+    r = classificar("cyberbullying", "ela falou em suicidio", True, termos)
+    assert r.prioridade == "critica"
+    assert A_AUTO in r.motivos
+    sem = classificar("cyberbullying", "ela falou em suicidio", False, termos)
+    assert sem.prioridade in ("alta", "media")
+
+
+def test_nudes_com_extorsao_critica_sem_andamento(termos):
+    r = classificar("outro", "tem meus nudes e disse vou postar", False, termos)
+    assert r.prioridade == "critica"
+    assert A_NUDE in r.motivos
+
+
+def test_nudes_sozinho_nao_e_critica(termos):
+    assert classificar("outro", "tem meus nudes", False, termos).prioridade != "critica"
+
+
+def test_outro_sem_termos_e_baixa(termos):
+    assert classificar("outro", "", False, termos).prioridade == "baixa"

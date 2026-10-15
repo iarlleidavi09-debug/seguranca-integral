@@ -13,7 +13,7 @@ from .config import Config
 from .uploads import AnexoInvalido, caminho_anexo
 
 # (tipo, relato, em_andamento, identificado, mensagens)
-# mensagens: lista de (autor, texto). A gravidade sai da triagem, não daqui.
+# mensagens: lista de (autor, texto). A prioridade sai da triagem, não daqui.
 _MODELOS: tuple[tuple[str, str, bool, bool, tuple[tuple[str, str], ...]], ...] = (
     ("ameaca", "Um colega disse no corredor que vai te bater depois da aula "
                "se eu contar para alguém.", True, False,

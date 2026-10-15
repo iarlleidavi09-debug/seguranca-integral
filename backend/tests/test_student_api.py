@@ -127,7 +127,7 @@ def test_triagem_gravada_com_motivos(student_client, config):
     )
     assert r.status_code == 201
     linha = _linha_caso(config)
-    assert linha["gravidade"] == "alta"
+    assert linha["prioridade"] == "critica"
     motivos = json.loads(linha["motivos_json"])
     assert "tipo: ameaca" in motivos and "ocorrendo agora" in motivos
     c = connect(config)
@@ -439,3 +439,16 @@ def test_limite_de_envio_religado_por_config_ainda_da_429(tmp_path):
     assert _enviar(client).status_code == 201
     assert _enviar(client).status_code == 201
     assert _enviar(client).status_code == 429
+
+
+def test_prioridade_original_igual_a_prioridade_na_criacao(student_client, config):
+    _enviar(student_client)
+    linha = _linha_caso(config)
+    assert linha["prioridade_original"] == linha["prioridade"]
+    c = connect(config)
+    try:
+        det = c.execute("SELECT detalhe FROM eventos WHERE caso_id=?",
+                        (linha["id"],)).fetchone()["detalhe"]
+    finally:
+        c.close()
+    assert det == f"prioridade {linha['prioridade']}"

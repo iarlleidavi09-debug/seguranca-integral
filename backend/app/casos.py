@@ -57,13 +57,13 @@ def criar_caso(conn: sqlite3.Connection, config: Config, dados: dict,
             try:
                 cur = conn.execute(
                     "INSERT INTO casos (codigo_hash, tipo, relato, quando, onde, "
-                    "em_andamento, anonimo, nome, turma, gravidade, pontos, "
+                    "em_andamento, anonimo, nome, turma, prioridade, prioridade_original, pontos, "
                     "motivos_json, status, simulacao, criado_em, atualizado_em) "
-                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,'novo',?,?,?)",
+                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,'novo',?,?,?)",
                     (codigo_hash, dados["tipo"], dados["relato"],
                      dados.get("quando"), dados.get("onde"), int(em_andamento),
-                     int(anonimo), nome, turma, triagem.gravidade,
-                     triagem.pontos, json.dumps(list(triagem.motivos)),
+                     int(anonimo), nome, turma, triagem.prioridade,
+                     triagem.prioridade, triagem.pontos, json.dumps(list(triagem.motivos)),
                      int(simulacao), agora, agora),
                 )
                 caso_id = cur.lastrowid
@@ -76,7 +76,7 @@ def criar_caso(conn: sqlite3.Connection, config: Config, dados: dict,
                 conn.execute(
                     "INSERT INTO eventos (caso_id, tipo, usuario_id, detalhe, criado_em) "
                     "VALUES (?, 'criado', NULL, ?, ?)",
-                    (caso_id, f"gravidade {triagem.gravidade}", agora),
+                    (caso_id, f"prioridade {triagem.prioridade}", agora),
                 )
                 conn.commit()
             except BaseException:

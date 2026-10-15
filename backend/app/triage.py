@@ -1,4 +1,4 @@
-"""Triagem por regras: calcula a gravidade de um caso sem usar IA."""
+"""Triagem por regras: calcula a prioridade de um caso sem usar IA."""
 from __future__ import annotations
 
 import json
@@ -24,7 +24,7 @@ LIMIAR_MEDIA = 3
 
 @dataclass(frozen=True)
 class Triagem:
-    gravidade: str
+    prioridade: str
     pontos: int
     motivos: tuple[str, ...]
 
@@ -50,6 +50,20 @@ def _contem(texto: str, termo: str) -> bool:
     return re.search(padrao, texto) is not None
 
 
+def _alertas(tipo: str, categorias: list[str], em_andamento: bool) -> list[str]:
+    """Alertas fixos que elevam o caso a crítica, independentemente dos pontos."""
+    achadas = set(categorias)
+    alertas = []
+    if (tipo in ("aliciamento", "ameaca") and em_andamento
+            and achadas & {"violencia", "automutilacao"}):
+        alertas.append("alerta: ameaca com violencia em andamento")
+    if em_andamento and "automutilacao" in achadas:
+        alertas.append("alerta: risco de automutilacao em andamento")
+    if {"nudes", "extorsao"} <= achadas:
+        alertas.append("alerta: conteudo intimo com extorsao")
+    return alertas
+
+
 def classificar(
     tipo: str, relato: str, em_andamento: bool, termos: dict[str, list[str]]
 ) -> Triagem:
@@ -60,16 +74,23 @@ def classificar(
         motivos.append("ocorrendo agora")
 
     texto = _normalizar(relato or "")
+    categorias: list[str] = []
     for categoria, lista in termos.items():
         # cada categoria conta uma vez, mesmo com vários acertos
         if any(_contem(texto, t) for t in lista):
             pontos += PONTOS_CATEGORIA
+            categorias.append(categoria)
             motivos.append(f"termos de risco: {categoria}")
 
     if pontos >= LIMIAR_ALTA:
-        gravidade = "alta"
+        prioridade = "alta"
     elif pontos >= LIMIAR_MEDIA:
-        gravidade = "media"
+        prioridade = "media"
     else:
-        gravidade = "baixa"
-    return Triagem(gravidade, pontos, tuple(motivos))
+        prioridade = "baixa"
+    # os alertas elevam depois da soma; os pontos não mudam
+    alertas = _alertas(tipo, categorias, em_andamento)
+    if alertas:
+        prioridade = "critica"
+        motivos.extend(alertas)
+    return Triagem(prioridade, pontos, tuple(motivos))

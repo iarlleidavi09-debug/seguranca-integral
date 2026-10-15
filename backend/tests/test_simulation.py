@@ -32,10 +32,10 @@ def test_simulacao_cria_casos_marcados(conn, config):
     assert not config.uploads_dir.exists() or not list(config.uploads_dir.iterdir())
 
 
-def test_simulacao_tem_as_tres_gravidades(conn, config):
+def test_simulacao_tem_as_tres_prioridades(conn, config):
     carregar_simulacao(conn, config)
-    gravidades = {r[0] for r in conn.execute("SELECT gravidade FROM casos")}
-    assert gravidades == {"alta", "media", "baixa"}
+    gravidades = {r[0] for r in conn.execute("SELECT prioridade FROM casos")}
+    assert {"alta", "media", "baixa"} <= gravidades
 
 
 def test_simulacao_nao_duplica(conn, config):
@@ -85,7 +85,7 @@ def test_remover_apaga_arquivo_de_anexo_simulado(conn, config):
 def test_rotas_de_simulacao_exigem_login(coord_client, config):
     from app.db import connect
     c = connect(config)
-    c.execute("INSERT INTO casos (codigo_hash, tipo, relato, gravidade, "
+    c.execute("INSERT INTO casos (codigo_hash, tipo, relato, prioridade, "
               "simulacao, criado_em, atualizado_em) VALUES "
               "('h','outro','r','baixa',1,'2026-01-01','2026-01-01')")
     c.commit()
