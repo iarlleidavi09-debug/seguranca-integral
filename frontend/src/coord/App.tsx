@@ -3,6 +3,7 @@ import { estadoSetup, obterResumo, ouvirSessaoPerdida, quemSou, sair } from '../
 import type { EstadoSetup, FiltrosFila, Usuario } from '../shared/api';
 import Login from './Login';
 import Fila from './Fila';
+import Geral from './Geral';
 import Caso from './Caso';
 import Usuarios from './Usuarios';
 import Setup from './Setup';
@@ -105,7 +106,7 @@ export default function App() {
   }
 
   const admin = sessao.papel === 'admin';
-  // as telas Visão geral, Casos e Pós-resolução mostram a Fila atual até serem refeitas
+  // as telas Casos e Pós-resolução mostram a Fila atual até serem refeitas
   const fila = <Fila aoAbrir={id => ir({ nome: 'caso', id })} filtros={{ status: filtros.status, tipo: filtros.tipo }}
     aoFiltrar={f => setFiltros(anterior => ({ ...anterior, ...f }))} />;
   return <div className="coord-app">
@@ -120,8 +121,7 @@ export default function App() {
       <div className="coord-coluna">
         <div className="coord-topo"><p><span className="ponto" aria-hidden="true" />Responsabilidade compartilhada</p></div>
         <main id="conteudo" ref={main} tabIndex={-1} className="painel">
-          {/* substituída na Task 3 */}
-          {tela.nome === 'geral' && fila}
+          {tela.nome === 'geral' && <Geral aoVerCasos={verCasos} aoAbrirCaso={id => ir({ nome: 'caso', id })} />}
           {/* substituída na Task 4 */}
           {tela.nome === 'casos' && fila}
           {/* substituída na Task 6 */}

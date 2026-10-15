@@ -73,19 +73,19 @@ describe('Entrada', () => {
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Servidor ocupado, tente de novo.'));
   });
 
-  it('entra com JSON, mostra a fila e sai pelo botão', async () => {
+  it('entra com JSON, mostra a visão geral e sai pelo botão', async () => {
     const user = userEvent.setup();
     let entrou = false;
     servidor({
       'GET /api/eu': () => (entrou ? { corpo: { id: 7, nome: 'Marina', papel: 'admin' } } : { status: 401 }),
       'POST /api/login': () => { entrou = true; return { corpo: { nome: 'Marina' } }; },
-      'GET /api/casos': () => ({ corpo: { casos: [] } }), 'POST /api/logout': () => ({ corpo: { ok: true } }),
+      'GET /api/casos': () => ({ corpo: { casos: [] } }), 'GET /api/resumo': () => ({ corpo: { status: { novo: 0, em_investigacao: 0, resolvido: 0 }, prioridade: { critica: 0, alta: 0, media: 0, baixa: 0 }, recorrencia_pendente: 0 } }), 'POST /api/logout': () => ({ corpo: { ok: true } }),
     });
     render(<App />);
     await user.type(await screen.findByLabelText('Nome'), 'Marina');
     await user.type(screen.getByLabelText('Senha'), 'uma-senha-longa');
     await user.click(screen.getByRole('button', { name: 'Entrar' }));
-    expect(await screen.findByRole('heading', { name: 'Fila de casos' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Cada pedido merece atenção.' })).toBeInTheDocument();
     const login = chamadasA('POST', '/api/login')[0];
     expect(login.init?.headers).toEqual({ 'Content-Type': 'application/json' });
     expect(login.corpo).toEqual({ nome: 'Marina', senha: 'uma-senha-longa' });
@@ -100,6 +100,7 @@ describe('Entrada', () => {
 describe('Fila', () => {
   const abrirFila = async (rotas: Record<string, Rota> = {}) => {
     servidor({ 'GET /api/eu': logado, 'GET /api/casos': () => ({ corpo: { casos: filaMista } }), ...rotas });
+    window.history.replaceState(null, '', '/#casos');
     render(<App />);
     await screen.findByText('Caso alto');
   };
@@ -150,6 +151,7 @@ describe('Fila', () => {
   it('atualiza a cada 8 segundos, pausa com a aba oculta e para ao desmontar', async () => {
     vi.useFakeTimers();
     servidor({ 'GET /api/eu': logado, 'GET /api/casos': () => ({ corpo: { casos: filaMista } }) });
+    window.history.replaceState(null, '', '/#casos');
     const { unmount } = render(<App />);
     await act(async () => { await vi.advanceTimersByTimeAsync(1); });
     expect(chamadasA('GET', '/api/casos')).toHaveLength(1);
@@ -174,6 +176,7 @@ describe('Fila', () => {
     vi.useFakeTimers();
     let rodada = 0;
     servidor({ 'GET /api/eu': logado, 'GET /api/casos': () => ({ corpo: { casos: rodada++ === 0 ? filaMista.slice(0, 2) : filaMista } }) });
+    window.history.replaceState(null, '', '/#casos');
     render(<App />);
     await act(async () => { await vi.advanceTimersByTimeAsync(1); });
     await act(async () => { await vi.advanceTimersByTimeAsync(INTERVALO_MS); });
@@ -184,6 +187,7 @@ describe('Fila', () => {
     vi.useFakeTimers();
     let rodada = 0;
     servidor({ 'GET /api/eu': logado, 'GET /api/casos': () => (rodada++ === 0 ? { corpo: { casos: filaMista } } : { status: 401 }) });
+    window.history.replaceState(null, '', '/#casos');
     render(<App />);
     await act(async () => { await vi.advanceTimersByTimeAsync(1); });
     expect(screen.getByRole('heading', { name: 'Fila de casos' })).toBeInTheDocument();
@@ -402,10 +406,10 @@ describe('Usuários e ensaio', () => {
 });
 
 describe('Telas principais', () => {
-  it.each([['/', 'Fila de casos'], ['/#caso-5', 'Caso 5'], ['/#usuarios', 'Usuários'], ['/#ensaio', 'Ensaio']])(
+  it.each([['/', 'Cada pedido merece atenção'], ['/#casos', 'Fila de casos'], ['/#caso-5', 'Caso 5'], ['/#usuarios', 'Usuários'], ['/#ensaio', 'Ensaio']])(
     'a tela %s não usa atributo style nem guarda dados no navegador', async (endereco, titulo) => {
       servidor({
-        'GET /api/eu': logado, 'GET /api/casos': () => ({ corpo: { casos: filaMista } }),
+        'GET /api/eu': logado, 'GET /api/casos': () => ({ corpo: { casos: filaMista } }), 'GET /api/resumo': () => ({ corpo: { status: { novo: 0, em_investigacao: 0, resolvido: 0 }, prioridade: { critica: 0, alta: 0, media: 0, baixa: 0 }, recorrencia_pendente: 0 } }),
         'GET /api/casos/5': () => ({ corpo: detalhe() }), 'GET /api/usuarios': () => ({ corpo: { usuarios: [{ id: 1, nome: 'Marina', ativo: true }] } }),
       });
       window.history.replaceState(null, '', endereco);

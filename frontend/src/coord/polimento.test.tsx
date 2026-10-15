@@ -98,6 +98,7 @@ describe('Polimento da coordenação', () => {
       'GET /api/eu': logado,
       'GET /api/casos': () => (rodada++ === 0 ? new Promise<Resposta>(r => { liberar = () => r({ corpo: { casos: fila } }); }) : { corpo: { casos: fila } }),
     });
+    window.history.replaceState(null, '', '/#casos');
     render(<App />);
     await act(async () => { await vi.advanceTimersByTimeAsync(1); });
     await act(async () => { await vi.advanceTimersByTimeAsync(INTERVALO_MS * 3); });
@@ -134,7 +135,7 @@ describe('Polimento da coordenação', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Você entrou');
     expect(screen.getByRole('alert')).not.toHaveTextContent('Nome ou senha');
     await user.click(screen.getByRole('button', { name: 'Tentar de novo' }));
-    expect(await screen.findByRole('heading', { name: 'Fila de casos' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Cada pedido merece atenção.' })).toBeInTheDocument();
     expect(chamadasA('POST', '/api/login')).toHaveLength(1);
   });
 });
