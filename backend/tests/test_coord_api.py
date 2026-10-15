@@ -427,6 +427,58 @@ def test_detalhe_traz_motivos_anexos_e_timeline(coord_logado, config):
     assert d["notas"][0]["usuario"] == "coord"
 
 
+def test_detalhe_traz_prioridade_e_recorrencia(coord_logado, config):
+    caso_id, _ = _caso(config)
+    d = coord_logado.get(f"/api/casos/{caso_id}").get_json()
+    assert d["prioridade"] and d["prioridade_original"]
+    assert d["recorrencia_pendente"] is False
+
+
+def test_ultimo_acesso_e_o_anterior_e_a_fila_mostra_o_ultimo(
+        coord_logado, coord_app, config):
+    caso_id, _ = _caso(config)
+    antes = _consulta(config, "SELECT atualizado_em FROM casos WHERE id = ?",
+                      (caso_id,))[0][0]
+    eventos = _consulta(config, "SELECT COUNT(*) FROM eventos")[0][0]
+    d1 = coord_logado.get(f"/api/casos/{caso_id}").get_json()
+    assert d1["ultimo_acesso"] is None
+    gravado = _consulta(config, "SELECT ultimo_acesso_por, ultimo_acesso_em, "
+                        "atualizado_em FROM casos WHERE id = ?", (caso_id,))[0]
+    assert gravado[0] == _id_usuario(config) and gravado[1]
+    assert gravado[2] == antes  # não mexe em atualizado_em
+    assert _consulta(config, "SELECT COUNT(*) FROM eventos")[0][0] == eventos
+    _criar_usuario(config, "outra")
+    outro = coord_app.test_client()
+    assert outro.post("/api/login", json={"nome": "outra",
+                                          "senha": SENHA_COORD}).status_code == 200
+    d2 = outro.get(f"/api/casos/{caso_id}").get_json()
+    assert d2["ultimo_acesso"] == {"por": "coord", "em": gravado[1]}
+    item, = coord_logado.get("/api/casos").get_json()["casos"]
+    assert item["ultimo_acesso_por"] == "outra"
+    d3 = coord_logado.get(f"/api/casos/{caso_id}").get_json()
+    assert d3["ultimo_acesso"]["por"] == "outra"
+
+
+def test_detalhe_inexistente_404_sem_gravar_acesso(coord_logado, config):
+    _caso(config)
+    assert coord_logado.get("/api/casos/999").status_code == 404
+    assert _consulta(config, "SELECT ultimo_acesso_por FROM casos")[0][0] is None
+
+
+def test_mensagem_da_coordenacao_grava_autor_e_aluno_fica_sem(
+        coord_logado, student_client, config):
+    caso_id, codigo = _caso(config)
+    student_client.post("/api/acompanhar/mensagens",
+                        json={"codigo": codigo, "texto": "ola"})
+    coord_logado.post(f"/api/casos/{caso_id}/mensagens", json={"texto": "Estamos vendo"})
+    assert _consulta(config, "SELECT usuario_id FROM mensagens WHERE autor = 'coordenacao'"
+                     )[0][0] == _id_usuario(config)
+    msgs = coord_logado.get(f"/api/casos/{caso_id}").get_json()["mensagens"]
+    aluno, coord = msgs
+    assert aluno["usuario"] is None and aluno["usuario_id"] is None
+    assert coord["usuario"] == "coord" and coord["usuario_id"] == _id_usuario(config)
+
+
 # --- mudanças de status e prioridade -------------------------------------
 
 def test_mudar_status_registra_evento_com_autor(coord_logado, config):
@@ -723,7 +775,7 @@ def test_detalhe_usa_so_colunas_conhecidas_do_caso(coord_logado, config):
     assert set(d) == {
         "id", "tipo", "relato", "quando", "onde", "em_andamento", "anonimo",
         "nome", "turma", "prioridade", "prioridade_original", "pontos",
-        "motivos", "status",
+        "motivos", "status", "recorrencia_pendente", "ultimo_acesso",
         "simulacao", "criado_em", "atualizado_em",
         "anexos", "eventos", "mensagens", "notas",
     }

@@ -112,11 +112,14 @@ def listar_mensagens(conn: sqlite3.Connection, caso_id: int) -> list[sqlite3.Row
 
 
 def adicionar_mensagem(conn: sqlite3.Connection, caso_id: int, autor: str,
-                       texto: str, commit: bool = True) -> None:
+                       texto: str, commit: bool = True,
+                       usuario_id: int | None = None) -> None:
+    """`usuario_id` é quem da coordenação escreveu; None para o aluno."""
     agora = _agora()
     conn.execute(
-        "INSERT INTO mensagens (caso_id, autor, texto, criado_em) VALUES (?,?,?,?)",
-        (caso_id, autor, texto, agora),
+        "INSERT INTO mensagens (caso_id, autor, texto, criado_em, usuario_id) "
+        "VALUES (?,?,?,?,?)",
+        (caso_id, autor, texto, agora, usuario_id),
     )
     conn.execute("UPDATE casos SET atualizado_em = ? WHERE id = ?", (agora, caso_id))
     if commit:
@@ -137,7 +140,7 @@ _ORDEM_FILA = (
 
 
 def _bools(d: dict) -> dict:
-    for campo in ("em_andamento", "anonimo", "simulacao"):
+    for campo in ("em_andamento", "anonimo", "simulacao", "recorrencia_pendente"):
         if campo in d:
             d[campo] = bool(d[campo])
     return d
@@ -234,6 +237,7 @@ COLUNAS_DETALHE = (
     "id", "tipo", "relato", "quando", "onde", "em_andamento", "anonimo",
     "nome", "turma", "prioridade", "prioridade_original", "pontos",
     "motivos_json", "status", "simulacao", "criado_em", "atualizado_em",
+    "recorrencia_pendente",
 )
 
 
@@ -260,7 +264,14 @@ def detalhe_caso(conn: sqlite3.Connection, caso_id: int) -> dict | None:
             (caso_id,),
         )
     ]
-    caso["mensagens"] = [dict(m) for m in listar_mensagens(conn, caso_id)]
+    caso["mensagens"] = [
+        dict(m) for m in conn.execute(
+            "SELECT m.autor, m.texto, m.criado_em, m.usuario_id, u.nome AS usuario "
+            "FROM mensagens m LEFT JOIN usuarios u ON u.id = m.usuario_id "
+            "WHERE m.caso_id = ? ORDER BY m.id",
+            (caso_id,),
+        )
+    ]
     caso["notas"] = [
         dict(n) for n in conn.execute(
             "SELECT n.id, n.usuario_id, u.nome AS usuario, n.texto, n.criado_em "
@@ -270,6 +281,38 @@ def detalhe_caso(conn: sqlite3.Connection, caso_id: int) -> dict | None:
         )
     ]
     return caso
+
+
+def registrar_acesso(conn: sqlite3.Connection, caso_id: int,
+                     usuario_id: int) -> dict | None:
+    """Grava quem abriu o caso agora e devolve o acesso anterior.
+
+    Devolve {"por": nome, "em": iso} ou None se ninguém abriu antes (ou o caso
+    não existe). Leitura e gravação na mesma transação; sem evento e sem mexer
+    em `atualizado_em`.
+    """
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        linha = conn.execute(
+            "SELECT u.nome, c.ultimo_acesso_em FROM casos c "
+            "LEFT JOIN usuarios u ON u.id = c.ultimo_acesso_por WHERE c.id = ?",
+            (caso_id,),
+        ).fetchone()
+        if linha is None:
+            conn.rollback()
+            return None
+        conn.execute(
+            "UPDATE casos SET ultimo_acesso_por = ?, ultimo_acesso_em = ? "
+            "WHERE id = ?",
+            (usuario_id, _agora(), caso_id),
+        )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    if linha[1] is None:
+        return None
+    return {"por": linha[0], "em": linha[1]}
 
 
 def _mudar(conn: sqlite3.Connection, caso_id: int, campo: str, valor: str,

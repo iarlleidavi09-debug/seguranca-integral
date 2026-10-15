@@ -187,6 +187,26 @@ def test_aluno_envia_mensagem_e_ve_resposta_da_coordenacao(student_client, confi
     assert all(m["criado_em"] for m in msgs)
 
 
+def test_aluno_nao_recebe_autoria_das_mensagens(student_client, config):
+    from app.auth import criar_usuario
+    from app.casos import adicionar_mensagem
+
+    codigo = _enviar(student_client).get_json()["codigo"]
+    student_client.post("/api/acompanhar/mensagens",
+                        json={"codigo": codigo, "texto": "oi"})
+    linha = _linha_caso(config)
+    c = connect(config)
+    try:
+        uid = criar_usuario(c, "Maria Coord", "senha-forte-123", "admin")
+        adicionar_mensagem(c, linha["id"], "coordenacao", "resposta", usuario_id=uid)
+    finally:
+        c.close()
+    r = student_client.post("/api/acompanhar", json={"codigo": codigo})
+    for m in r.get_json()["mensagens"]:
+        assert set(m) == {"autor", "texto", "criado_em"}
+    assert "Maria" not in r.get_data(as_text=True)
+
+
 def test_mensagem_vazia_ou_longa_400(student_client):
     codigo = _enviar(student_client).get_json()["codigo"]
     for texto in ("   ", "x" * 2001, 5):

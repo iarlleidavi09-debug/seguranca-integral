@@ -237,9 +237,11 @@ def resumo():
 
 @bp.get("/api/casos/<int:caso_id>")
 def detalhe(caso_id: int):
-    caso = casos.detalhe_caso(_db(), caso_id)
+    conn = _db()
+    caso = casos.detalhe_caso(conn, caso_id)
     if caso is None:
         return _nao_encontrado()
+    caso["ultimo_acesso"] = casos.registrar_acesso(conn, caso_id, g.usuario["id"])
     return jsonify(caso)
 
 
@@ -291,7 +293,8 @@ def enviar_mensagem(caso_id: int):
     texto = _texto_valido()
     if texto is None:
         return _erro("mensagem deve ter de 1 a 2000 caracteres")
-    casos.adicionar_mensagem(conn, caso_id, "coordenacao", texto, commit=False)
+    casos.adicionar_mensagem(conn, caso_id, "coordenacao", texto, commit=False,
+                           usuario_id=g.usuario["id"])
     # um único commit grava a mensagem e o evento juntos
     casos.registrar_evento(conn, caso_id, "mensagem_coordenacao",
                            g.usuario["id"], "")
