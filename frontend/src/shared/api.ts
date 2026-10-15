@@ -1,6 +1,11 @@
 export type Mensagem = { autor: 'aluno' | 'coordenacao'; texto: string; criado_em: string };
 export type ResultadoDenuncia = { codigo: string; anexos_recusados?: { nome: string; motivo: string }[] };
-export type Caso = { status: string; mensagens: Mensagem[] };
+export type StatusAluno = 'novo' | 'em_investigacao' | 'resolvido';
+export type ResolucaoAluno = { desfecho: 'solucionada' | 'intervencao_realizada'; providencias: string; resultado: string; criado_em: string };
+export type Caso = {
+  status: StatusAluno; mensagens: Mensagem[]; resolucao: ResolucaoAluno | null;
+  pos_resolucao: boolean; ultima_situacao: Situacao | null;
+};
 
 export class ErroApi extends Error {
   constructor(public readonly status: number) {
@@ -9,16 +14,17 @@ export class ErroApi extends Error {
   }
 }
 
-export function mensagemErro(erro: unknown): string {
+export function mensagemErro(erro: unknown, rota?: 'situacao'): string {
   const status = erro instanceof ErroApi ? erro.status : 0;
   switch (status) {
     case 400: return 'Confira os campos preenchidos e tente de novo.';
     case 404: return 'Não foi possível encontrar o caso. Confira o código e tente de novo.';
+    case 409: if (rota === 'situacao') return 'Esse caso ainda não foi resolvido.'; break;
     case 413: return 'Os anexos são grandes demais. Use até 5 imagens de até 5 MB e tente de novo.';
     case 429: return 'Foram feitas muitas tentativas. Aguarde alguns minutos e tente de novo.';
     case 0: return 'Não foi possível conectar. Confira sua conexão e tente de novo.';
-    default: return 'Não foi possível concluir agora. Aguarde um pouco e tente de novo.';
   }
+  return 'Não foi possível concluir agora. Aguarde um pouco e tente de novo.';
 }
 
 async function post<T>(caminho: string, body: BodyInit, json = false): Promise<T> {
@@ -44,6 +50,9 @@ export function acompanhar(codigo: string): Promise<Caso> {
 }
 export async function enviarMensagem(codigo: string, texto: string): Promise<void> {
   await post('/api/acompanhar/mensagens', JSON.stringify({ codigo: normalizar(codigo), texto }), true);
+}
+export async function enviarSituacao(codigo: string, situacao: Situacao): Promise<void> {
+  await post('/api/acompanhar/situacao', JSON.stringify({ codigo: normalizar(codigo), situacao }), true);
 }
 
 // ---------------------------------------------------------------------------

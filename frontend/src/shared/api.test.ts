@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { acompanhar, enviarDenuncia, enviarMensagem, ErroApi, listarCasos, mensagemErro, mudarPrioridade, registrarResolucao, revisarRecorrencia } from './api';
+import { acompanhar, enviarDenuncia, enviarMensagem, enviarSituacao, ErroApi, listarCasos, mensagemErro, mudarPrioridade, registrarResolucao, revisarRecorrencia } from './api';
 
 describe('Cliente da API', () => {
   it.each([400, 404, 413, 429, 500])('mantém status HTTP %i e fornece recuperação', async status => {
@@ -27,6 +27,23 @@ describe('Cliente da API', () => {
     expect(fetch).toHaveBeenCalledWith('/api/acompanhar/mensagens', expect.objectContaining({
       method: 'POST', body: JSON.stringify({ codigo: 'K7M29QXD', texto: 'Minha resposta' }),
     }));
+  });
+  describe('situação do aluno (v2 A)', () => {
+    it('envia a situação por POST JSON com o código só no corpo', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce(new Response('{"ok":true}', { status: 201 }));
+      await enviarSituacao('abcd-1234', 'voltou');
+      const [url, init] = vi.mocked(fetch).mock.calls[0];
+      expect(url).toBe('/api/acompanhar/situacao');
+      expect(String(url)).not.toContain('ABCD');
+      expect(init).toMatchObject({ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ codigo: 'ABCD1234', situacao: 'voltou' }) });
+    });
+    it('409 vira mensagem amigável da rota de situação', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce(new Response('{}', { status: 409 }));
+      const erro = await enviarSituacao('abcd-1234', 'melhorou').catch(e => e);
+      expect(erro.status).toBe(409);
+      expect(mensagemErro(erro, 'situacao')).toBe('Esse caso ainda não foi resolvido.');
+      expect(mensagemErro(erro)).toBe('Não foi possível concluir agora. Aguarde um pouco e tente de novo.');
+    });
   });
   describe('coordenação v2', () => {
     const ok = (corpo: unknown = { ok: true }, status = 200) => vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify(corpo), { status }));
