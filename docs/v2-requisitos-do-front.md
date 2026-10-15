@@ -41,3 +41,9 @@ Mudanças previstas: modelo de dados do questionário (versionado), `GET /api/qu
 - O front novo ainda usa os rótulos e o `api.ts` da v1; as prévias usam dados em memória. O contrato real só pode ser fechado depois da spec da v2 A.
 - A pasta do front não é um repositório git; o repasse para a branch deve ser feito por cópia controlada ou por um repositório.
 - Falha conhecida no front: teste de foco por teclado das abas do caso (registrada no `MAPA-INTERFACES.md`).
+
+## Itens para o front
+
+- Texto de consentimento do aluno: acrescentar o aviso "Para anonimato total, use dados móveis (4G), não o Wi-Fi da escola; o horário do envio pode ser cruzado com os registros de rede da escola."
+- Rascunho da denúncia: hoje fica no `localStorage` sem prazo. Ele deve expirar em 24 horas ou passar para o `sessionStorage`, para não sobrar num aparelho compartilhado.
+- O servidor agora remove os metadados das imagens (EXIF, GPS, XMP, comentários). A orientação EXIF também sai, então uma foto de celular pode aparecer deitada na tela da coordenação; se isso incomodar, o front pode girar a imagem no navegador antes do envio (canvas) ou oferecer um botão de girar na visualização.
