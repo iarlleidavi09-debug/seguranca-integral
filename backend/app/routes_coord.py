@@ -31,7 +31,12 @@ ESCRITA = {"POST", "PUT", "PATCH", "DELETE"}
 # rotas que não passam pela portaria (404 de /api e SPA)
 LIVRES = {"coord.api_desconhecida", "coord.spa"}
 # rotas que dispensam sessão, mas ainda exigem JSON quando alteram estado
-SEM_SESSAO = {"coord.login", "coord.saude"}
+SEM_SESSAO = {"coord.login", "coord.saude", "coord.setup_estado", "coord.setup"}
+# rotas só do administrador
+SO_ADMIN = {"coord.usuarios", "coord.criar_usuario", "coord.desativar"}
+# cabeçalhos que o túnel acrescenta: pedido que os traz não veio da máquina
+CABECALHOS_DE_PROXY = ("CF-Connecting-IP", "X-Forwarded-For", "X-Forwarded-Proto",
+                       "X-Forwarded-Host", "Forwarded", "X-Real-IP")
 
 # tipo gravado no banco -> (Content-Type, extensão do nome sugerido)
 MIME_ANEXO = {
@@ -90,11 +95,11 @@ def _sessao_valida() -> dict | None:
     if agora - inicio > DURACAO_SESSAO.total_seconds() or inicio > agora + 60:
         return None
     linha = _db().execute(
-        "SELECT id, nome, ativo FROM usuarios WHERE id = ?", (usuario_id,)
+        "SELECT id, nome, ativo, papel FROM usuarios WHERE id = ?", (usuario_id,)
     ).fetchone()
     if linha is None or not linha["ativo"]:
         return None
-    return {"id": linha["id"], "nome": linha["nome"]}
+    return {"id": linha["id"], "nome": linha["nome"], "papel": linha["papel"]}
 
 
 @bp.before_request
@@ -108,6 +113,8 @@ def portaria():
             session.clear()
             return _erro("nao autenticado", 401)
         g.usuario = usuario
+        if endpoint in SO_ADMIN and usuario["papel"] != "admin":
+            return _erro("apenas administrador", 403)
     if request.method in ESCRITA and request.mimetype != "application/json":
         return _erro("use application/json", 415)
     return None
@@ -118,6 +125,46 @@ def portaria():
 @bp.get("/api/saude")
 def saude():
     return jsonify({"ok": True})
+
+
+def _da_propria_maquina() -> bool:
+    """Pedido direto do loopback, sem passar por túnel ou proxy."""
+    if request.remote_addr not in ("127.0.0.1", "::1"):
+        return False
+    return not any(c in request.headers for c in CABECALHOS_DE_PROXY)
+
+
+@bp.get("/api/setup")
+def setup_estado():
+    pendente = _db().execute("SELECT 1 FROM usuarios LIMIT 1").fetchone() is None
+    return jsonify({"pendente": pendente, "local": _da_propria_maquina()})
+
+
+@bp.post("/api/setup")
+def setup():
+    """Cria o primeiro administrador. Só da máquina do servidor e só uma vez."""
+    limitador = current_app.extensions["limitadores"].get("login")
+    if limitador is not None and not limitador.permitir(chave_limitador(request)):
+        return _erro("muitas tentativas, tente mais tarde", 429)
+    if not _da_propria_maquina():
+        return _erro("abra o portal na maquina do servidor", 403)
+    dados = _json()
+    nome, senha = dados.get("nome"), dados.get("senha")
+    if not isinstance(nome, str) or not isinstance(senha, str):
+        return _erro("nome e senha obrigatorios")
+    if len(nome) > NOME_MAX or len(senha) > SENHA_MAX:
+        return _erro("nome ou senha longos demais")
+    try:
+        novo_id = auth.criar_primeiro_admin(_db(), nome, senha)
+    except ValueError as erro:
+        return _erro(str(erro))
+    if novo_id is None:
+        return _erro("ja existe usuario", 409)
+    session.clear()
+    session.permanent = True
+    session["usuario_id"] = novo_id
+    session["inicio"] = int(time.time())
+    return jsonify({"nome": nome.strip()}), 201
 
 
 @bp.post("/api/login")
@@ -290,7 +337,8 @@ def remover_simulacao():
 def usuarios():
     return jsonify({
         "usuarios": [
-            {"id": u["id"], "nome": u["nome"], "ativo": bool(u["ativo"])}
+            {"id": u["id"], "nome": u["nome"], "ativo": bool(u["ativo"]),
+             "papel": u["papel"]}
             for u in auth.listar_usuarios(_db())
         ]
     })

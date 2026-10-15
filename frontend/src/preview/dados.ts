@@ -17,7 +17,7 @@ export const casoExemplo: CasoDetalhe = {
 
 export function instalarDadosDePrevia() {
   let caso = structuredClone(casoExemplo);
-  let usuarios: UsuarioLista[] = [{ id: 1, nome: 'Equipe de exemplo', ativo: true }, { id: 2, nome: 'Usuário de exemplo', ativo: true }];
+  let usuarios: UsuarioLista[] = [{ id: 1, nome: 'Equipe de exemplo', ativo: true, papel: 'admin' }, { id: 2, nome: 'Usuário de exemplo', ativo: true, papel: 'coordenador' }];
   let simulacao = true;
   const imagem = '/previa-anexo.svg';
   window.fetch = async (entrada, init) => {
@@ -26,7 +26,7 @@ export function instalarDadosDePrevia() {
     const metodo = init?.method ?? 'GET';
     const corpo = typeof init?.body === 'string' ? JSON.parse(init.body) : {};
     const resposta = (valor: unknown, status = 200) => new Response(JSON.stringify(valor), { status, headers: { 'Content-Type': 'application/json' } });
-    if (url === '/api/eu') return resposta({ id: 1, nome: 'Equipe de exemplo' });
+    if (url === '/api/eu') return resposta({ id: 1, nome: 'Equipe de exemplo', papel: 'admin' });
     if (url === '/api/login' || url === '/api/logout') return resposta({ ok: true, nome: 'Equipe de exemplo' });
     if (url === '/api/denuncias') return resposta({ codigo: 'PREVIA-001' });
     if (url === '/api/acompanhar') return resposta({ status: caso.status, mensagens: caso.mensagens });
@@ -53,7 +53,7 @@ export function instalarDadosDePrevia() {
     }
     if (url === '/api/usuarios' && metodo === 'GET') return resposta({ usuarios });
     if (url === '/api/usuarios' && metodo === 'POST') {
-      const usuario = { id: usuarios.length + 1, nome: corpo.nome, ativo: true };
+      const usuario: UsuarioLista = { id: usuarios.length + 1, nome: corpo.nome, ativo: true, papel: 'coordenador' };
       usuarios.push(usuario); return resposta(usuario);
     }
     const desativar = /^\/api\/usuarios\/(\d+)\/desativar$/.exec(url);
@@ -65,7 +65,7 @@ export function instalarDadosDePrevia() {
   // A imagem usa o mesmo componente de produção, com um recurso local de exemplo.
   return { imagem, reiniciar: () => {
     caso = structuredClone(casoExemplo);
-    usuarios = [{ id: 1, nome: 'Equipe de exemplo', ativo: true }, { id: 2, nome: 'Usuário de exemplo', ativo: true }];
+    usuarios = [{ id: 1, nome: 'Equipe de exemplo', ativo: true, papel: 'admin' }, { id: 2, nome: 'Usuário de exemplo', ativo: true, papel: 'coordenador' }];
     simulacao = true;
   } };
 }

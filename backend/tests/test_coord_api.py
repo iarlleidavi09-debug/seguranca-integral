@@ -465,7 +465,7 @@ def test_criar_e_desativar_usuario(coord_logado, coord_app, config):
     assert r.status_code == 201
     novo_id = r.get_json()["id"]
     lista = coord_logado.get("/api/usuarios").get_json()["usuarios"]
-    assert {"id": novo_id, "nome": "Ana", "ativo": True} in lista
+    assert {"id": novo_id, "nome": "Ana", "ativo": True, "papel": "coordenador"} in lista
     assert all(set(u) == {"id", "nome", "ativo"} for u in lista)
 
     for corpo in ({"nome": "Bia", "senha": "curta"}, {"nome": "ana", "senha": "outra-senha-forte"},
@@ -662,3 +662,109 @@ def test_log_de_acesso_nao_tem_id_de_caso(coord_logado, config, caplog):
     for a in acessos:
         assert str(numero) not in a
         assert f"/{caso_id} " not in a and f"/{caso_id}/" not in a
+
+
+# --- primeiro acesso e papéis --------------------------------------------
+
+LAN = {"REMOTE_ADDR": "192.168.0.20"}
+
+
+def test_setup_pendente_sem_usuarios(coord_client):
+    assert coord_client.get("/api/setup").get_json() == {"pendente": True, "local": True}
+
+
+def test_setup_nao_pendente_com_usuario(coord_logado):
+    assert coord_logado.get("/api/setup").get_json()["pendente"] is False
+
+
+def test_setup_na_lan_informa_que_nao_e_local(coord_client):
+    r = coord_client.get("/api/setup", environ_overrides=LAN)
+    assert r.get_json() == {"pendente": True, "local": False}
+
+
+def test_setup_cria_admin_e_abre_sessao(coord_client, config):
+    r = coord_client.post("/api/setup", json={"nome": "Diretora", "senha": SENHA_COORD})
+    assert r.status_code == 201
+    assert r.get_json() == {"nome": "Diretora"}
+    assert _consulta(config, "SELECT papel FROM usuarios")[0][0] == "admin"
+    eu = coord_client.get("/api/eu").get_json()
+    assert eu["nome"] == "Diretora" and eu["papel"] == "admin"
+    assert coord_client.get("/api/setup").get_json()["pendente"] is False
+
+
+def test_setup_recusado_fora_da_maquina(coord_client, config):
+    r = coord_client.post("/api/setup", json={"nome": "x", "senha": SENHA_COORD},
+                          environ_overrides=LAN)
+    assert r.status_code == 403
+    assert _consulta(config, "SELECT COUNT(*) FROM usuarios")[0][0] == 0
+
+
+@pytest.mark.parametrize("cabecalho", ["CF-Connecting-IP", "X-Forwarded-For", "X-Forwarded-Proto",
+                                       "Forwarded", "X-Real-IP"])
+def test_setup_recusado_atras_do_tunel(coord_client, config, cabecalho):
+    # o túnel conecta por loopback, mas manda estes cabeçalhos
+    r = coord_client.post("/api/setup", json={"nome": "x", "senha": SENHA_COORD},
+                          headers={cabecalho: "203.0.113.9"})
+    assert r.status_code == 403
+    assert coord_client.get("/api/setup", headers={cabecalho: "1"}).get_json()["local"] is False
+    assert _consulta(config, "SELECT COUNT(*) FROM usuarios")[0][0] == 0
+
+
+def test_setup_duas_vezes_da_409(coord_client, config):
+    corpo = {"nome": "Diretora", "senha": SENHA_COORD}
+    assert coord_client.post("/api/setup", json=corpo).status_code == 201
+    r = coord_client.post("/api/setup", json={"nome": "Outra", "senha": SENHA_COORD})
+    assert r.status_code == 409
+    assert _consulta(config, "SELECT COUNT(*) FROM usuarios")[0][0] == 1
+
+
+@pytest.mark.parametrize("corpo", [{}, {"nome": "x"}, {"nome": "x", "senha": "curta"},
+                                   {"nome": 1, "senha": SENHA_COORD}, {"nome": "", "senha": SENHA_COORD},
+                                   {"nome": "n" * 101, "senha": SENHA_COORD}])
+def test_setup_validacao(coord_client, config, corpo):
+    assert coord_client.post("/api/setup", json=corpo).status_code == 400
+    assert _consulta(config, "SELECT COUNT(*) FROM usuarios")[0][0] == 0
+
+
+def test_setup_exige_json(coord_client):
+    r = coord_client.post("/api/setup", data="nome=x", content_type="application/x-www-form-urlencoded")
+    assert r.status_code == 415
+
+
+@pytest.fixture
+def coordenador(config, coord_app):
+    """Cliente logado como coordenador (sem papel de admin)."""
+    c = connect(config)
+    try:
+        criar_usuario(c, "admin0", SENHA_COORD, "admin")
+        criar_usuario(c, "comum", SENHA_COORD)
+    finally:
+        c.close()
+    cliente = coord_app.test_client()
+    assert cliente.post("/api/login", json={"nome": "comum", "senha": SENHA_COORD}).status_code == 200
+    return cliente
+
+
+def test_eu_informa_papel(coordenador):
+    assert coordenador.get("/api/eu").get_json()["papel"] == "coordenador"
+
+
+@pytest.mark.parametrize("metodo,caminho", [("get", "/api/usuarios"), ("post", "/api/usuarios"),
+                                            ("post", "/api/usuarios/1/desativar")])
+def test_gestao_de_contas_so_admin(coordenador, metodo, caminho):
+    kwargs = {"json": {"nome": "x", "senha": SENHA_COORD}} if metodo == "post" else {}
+    r = getattr(coordenador, metodo)(caminho, **kwargs)
+    assert r.status_code == 403
+    assert r.get_json() == {"erro": "apenas administrador"}
+
+
+def test_coordenador_ainda_usa_a_fila(coordenador):
+    assert coordenador.get("/api/casos").status_code == 200
+
+
+def test_admin_cria_conta_de_coordenador(coord_logado, config):
+    r = coord_logado.post("/api/usuarios", json={"nome": "Nova", "senha": SENHA_COORD})
+    assert r.status_code == 201
+    assert _consulta(config, "SELECT papel FROM usuarios WHERE nome = 'Nova'")[0][0] == "coordenador"
+    lista = coord_logado.get("/api/usuarios").get_json()["usuarios"]
+    assert {u["nome"]: u["papel"] for u in lista} == {"coord": "admin", "Nova": "coordenador"}

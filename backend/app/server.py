@@ -300,7 +300,7 @@ def _criar_admin(config: Config) -> int:
     senha = gerar_senha_inicial()
     with closing(connect(config)) as conn:
         try:
-            criar_usuario(conn, ADMIN, senha)
+            criar_usuario(conn, ADMIN, senha, "admin")
         except ValueError:
             print(f"Usuario '{ADMIN}' ja existe; a senha nao foi alterada.",
                   file=sys.stderr)

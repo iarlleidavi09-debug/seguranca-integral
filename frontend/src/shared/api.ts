@@ -50,8 +50,10 @@ export async function enviarMensagem(codigo: string, texto: string): Promise<voi
 // Cliente da coordenação (mesma origem, cookie de sessão)
 // ---------------------------------------------------------------------------
 
-export type Usuario = { id: number; nome: string };
-export type UsuarioLista = { id: number; nome: string; ativo: boolean };
+export type Papel = 'admin' | 'coordenador';
+export type Usuario = { id: number; nome: string; papel: Papel };
+export type UsuarioLista = { id: number; nome: string; ativo: boolean; papel: Papel };
+export type EstadoSetup = { pendente: boolean; local: boolean };
 export type CasoFila = {
   id: number; tipo: string; gravidade: string; pontos: number; status: string;
   em_andamento: boolean; anonimo: boolean; simulacao: boolean;
@@ -117,6 +119,8 @@ export const urlAnexo = (casoId: number, anexoId: number) => `/api/casos/${id(ca
 // O login só devolve o nome; o id (para não desativar a própria conta) vem de /api/eu.
 export const entrar = (nome: string, senha: string) => coord<{ nome: string }>('POST', '/api/login', { nome, senha });
 export const sair = () => coord<{ ok: boolean }>('POST', '/api/logout');
+export const estadoSetup = () => coord<EstadoSetup>('GET', '/api/setup');
+export const criarPrimeiroAdmin = (nome: string, senha: string) => coord<{ nome: string }>('POST', '/api/setup', { nome, senha });
 export const quemSou = () => coord<Usuario>('GET', '/api/eu');
 export async function listarCasos(status: string, tipo: string, sinal?: AbortSignal): Promise<CasoFila[]> {
   const consulta = new URLSearchParams();
@@ -133,7 +137,7 @@ export const criarNota = (casoId: number, texto: string) => coord<{ ok: boolean 
 export async function listarUsuarios(sinal?: AbortSignal): Promise<UsuarioLista[]> {
   return (await coord<{ usuarios: UsuarioLista[] }>('GET', '/api/usuarios', undefined, sinal)).usuarios;
 }
-export const criarUsuario = (nome: string, senha: string) => coord<Usuario>('POST', '/api/usuarios', { nome, senha });
+export const criarUsuario = (nome: string, senha: string) => coord<{ id: number; nome: string }>('POST', '/api/usuarios', { nome, senha });
 export const desativarUsuario = (usuarioId: number) => coord<{ ok: boolean }>('POST', `/api/usuarios/${id(usuarioId)}/desativar`);
 export const carregarSimulacao = () => coord<{ criados: number }>('POST', '/api/simulacao/carregar');
 export const removerSimulacao = () => coord<{ removidos: number }>('DELETE', '/api/simulacao');

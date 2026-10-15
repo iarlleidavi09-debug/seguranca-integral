@@ -28,8 +28,8 @@ const detalhe = () => ({
   motivos: [], anexos: [], eventos: [], mensagens: [{ autor: 'coordenacao', texto: 'Publica', criado_em: '2026-10-14T11:00:00+00:00' }],
   notas: [{ id: 1, usuario_id: 1, usuario: 'Marina', texto: 'Reservada', criado_em: '2026-10-14T11:30:00+00:00' }],
 });
-const logado: Rota = () => ({ corpo: { id: 1, nome: 'Marina' } });
-const usuarios = [{ id: 1, nome: 'Marina', ativo: true }, { id: 2, nome: 'Paulo', ativo: true }];
+const logado: Rota = () => ({ corpo: { id: 1, nome: 'Marina', papel: 'admin' } });
+const usuarios = [{ id: 1, nome: 'Marina', ativo: true, papel: 'admin' }, { id: 2, nome: 'Paulo', ativo: true, papel: 'coordenador' }];
 const base = (rotas: Record<string, Rota> = {}) => servidor({
   'GET /api/eu': logado, 'GET /api/casos': () => ({ corpo: { casos: fila } }),
   'GET /api/casos/5': () => ({ corpo: detalhe() }), 'GET /api/usuarios': () => ({ corpo: { usuarios } }), ...rotas,
@@ -133,7 +133,7 @@ describe('Polimento da coordenação', () => {
   it('503 em /api/eu depois do login não parece falha de login e permite tentar de novo', async () => {
     let eu = 0;
     servidor({
-      'GET /api/eu': () => (++eu === 1 ? { status: 401 } : eu === 2 ? { status: 503 } : { corpo: { id: 1, nome: 'Marina' } }),
+      'GET /api/eu': () => (++eu === 1 ? { status: 401 } : eu === 2 ? { status: 503 } : { corpo: { id: 1, nome: 'Marina', papel: 'admin' } }),
       'POST /api/login': () => ({ corpo: { nome: 'Marina' } }),
       'GET /api/casos': () => ({ corpo: { casos: [] } }),
     });

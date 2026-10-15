@@ -49,12 +49,12 @@ def coord_client(coord_app):
 
 @pytest.fixture
 def coord_logado(config, coord_client):
-    """Cliente da coordenação já logado como `coord`."""
+    """Cliente da coordenação já logado como `coord` (admin)."""
     from app.auth import criar_usuario
 
     c = connect(config)
     try:
-        criar_usuario(c, "coord", SENHA_COORD)
+        criar_usuario(c, "coord", SENHA_COORD, "admin")
     finally:
         c.close()
     r = coord_client.post("/api/login", json={"nome": "coord", "senha": SENHA_COORD})

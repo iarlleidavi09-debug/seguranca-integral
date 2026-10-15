@@ -260,3 +260,31 @@ def test_conta_bloqueada_gasta_uma_verificacao_falsa(conn, monkeypatch):
     assert autenticar(conn, "ana", SENHA, T0 + timedelta(minutes=1)) is None
     # mesmo custo de usuário inexistente: uma verificação, só com o hash falso
     assert verificados == [auth._HASH_FALSO]
+
+
+def test_criar_usuario_papel_padrao_e_admin(conn):
+    from app.auth import criar_usuario
+    a = criar_usuario(conn, "ana", "senha-forte-123")
+    b = criar_usuario(conn, "bia", "senha-forte-123", papel="admin")
+    papeis = {r["id"]: r["papel"] for r in conn.execute("SELECT id, papel FROM usuarios")}
+    assert papeis == {a: "coordenador", b: "admin"}
+
+
+def test_criar_usuario_papel_invalido(conn):
+    from app.auth import criar_usuario
+    with pytest.raises(ValueError):
+        criar_usuario(conn, "ana", "senha-forte-123", papel="root")
+
+
+def test_criar_primeiro_admin_so_com_banco_vazio(conn):
+    from app.auth import criar_primeiro_admin, criar_usuario
+    assert criar_primeiro_admin(conn, "ana", "senha-forte-123") is not None
+    assert conn.execute("SELECT papel FROM usuarios").fetchone()["papel"] == "admin"
+    assert criar_primeiro_admin(conn, "bia", "senha-forte-123") is None
+    assert conn.execute("SELECT COUNT(*) FROM usuarios").fetchone()[0] == 1
+
+
+def test_criar_primeiro_admin_valida_senha(conn):
+    from app.auth import criar_primeiro_admin
+    with pytest.raises(ValueError):
+        criar_primeiro_admin(conn, "ana", "curta")

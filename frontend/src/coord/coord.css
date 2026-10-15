@@ -138,3 +138,4 @@ select:disabled { background: var(--desabilitado-fundo); color: var(--desabilita
 @media (max-width: 374px) { .painel { padding-inline: var(--espaco-3); } }
 
 .conversas .titulo-painel { margin-top: 0; font-size: var(--texto-destaque); line-height: 26px; }
+.login .dica { margin: var(--espaco-1) 0 0; font-size: var(--texto-pequeno, 0.875rem); color: var(--texto-suave, inherit); }

@@ -41,7 +41,7 @@ const detalhe = (extra: Record<string, unknown> = {}) => ({
   notas: [{ id: 1, usuario_id: 1, usuario: 'Marina', texto: 'Nota reservada da equipe', criado_em: '2026-10-14T11:30:00+00:00' }],
   ...extra,
 });
-const logado: Rota = () => ({ corpo: { id: 1, nome: 'Marina' } });
+const logado: Rota = () => ({ corpo: { id: 1, nome: 'Marina', papel: 'admin' } });
 
 beforeEach(() => { window.history.replaceState(null, '', '/'); });
 afterEach(() => { vi.useRealTimers(); });
@@ -93,7 +93,7 @@ describe('Entrada', () => {
     const user = userEvent.setup();
     let entrou = false;
     servidor({
-      'GET /api/eu': () => (entrou ? { corpo: { id: 7, nome: 'Marina' } } : { status: 401 }),
+      'GET /api/eu': () => (entrou ? { corpo: { id: 7, nome: 'Marina', papel: 'admin' } } : { status: 401 }),
       'POST /api/login': () => { entrou = true; return { corpo: { nome: 'Marina' } }; },
       'GET /api/casos': () => ({ corpo: { casos: [] } }), 'POST /api/logout': () => ({ corpo: { ok: true } }),
     });
@@ -428,4 +428,64 @@ describe('Telas principais', () => {
       expect(localStorage.length).toBe(0);
       expect(sessionStorage.length).toBe(0);
     });
+});
+
+describe('Primeiro acesso', () => {
+  const pendente = (local: boolean) => ({ 'GET /api/eu': () => ({ status: 401 }), 'GET /api/setup': () => ({ corpo: { pendente: true, local } }) });
+
+  it('sem contas mostra a criação do administrador e entra ao criar', async () => {
+    let criada = false;
+    servidor({
+      ...pendente(true),
+      'GET /api/eu': () => (criada ? { corpo: { id: 1, nome: 'Diretora', papel: 'admin' } } : { status: 401 }),
+      'POST /api/setup': () => { criada = true; return { status: 201, corpo: { nome: 'Diretora' } }; },
+      'GET /api/casos': () => ({ corpo: { casos: [] } }),
+    });
+    const user = userEvent.setup();
+    render(<App />);
+    expect(await screen.findByRole('heading', { name: 'Criar conta de administrador' })).toBeInTheDocument();
+    await user.type(screen.getByLabelText('Nome'), 'Diretora');
+    await user.type(screen.getByLabelText('Senha'), 'senha-forte-123');
+    await user.type(screen.getByLabelText('Repita a senha'), 'senha-forte-123');
+    await user.click(screen.getByRole('button', { name: 'Criar conta e entrar' }));
+    expect(await screen.findByRole('button', { name: 'Usuários' })).toBeInTheDocument();
+    expect(chamadasA('POST', '/api/setup')[0].corpo).toEqual({ nome: 'Diretora', senha: 'senha-forte-123' });
+  });
+
+  it('recusa senhas diferentes ou curtas sem chamar o servidor', async () => {
+    servidor(pendente(true));
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByRole('heading', { name: 'Criar conta de administrador' });
+    await user.type(screen.getByLabelText('Nome'), 'Diretora');
+    await user.type(screen.getByLabelText('Senha'), 'curta');
+    await user.click(screen.getByRole('button', { name: 'Criar conta e entrar' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('pelo menos 10');
+    await user.clear(screen.getByLabelText('Senha'));
+    await user.type(screen.getByLabelText('Senha'), 'senha-forte-123');
+    await user.type(screen.getByLabelText('Repita a senha'), 'outra-coisa-123');
+    await user.click(screen.getByRole('button', { name: 'Criar conta e entrar' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('não são iguais');
+    expect(chamadasA('POST', '/api/setup')).toHaveLength(0);
+  });
+
+  it('fora da máquina do servidor só orienta, sem formulário', async () => {
+    servidor(pendente(false));
+    render(<App />);
+    expect(await screen.findByText(/computador onde o servidor está instalado/)).toBeInTheDocument();
+    expect(screen.queryByLabelText('Senha')).toBeNull();
+  });
+
+  it('com contas existentes mostra o Login normal', async () => {
+    servidor({ 'GET /api/eu': () => ({ status: 401 }), 'GET /api/setup': () => ({ corpo: { pendente: false, local: true } }) });
+    render(<App />);
+    expect(await screen.findByRole('heading', { name: 'Portal da coordenação' })).toBeInTheDocument();
+  });
+
+  it('coordenador sem papel de admin não vê a aba Usuários', async () => {
+    servidor({ 'GET /api/eu': () => ({ corpo: { id: 2, nome: 'Paulo', papel: 'coordenador' } }), 'GET /api/casos': () => ({ corpo: { casos: [] } }) });
+    render(<App />);
+    expect(await screen.findByRole('button', { name: 'Fila' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Usuários' })).toBeNull();
+  });
 });

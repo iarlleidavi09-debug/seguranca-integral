@@ -77,11 +77,21 @@ def _bloqueado(linha: sqlite3.Row, agora: datetime) -> bool:
     return datetime.fromisoformat(linha["bloqueado_ate"]) > agora
 
 
-def criar_usuario(conn: sqlite3.Connection, nome: str, senha: str) -> int:
-    """Cria um usuário ativo e devolve o id. Levanta ValueError se inválido."""
+PAPEIS = ("admin", "coordenador")
+
+
+def criar_usuario(conn: sqlite3.Connection, nome: str, senha: str,
+                  papel: str = "coordenador", *, so_se_vazio: bool = False) -> int | None:
+    """Cria um usuário ativo e devolve o id. Levanta ValueError se inválido.
+
+    Com `so_se_vazio`, a checagem "não há nenhum usuário" e o INSERT ficam na
+    mesma transação; se já houver gente, não cria e devolve None.
+    """
     nome = _normalizar_nome(nome)
     if not nome:
         raise ValueError("nome vazio")
+    if papel not in PAPEIS:
+        raise ValueError("papel invalido")
     if not isinstance(senha, str) or len(senha) < SENHA_MINIMA:
         raise ValueError(f"senha precisa de pelo menos {SENHA_MINIMA} caracteres")
     # O hash é caro; calcula antes de pegar o lock de escrita.
@@ -89,11 +99,14 @@ def criar_usuario(conn: sqlite3.Connection, nome: str, senha: str) -> int:
 
     conn.execute("BEGIN IMMEDIATE")
     try:
+        if so_se_vazio and conn.execute("SELECT 1 FROM usuarios LIMIT 1").fetchone():
+            conn.rollback()
+            return None
         if _buscar_por_nome(conn, nome) is not None:
             raise ValueError("nome de usuário já existe")
         cur = conn.execute(
-            "INSERT INTO usuarios (nome, senha_hash) VALUES (?, ?)",
-            (nome, senha_hash),
+            "INSERT INTO usuarios (nome, senha_hash, papel) VALUES (?, ?, ?)",
+            (nome, senha_hash, papel),
         )
         conn.commit()
     except sqlite3.IntegrityError as erro:
@@ -103,6 +116,11 @@ def criar_usuario(conn: sqlite3.Connection, nome: str, senha: str) -> int:
         conn.rollback()
         raise
     return cur.lastrowid
+
+
+def criar_primeiro_admin(conn: sqlite3.Connection, nome: str, senha: str) -> int | None:
+    """Cria o admin se o banco não tem nenhum usuário; senão devolve None."""
+    return criar_usuario(conn, nome, senha, "admin", so_se_vazio=True)
 
 
 def autenticar(conn: sqlite3.Connection, nome: str, senha: str,
@@ -199,7 +217,7 @@ def desativar_usuario(conn: sqlite3.Connection, usuario_id: int) -> None:
 def listar_usuarios(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     """Lista id, nome e ativo. Nunca devolve hash nem contadores."""
     return conn.execute(
-        "SELECT id, nome, ativo FROM usuarios ORDER BY nome COLLATE NOCASE, id"
+        "SELECT id, nome, ativo, papel FROM usuarios ORDER BY nome COLLATE NOCASE, id"
     ).fetchall()
 
 

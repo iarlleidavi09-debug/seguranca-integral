@@ -40,7 +40,8 @@ CREATE TABLE IF NOT EXISTS usuarios (
     senha_hash TEXT NOT NULL,
     ativo INTEGER NOT NULL DEFAULT 1,
     tentativas INTEGER NOT NULL DEFAULT 0,
-    bloqueado_ate TEXT
+    bloqueado_ate TEXT,
+    papel TEXT NOT NULL DEFAULT 'coordenador' CHECK (papel IN ('admin', 'coordenador'))
 );
 
 CREATE TABLE IF NOT EXISTS mensagens (
@@ -91,6 +92,27 @@ def init_db(config: Config) -> None:
     conn = connect(config)
     try:
         conn.executescript(SCHEMA)
+        _migrar_papel(conn)
         conn.commit()
     finally:
         conn.close()
+
+
+def _migrar_papel(conn: sqlite3.Connection) -> None:
+    """Banco da v1 não tem `papel`: acrescenta a coluna e promove um admin.
+
+    Só roda uma vez (quando a coluna falta). O admin é o usuário
+    `coordenacao`; se não existir, o de menor id, para ninguém ficar sem
+    gerenciar as contas.
+    """
+    colunas = {r["name"] for r in conn.execute("PRAGMA table_info(usuarios)")}
+    if "papel" in colunas:
+        return
+    conn.execute(
+        "ALTER TABLE usuarios ADD COLUMN papel TEXT NOT NULL DEFAULT 'coordenador'"
+    )
+    alvo = conn.execute(
+        "SELECT id FROM usuarios WHERE nome = 'coordenacao' COLLATE NOCASE"
+    ).fetchone() or conn.execute("SELECT id FROM usuarios ORDER BY id LIMIT 1").fetchone()
+    if alvo is not None:
+        conn.execute("UPDATE usuarios SET papel = 'admin' WHERE id = ?", (alvo["id"],))
