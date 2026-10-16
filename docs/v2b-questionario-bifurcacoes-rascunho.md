@@ -78,9 +78,9 @@ Regra transversal sugerida: qualquer resposta **"Não"** ou **"Quero falar com a
 | --- | --- | --- | --- | --- |
 | O1 Não encontrei minha situação | Q1 Q2 Q3 Q4 Q5 Q6 | Uma pergunta aberta ("conte com suas palavras") e, no fim, "alguma destas se parece com o que aconteceu?" com as 5 situações. | Qualquer uma, conforme a escolha. | Só pelas respostas comuns. |
 
-## Aliciamento (sexta situação que o sistema já tem)
+## Aliciamento (incluído pelo usuário em 15/10/2026)
 
-A v1 e a v2 A aceitam o tipo Aliciamento, mas ele não faz parte da sua lista aprovada de cinco. Proponho as bifurcações abaixo para você decidir se entra no questionário.
+Sexta situação do questionário, além das cinco aprovadas. As bifurcações abaixo são propostas e valem para edição, como o resto do documento.
 
 | Opção | Abre | Salta para | Sinal sugerido |
 | --- | --- | --- | --- |
