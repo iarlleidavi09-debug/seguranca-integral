@@ -1,0 +1,2772 @@
+{
+  "dimensoes": {
+    "quando": "Quando e se continua",
+    "frequencia": "Frequência",
+    "alcance": "Quem e quantos souberam",
+    "consequencias": "Consequências",
+    "risco": "Risco agora"
+  },
+  "situacoes": [
+    {
+      "id": "cyberbullying",
+      "tipo": "cyberbullying",
+      "nome": "Cyberbullying",
+      "descricao": "Humilhação, perseguição ou ataques na internet.",
+      "opcoes": [
+        {
+          "id": "c1",
+          "texto": "Estão me humilhando ou fazendo piadas comigo.",
+          "perguntas": [
+            "q1",
+            "q2",
+            "q3",
+            "q5",
+            "c1.onde",
+            "c1.prints",
+            "c1.alvos"
+          ]
+        },
+        {
+          "id": "c2",
+          "texto": "Estão espalhando mentiras ou boatos sobre mim.",
+          "perguntas": [
+            "q1",
+            "q4",
+            "q5",
+            "c2.oque",
+            "c2.apagar",
+            "c2.repassou"
+          ]
+        },
+        {
+          "id": "c3",
+          "texto": "Estão me excluindo de propósito.",
+          "perguntas": [
+            "q1",
+            "q2",
+            "q5",
+            "c3.de",
+            "c3.professor",
+            "c3.tempo",
+            "c3.piadas"
+          ]
+        },
+        {
+          "id": "c4",
+          "texto": "Estão me perseguindo com mensagens e comentários.",
+          "perguntas": [
+            "q1",
+            "q2",
+            "q3",
+            "c4.perfis",
+            "c4.voltou",
+            "c4.fora"
+          ]
+        },
+        {
+          "id": "c5",
+          "texto": "Estão incentivando outras pessoas a me atacar.",
+          "perguntas": [
+            "q1",
+            "q3",
+            "q4",
+            "c5.quantas",
+            "c5.pagina",
+            "c5.convites"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ameaca",
+      "tipo": "ameaca",
+      "nome": "Ameaças",
+      "descricao": "Alguém está te ameaçando ou pressionando.",
+      "opcoes": [
+        {
+          "id": "a1",
+          "texto": "Disseram que vão me machucar.",
+          "perguntas": [
+            "q1",
+            "q3",
+            "q6",
+            "a1.local",
+            "a1.arma",
+            "a1.antes",
+            "a1.como"
+          ]
+        },
+        {
+          "id": "a2",
+          "texto": "Ameaçaram divulgar algo particular meu.",
+          "perguntas": [
+            "q1",
+            "q3",
+            "q4",
+            "a2.oque",
+            "a2.exigem",
+            "a2.divulgaram"
+          ]
+        },
+        {
+          "id": "a3",
+          "texto": "Disseram que vão me encontrar ou me perseguir fora da internet.",
+          "perguntas": [
+            "q1",
+            "q3",
+            "q6",
+            "a3.sabe",
+            "a3.apareceu",
+            "a3.quando",
+            "a3.responsaveis"
+          ]
+        },
+        {
+          "id": "a4",
+          "texto": "Ameaçaram alguém próximo de mim.",
+          "perguntas": [
+            "q1",
+            "q3",
+            "q6",
+            "a4.quem",
+            "a4.sabe",
+            "a4.segura",
+            "a4.machucar"
+          ]
+        },
+        {
+          "id": "a5",
+          "texto": "Estão me ameaçando para me obrigar a fazer algo.",
+          "perguntas": [
+            "q1",
+            "q2",
+            "q3",
+            "a5.quer",
+            "a5.fez",
+            "a5.prazo"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vazamento",
+      "tipo": "vazamento",
+      "nome": "Vazamento de conteúdo particular",
+      "descricao": "Compartilharam algo seu sem autorização.",
+      "opcoes": [
+        {
+          "id": "v1",
+          "texto": "Compartilharam fotos ou vídeos meus sem minha autorização.",
+          "perguntas": [
+            "q1",
+            "q3",
+            "q4",
+            "v1.quem",
+            "v1.onde",
+            "v1.enviou",
+            "v1.intimo"
+          ]
+        },
+        {
+          "id": "v2",
+          "texto": "Divulgaram conversas, áudios ou capturas de tela particulares.",
+          "perguntas": [
+            "q1",
+            "q3",
+            "q4",
+            "v2.sensiveis",
+            "v2.quem",
+            "v2.editado",
+            "v2.contato"
+          ]
+        },
+        {
+          "id": "v3",
+          "texto": "Espalharam meus dados pessoais, como telefone, endereço ou localização.",
+          "perguntas": [
+            "q1",
+            "q4",
+            "q6",
+            "v3.dado",
+            "v3.onde",
+            "v3.procuraram"
+          ]
+        },
+        {
+          "id": "v4",
+          "texto": "Divulgaram conteúdo íntimo meu.",
+          "perguntas": [
+            "q1",
+            "q3",
+            "q4",
+            "q6",
+            "v4.menor",
+            "v4.origem",
+            "v4.onde",
+            "v4.exigem"
+          ]
+        },
+        {
+          "id": "v5",
+          "texto": "Entraram na minha conta e expuseram informações minhas.",
+          "perguntas": [
+            "q1",
+            "q2",
+            "q6",
+            "v5.conta",
+            "v5.acesso",
+            "v5.senha",
+            "v5.oque"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "perfil_falso",
+      "tipo": "perfil_falso",
+      "nome": "Perfil falso ou página de fofoca",
+      "descricao": "Usaram uma identidade ou página para expor alguém.",
+      "opcoes": [
+        {
+          "id": "p1",
+          "texto": "Criaram um perfil fingindo ser eu.",
+          "perguntas": [
+            "q1",
+            "q4",
+            "q5",
+            "p1.faz",
+            "p1.denunciou",
+            "p1.endereco"
+          ]
+        },
+        {
+          "id": "p2",
+          "texto": "Usaram meu nome ou minha imagem em uma página de fofoca.",
+          "perguntas": [
+            "q1",
+            "q4",
+            "q5",
+            "p2.pagina",
+            "p2.oque",
+            "p2.seguidores"
+          ]
+        },
+        {
+          "id": "p3",
+          "texto": "Publicaram boatos ou acusações sobre mim.",
+          "perguntas": [
+            "q1",
+            "q4",
+            "q5",
+            "p3.grave",
+            "p3.acreditam",
+            "p3.escola",
+            "p3.intimo"
+          ]
+        },
+        {
+          "id": "p4",
+          "texto": "Criaram enquetes, rankings ou comparações para me constranger.",
+          "perguntas": [
+            "q1",
+            "q3",
+            "q4",
+            "p4.tipo",
+            "p4.outros",
+            "p4.votos"
+          ]
+        },
+        {
+          "id": "p5",
+          "texto": "Usam um perfil ou uma página para expor e atacar outras pessoas da escola.",
+          "perguntas": [
+            "q1",
+            "q3",
+            "q4",
+            "p5.papel",
+            "p5.quantas",
+            "p5.mostram"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "golpe",
+      "tipo": "golpe",
+      "nome": "Golpe",
+      "descricao": "Pedidos suspeitos, links ou falsas oportunidades.",
+      "opcoes": [
+        {
+          "id": "g1",
+          "texto": "Tentaram me convencer a enviar dinheiro ou fazer um pagamento.",
+          "perguntas": [
+            "q1",
+            "q3",
+            "g1.pagou",
+            "g1.quanto",
+            "g1.meio",
+            "g1.prazo",
+            "g1.ameacado"
+          ]
+        },
+        {
+          "id": "g2",
+          "texto": "Pediram minha senha, código de acesso ou dados pessoais.",
+          "perguntas": [
+            "q1",
+            "q6",
+            "g2.passou",
+            "g2.controla",
+            "g2.trocou"
+          ]
+        },
+        {
+          "id": "g3",
+          "texto": "Enviaram um link ou arquivo suspeito para eu abrir.",
+          "perguntas": [
+            "q1",
+            "g3.abriu",
+            "g3.estranho",
+            "g3.aparelho",
+            "g3.roubado"
+          ]
+        },
+        {
+          "id": "g4",
+          "texto": "Fingiram ser alguém ou alguma organização em que confio.",
+          "perguntas": [
+            "q1",
+            "q3",
+            "g4.quem",
+            "g4.pediram",
+            "g4.respondeu"
+          ]
+        },
+        {
+          "id": "g5",
+          "texto": "Ofereceram uma compra, prêmio, vaga ou oportunidade que parece falsa.",
+          "perguntas": [
+            "q1",
+            "q3",
+            "g5.onde",
+            "g5.fez",
+            "g5.colegas"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "aliciamento",
+      "tipo": "aliciamento",
+      "nome": "Aliciamento",
+      "descricao": "Alguém está tentando se aproximar de você de um jeito que incomoda ou assusta.",
+      "opcoes": [
+        {
+          "id": "l1",
+          "texto": "Alguém mais velho puxa conversa de um jeito estranho.",
+          "perguntas": [
+            "l1.idade",
+            "l1.segredo",
+            "l1.fotos",
+            "l1.encontro",
+            "l1.pessoalmente"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "outro",
+      "tipo": "outro",
+      "nome": "Outros",
+      "descricao": "Não encontrei minha situação nas opções.",
+      "opcoes": [
+        {
+          "id": "o1",
+          "texto": "Não encontrei minha situação.",
+          "perguntas": [
+            "q1",
+            "q2",
+            "q3",
+            "q4",
+            "q5",
+            "q6"
+          ]
+        }
+      ]
+    }
+  ],
+  "perguntas": [
+    {
+      "id": "q1",
+      "dimensao": "quando",
+      "texto": "Isso ainda está acontecendo?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "q1.agora",
+          "texto": "Sim, agora"
+        },
+        {
+          "id": "q1.parou",
+          "texto": "Aconteceu e parou"
+        },
+        {
+          "id": "q1.volta",
+          "texto": "Parou, mas pode voltar"
+        },
+        {
+          "id": "q1.nsei",
+          "texto": "Não sei"
+        }
+      ]
+    },
+    {
+      "id": "q2",
+      "dimensao": "frequencia",
+      "texto": "Com que frequência acontece?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "q2.uma",
+          "texto": "Uma vez"
+        },
+        {
+          "id": "q2.poucas",
+          "texto": "Poucas vezes"
+        },
+        {
+          "id": "q2.semana",
+          "texto": "Toda semana"
+        },
+        {
+          "id": "q2.dia",
+          "texto": "Todo dia"
+        },
+        {
+          "id": "q2.nsei",
+          "texto": "Não sei"
+        }
+      ]
+    },
+    {
+      "id": "q3",
+      "dimensao": "alcance",
+      "texto": "Quem está fazendo isso?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "q3.conhecida",
+          "texto": "Uma pessoa que conheço"
+        },
+        {
+          "id": "q3.grupo",
+          "texto": "Um grupo da escola"
+        },
+        {
+          "id": "q3.desconhecida",
+          "texto": "Alguém que não conheço"
+        },
+        {
+          "id": "q3.semnome",
+          "texto": "Um perfil sem nome"
+        },
+        {
+          "id": "q3.nsei",
+          "texto": "Não sei"
+        }
+      ]
+    },
+    {
+      "id": "q4",
+      "dimensao": "alcance",
+      "texto": "Quantas pessoas viram ou souberam?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "q4.so_eu",
+          "texto": "Só eu"
+        },
+        {
+          "id": "q4.poucas",
+          "texto": "Poucas pessoas"
+        },
+        {
+          "id": "q4.escola",
+          "texto": "Muita gente da escola"
+        },
+        {
+          "id": "q4.fora",
+          "texto": "Gente de fora da escola"
+        },
+        {
+          "id": "q4.nsei",
+          "texto": "Não sei"
+        }
+      ]
+    },
+    {
+      "id": "q5",
+      "dimensao": "consequencias",
+      "texto": "O que já mudou na sua vida por causa disso? (pode marcar mais de uma)",
+      "tipo": "multipla",
+      "respostas": [
+        {
+          "id": "q5.evito",
+          "texto": "Evito vir à escola"
+        },
+        {
+          "id": "q5.sono",
+          "texto": "Durmo ou como mal"
+        },
+        {
+          "id": "q5.amigos",
+          "texto": "Perdi amigos"
+        },
+        {
+          "id": "q5.medo",
+          "texto": "Estou com muito medo"
+        },
+        {
+          "id": "q5.nada",
+          "texto": "Nada ainda"
+        },
+        {
+          "id": "q5.pnd",
+          "texto": "Prefiro não dizer"
+        }
+      ]
+    },
+    {
+      "id": "q6",
+      "dimensao": "risco",
+      "texto": "Você está seguro agora?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "q6.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "q6.mais_ou_menos",
+          "texto": "Mais ou menos"
+        },
+        {
+          "id": "q6.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "q6.hoje",
+          "texto": "Quero falar com alguém hoje"
+        }
+      ]
+    },
+    {
+      "id": "c1.onde",
+      "dimensao": "alcance",
+      "texto": "Onde isso acontece? (pode marcar mais de uma)",
+      "tipo": "multipla",
+      "respostas": [
+        {
+          "id": "c1.onde.grupo",
+          "texto": "Grupo da turma"
+        },
+        {
+          "id": "c1.onde.rede",
+          "texto": "Rede social"
+        },
+        {
+          "id": "c1.onde.jogo",
+          "texto": "Jogo online"
+        },
+        {
+          "id": "c1.onde.outro",
+          "texto": "Outro lugar"
+        }
+      ],
+      "mostrar_se": [
+        "c3.piadas.sim"
+      ]
+    },
+    {
+      "id": "c1.prints",
+      "dimensao": "alcance",
+      "texto": "Você tem prints ou imagens para anexar?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "c1.prints.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "c1.prints.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "c1.prints.nsei",
+          "texto": "Não sei"
+        }
+      ],
+      "mostrar_se": [
+        "c3.piadas.sim"
+      ]
+    },
+    {
+      "id": "c1.alvos",
+      "dimensao": "alcance",
+      "texto": "Mais alguém, além de você, é alvo?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "c1.alvos.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "c1.alvos.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "c1.alvos.nsei",
+          "texto": "Não sei"
+        }
+      ],
+      "mostrar_se": [
+        "c3.piadas.sim"
+      ]
+    },
+    {
+      "id": "c1.testemunhas",
+      "dimensao": "alcance",
+      "texto": "Outras pessoas do grupo viram e ficaram quietas?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "c1.testemunhas.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "c1.testemunhas.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "c1.testemunhas.nsei",
+          "texto": "Não sei"
+        }
+      ],
+      "mostrar_se": [
+        "c1.onde.grupo",
+        "c3.piadas.sim"
+      ]
+    },
+    {
+      "id": "c2.oque",
+      "dimensao": "alcance",
+      "texto": "O que estão dizendo? (pode marcar mais de uma)",
+      "tipo": "multipla",
+      "respostas": [
+        {
+          "id": "c2.oque.namoro",
+          "texto": "Sobre namoro ou vida pessoal"
+        },
+        {
+          "id": "c2.oque.sexualidade",
+          "texto": "Sobre minha sexualidade"
+        },
+        {
+          "id": "c2.oque.familia",
+          "texto": "Sobre minha família"
+        },
+        {
+          "id": "c2.oque.intimo",
+          "texto": "Algo íntimo"
+        },
+        {
+          "id": "c2.oque.acusacao",
+          "texto": "Uma acusação grave"
+        },
+        {
+          "id": "c2.oque.outro",
+          "texto": "Outra coisa"
+        }
+      ]
+    },
+    {
+      "id": "c2.apagar",
+      "dimensao": "alcance",
+      "texto": "Você já pediu para apagar?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "c2.apagar.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "c2.apagar.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "c2.apagar.nsei",
+          "texto": "Não sei"
+        }
+      ]
+    },
+    {
+      "id": "c2.repassou",
+      "dimensao": "alcance",
+      "texto": "Quem repassou?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "c2.repassou.conhecidos",
+          "texto": "Pessoas que conheço"
+        },
+        {
+          "id": "c2.repassou.grupo",
+          "texto": "Um grupo"
+        },
+        {
+          "id": "c2.repassou.nsei",
+          "texto": "Não sei"
+        }
+      ]
+    },
+    {
+      "id": "c3.de",
+      "dimensao": "alcance",
+      "texto": "Do que te excluem? (pode marcar mais de uma)",
+      "tipo": "multipla",
+      "respostas": [
+        {
+          "id": "c3.de.grupo",
+          "texto": "Grupo da turma"
+        },
+        {
+          "id": "c3.de.trabalho",
+          "texto": "Trabalho em equipe"
+        },
+        {
+          "id": "c3.de.evento",
+          "texto": "Evento ou passeio"
+        }
+      ]
+    },
+    {
+      "id": "c3.professor",
+      "dimensao": "alcance",
+      "texto": "Algum professor sabe?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "c3.professor.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "c3.professor.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "c3.professor.nsei",
+          "texto": "Não sei"
+        }
+      ]
+    },
+    {
+      "id": "c3.tempo",
+      "dimensao": "quando",
+      "texto": "Isso é novo ou antigo?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "c3.tempo.novo",
+          "texto": "Começou há pouco"
+        },
+        {
+          "id": "c3.tempo.antigo",
+          "texto": "Já faz muito tempo"
+        },
+        {
+          "id": "c3.tempo.nsei",
+          "texto": "Não sei"
+        }
+      ]
+    },
+    {
+      "id": "c3.piadas",
+      "dimensao": "alcance",
+      "texto": "Junto com a exclusão, fazem piadas ou humilham você?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "c3.piadas.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "c3.piadas.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "c3.piadas.nsei",
+          "texto": "Não sei"
+        }
+      ]
+    },
+    {
+      "id": "c4.perfis",
+      "dimensao": "alcance",
+      "texto": "Quantos perfis a pessoa usa contra você?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "c4.perfis.um",
+          "texto": "Um"
+        },
+        {
+          "id": "c4.perfis.varios",
+          "texto": "Vários"
+        },
+        {
+          "id": "c4.perfis.nsei",
+          "texto": "Não sei"
+        }
+      ]
+    },
+    {
+      "id": "c4.voltou",
+      "dimensao": "frequencia",
+      "texto": "Você bloqueou e a pessoa voltou por outro perfil?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "c4.voltou.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "c4.voltou.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "c4.voltou.nsei",
+          "texto": "Não sei"
+        }
+      ]
+    },
+    {
+      "id": "c4.fora",
+      "dimensao": "risco",
+      "texto": "A pessoa também te procurou fora da internet?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "c4.fora.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "c4.fora.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "c4.fora.nsei",
+          "texto": "Não sei"
+        }
+      ]
+    },
+    {
+      "id": "c5.quantas",
+      "dimensao": "alcance",
+      "texto": "Quantas pessoas estão atacando você?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "c5.quantas.poucas",
+          "texto": "Poucas"
+        },
+        {
+          "id": "c5.quantas.muitas",
+          "texto": "Muitas"
+        },
+        {
+          "id": "c5.quantas.nsei",
+          "texto": "Não sei"
+        }
+      ]
+    },
+    {
+      "id": "c5.pagina",
+      "dimensao": "alcance",
+      "texto": "Existe um grupo ou uma página organizada para isso?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "c5.pagina.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "c5.pagina.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "c5.pagina.nsei",
+          "texto": "Não sei"
+        }
+      ]
+    },
+    {
+      "id": "c5.convites",
+      "dimensao": "alcance",
+      "texto": "Há convites públicos para atacar você?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "c5.convites.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "c5.convites.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "c5.convites.nsei",
+          "texto": "Não sei"
+        }
+      ]
+    },
+    {
+      "id": "a1.local",
+      "dimensao": "risco",
+      "texto": "A pessoa falou data, hora ou lugar?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "a1.local.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "a1.local.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "a1.local.nsei",
+          "texto": "Não sei"
+        }
+      ],
+      "mostrar_se": [
+        "a4.machucar.sim"
+      ]
+    },
+    {
+      "id": "a1.arma",
+      "dimensao": "risco",
+      "texto": "Ela falou de arma, faca ou outro objeto?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "a1.arma.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "a1.arma.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "a1.arma.nsei",
+          "texto": "Não sei"
+        }
+      ],
+      "mostrar_se": [
+        "a4.machucar.sim"
+      ]
+    },
+    {
+      "id": "a1.antes",
+      "dimensao": "risco",
+      "texto": "Já aconteceu agressão antes?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "a1.antes.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "a1.antes.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "a1.antes.nsei",
+          "texto": "Não sei"
+        }
+      ],
+      "mostrar_se": [
+        "a4.machucar.sim"
+      ]
+    },
+    {
+      "id": "a1.como",
+      "dimensao": "alcance",
+      "texto": "Como a ameaça chegou? (pode marcar mais de uma)",
+      "tipo": "multipla",
+      "respostas": [
+        {
+          "id": "a1.como.mensagem",
+          "texto": "Mensagem"
+        },
+        {
+          "id": "a1.como.audio",
+          "texto": "Áudio"
+        },
+        {
+          "id": "a1.como.pessoa",
+          "texto": "Em pessoa"
+        }
+      ],
+      "mostrar_se": [
+        "a4.machucar.sim"
+      ]
+    },
+    {
+      "id": "a2.oque",
+      "dimensao": "alcance",
+      "texto": "O que ameaçam divulgar? (pode marcar mais de uma)",
+      "tipo": "multipla",
+      "respostas": [
+        {
+          "id": "a2.oque.foto",
+          "texto": "Uma foto"
+        },
+        {
+          "id": "a2.oque.conversa",
+          "texto": "Uma conversa"
+        },
+        {
+          "id": "a2.oque.segredo",
+          "texto": "Um segredo"
+        },
+        {
+          "id": "a2.oque.intimo",
+          "texto": "Algo íntimo"
+        }
+      ]
+    },
+    {
+      "id": "a2.exigem",
+      "dimensao": "risco",
+      "texto": "Exigem algo em troca?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "a2.exigem.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "a2.exigem.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "a2.exigem.nsei",
+          "texto": "Não sei"
+        }
+      ]
+    },
+    {
+      "id": "a2.divulgaram",
+      "dimensao": "alcance",
+      "texto": "Já divulgaram alguma vez?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "a2.divulgaram.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "a2.divulgaram.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "a2.divulgaram.nsei",
+          "texto": "Não sei"
+        }
+      ]
+    },
+    {
+      "id": "a3.sabe",
+      "dimensao": "risco",
+      "texto": "A pessoa sabe onde você mora ou estuda?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "a3.sabe.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "a3.sabe.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "a3.sabe.nsei",
+          "texto": "Não sei"
+        }
+      ],
+      "mostrar_se": [
+        "c4.fora.sim",
+        "v3.procuraram.sim",
+        "l1.encontro.sim"
+      ]
+    },
+    {
+      "id": "a3.apareceu",
+      "dimensao": "risco",
+      "texto": "Ela já apareceu ou te seguiu?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "a3.apareceu.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "a3.apareceu.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "a3.apareceu.nsei",
+          "texto": "Não sei"
+        }
+      ],
+      "mostrar_se": [
+        "c4.fora.sim",
+        "v3.procuraram.sim",
+        "l1.encontro.sim"
+      ]
+    },
+    {
+      "id": "a3.quando",
+      "dimensao": "risco",
+      "texto": "Quando você acha que existe risco?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "a3.quando.hoje",
+          "texto": "Hoje"
+        },
+        {
+          "id": "a3.quando.saida",
+          "texto": "Na saída da escola"
+        },
+        {
+          "id": "a3.quando.fds",
+          "texto": "No fim de semana"
+        },
+        {
+          "id": "a3.quando.nsei",
+          "texto": "Não sei"
+        }
+      ],
+      "mostrar_se": [
+        "c4.fora.sim",
+        "v3.procuraram.sim",
+        "l1.encontro.sim"
+      ]
+    },
+    {
+      "id": "a3.responsaveis",
+      "dimensao": "risco",
+      "texto": "Seus responsáveis sabem?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "a3.responsaveis.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "a3.responsaveis.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "a3.responsaveis.nsei",
+          "texto": "Não sei"
+        }
+      ],
+      "mostrar_se": [
+        "c4.fora.sim",
+        "v3.procuraram.sim",
+        "l1.encontro.sim"
+      ]
+    },
+    {
+      "id": "a4.quem",
+      "dimensao": "alcance",
+      "texto": "Quem é a pessoa ameaçada?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "a4.quem.amigo",
+          "texto": "Um amigo ou amiga"
+        },
+        {
+          "id": "a4.quem.irmao",
+          "texto": "Irmão ou irmã"
+        },
+        {
+          "id": "a4.quem.familiar",
+          "texto": "Outro familiar"
+        },
+        {
+          "id": "a4.quem.outro",
+          "texto": "Outra pessoa"
+        }
+      ]
+    },
+    {
+      "id": "a4.sabe",
+      "dimensao": "alcance",
+      "texto": "Essa pessoa já sabe?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "a4.sabe.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "a4.sabe.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "a4.sabe.nsei",
+          "texto": "Não sei"
+        }
+      ]
+    },
+    {
+      "id": "a4.segura",
+      "dimensao": "risco",
+      "texto": "Ela está segura agora?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "a4.segura.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "a4.segura.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "a4.segura.nsei",
+          "texto": "Não sei"
+        }
+      ]
+    },
+    {
+      "id": "a4.machucar",
+      "dimensao": "risco",
+      "texto": "A ameaça é de machucar essa pessoa?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "a4.machucar.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "a4.machucar.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "a4.machucar.nsei",
+          "texto": "Não sei"
+        }
+      ]
+    },
+    {
+      "id": "a5.quer",
+      "dimensao": "alcance",
+      "texto": "O que querem que você faça? (pode marcar mais de uma)",
+      "tipo": "multipla",
+      "respostas": [
+        {
+          "id": "a5.quer.dinheiro",
+          "texto": "Pagar dinheiro"
+        },
+        {
+          "id": "a5.quer.fotos",
+          "texto": "Mandar fotos"
+        },
+        {
+          "id": "a5.quer.algo",
+          "texto": "Fazer alguma coisa"
+        },
+        {
+          "id": "a5.quer.quieto",
+          "texto": "Ficar quieto"
+        }
+      ],
+      "mostrar_se": [
+        "a2.exigem.sim",
+        "v4.exigem.sim",
+        "g1.ameacado.sim"
+      ]
+    },
+    {
+      "id": "a5.fez",
+      "dimensao": "consequencias",
+      "texto": "Você já fez alguma coisa do que pediram?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "a5.fez.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "a5.fez.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "a5.fez.nsei",
+          "texto": "Não sei"
+        }
+      ],
+      "mostrar_se": [
+        "a2.exigem.sim",
+        "v4.exigem.sim",
+        "g1.ameacado.sim"
+      ]
+    },
+    {
+      "id": "a5.prazo",
+      "dimensao": "risco",
+      "texto": "Existe um prazo?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "a5.prazo.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "a5.prazo.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "a5.prazo.nsei",
+          "texto": "Não sei"
+        }
+      ],
+      "mostrar_se": [
+        "a2.exigem.sim",
+        "v4.exigem.sim",
+        "g1.ameacado.sim"
+      ]
+    },
+    {
+      "id": "v1.quem",
+      "dimensao": "alcance",
+      "texto": "Quem tem o material?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "v1.quem.conhecido",
+          "texto": "Alguém que conheço"
+        },
+        {
+          "id": "v1.quem.grupo",
+          "texto": "Um grupo"
+        },
+        {
+          "id": "v1.quem.desconhecido",
+          "texto": "Alguém que não conheço"
+        },
+        {
+          "id": "v1.quem.nsei",
+          "texto": "Não sei"
+        }
+      ],
+      "mostrar_se": [
+        "v5.oque.fotos"
+      ]
+    },
+    {
+      "id": "v1.onde",
+      "dimensao": "alcance",
+      "texto": "Onde foi publicado? (pode marcar mais de uma)",
+      "tipo": "multipla",
+      "respostas": [
+        {
+          "id": "v1.onde.grupo",
+          "texto": "Em um grupo"
+        },
+        {
+          "id": "v1.onde.rede",
+          "texto": "Em rede social"
+        },
+        {
+          "id": "v1.onde.site",
+          "texto": "Em um site"
+        },
+        {
+          "id": "v1.onde.nsei",
+          "texto": "Não sei"
+        }
+      ],
+      "mostrar_se": [
+        "v5.oque.fotos"
+      ]
+    },
+    {
+      "id": "v1.enviou",
+      "dimensao": "alcance",
+      "texto": "Foi você que enviou esse material para alguém antes?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "v1.enviou.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "v1.enviou.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "v1.enviou.nsei",
+          "texto": "Não sei"
+        },
+        {
+          "id": "v1.enviou.pnd",
+          "texto": "Prefiro não dizer"
+        }
+      ],
+      "mostrar_se": [
+        "v5.oque.fotos"
+      ]
+    },
+    {
+      "id": "v1.intimo",
+      "dimensao": "alcance",
+      "texto": "O material é íntimo?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "v1.intimo.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "v1.intimo.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "v1.intimo.nsei",
+          "texto": "Não sei"
+        }
+      ],
+      "mostrar_se": [
+        "v5.oque.fotos"
+      ]
+    },
+    {
+      "id": "v2.sensiveis",
+      "dimensao": "risco",
+      "texto": "Tem dados sensíveis, como endereço, saúde ou segredo?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "v2.sensiveis.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "v2.sensiveis.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "v2.sensiveis.nsei",
+          "texto": "Não sei"
+        }
+      ],
+      "mostrar_se": [
+        "v5.oque.conversas"
+      ]
+    },
+    {
+      "id": "v2.quem",
+      "dimensao": "alcance",
+      "texto": "Quem divulgou?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "v2.quem.conhecido",
+          "texto": "Alguém que conheço"
+        },
+        {
+          "id": "v2.quem.grupo",
+          "texto": "Um grupo"
+        },
+        {
+          "id": "v2.quem.desconhecido",
+          "texto": "Alguém que não conheço"
+        },
+        {
+          "id": "v2.quem.nsei",
+          "texto": "Não sei"
+        }
+      ],
+      "mostrar_se": [
+        "v5.oque.conversas"
+      ]
+    },
+    {
+      "id": "v2.editado",
+      "dimensao": "alcance",
+      "texto": "Foi editado ou tirado de contexto?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "v2.editado.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "v2.editado.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "v2.editado.nsei",
+          "texto": "Não sei"
+        }
+      ],
+      "mostrar_se": [
+        "v5.oque.conversas"
+      ]
+    },
+    {
+      "id": "v2.contato",
+      "dimensao": "risco",
+      "texto": "Aparecem dados de contato, como telefone ou endereço?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "v2.contato.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "v2.contato.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "v2.contato.nsei",
+          "texto": "Não sei"
+        }
+      ],
+      "mostrar_se": [
+        "v5.oque.conversas"
+      ]
+    },
+    {
+      "id": "v3.dado",
+      "dimensao": "risco",
+      "texto": "Qual dado foi exposto? (pode marcar mais de uma)",
+      "tipo": "multipla",
+      "respostas": [
+        {
+          "id": "v3.dado.telefone",
+          "texto": "Telefone"
+        },
+        {
+          "id": "v3.dado.endereco",
+          "texto": "Endereço"
+        },
+        {
+          "id": "v3.dado.localizacao",
+          "texto": "Localização"
+        },
+        {
+          "id": "v3.dado.outro",
+          "texto": "Outro"
+        }
+      ],
+      "mostrar_se": [
+        "a3.sabe.sim",
+        "v2.contato.sim"
+      ]
+    },
+    {
+      "id": "v3.onde",
+      "dimensao": "alcance",
+      "texto": "Onde foi publicado? (pode marcar mais de uma)",
+      "tipo": "multipla",
+      "respostas": [
+        {
+          "id": "v3.onde.grupo",
+          "texto": "Em um grupo"
+        },
+        {
+          "id": "v3.onde.rede",
+          "texto": "Em rede social"
+        },
+        {
+          "id": "v3.onde.site",
+          "texto": "Em um site"
+        },
+        {
+          "id": "v3.onde.nsei",
+          "texto": "Não sei"
+        }
+      ],
+      "mostrar_se": [
+        "a3.sabe.sim",
+        "v2.contato.sim"
+      ]
+    },
+    {
+      "id": "v3.procuraram",
+      "dimensao": "risco",
+      "texto": "Alguém já te procurou por causa disso?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "v3.procuraram.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "v3.procuraram.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "v3.procuraram.nsei",
+          "texto": "Não sei"
+        }
+      ],
+      "mostrar_se": [
+        "a3.sabe.sim",
+        "v2.contato.sim"
+      ]
+    },
+    {
+      "id": "v4.menor",
+      "dimensao": "risco",
+      "texto": "Você tinha menos de 18 anos quando isso aconteceu?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "v4.menor.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "v4.menor.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "v4.menor.nsei",
+          "texto": "Não sei"
+        },
+        {
+          "id": "v4.menor.pnd",
+          "texto": "Prefiro não dizer"
+        }
+      ],
+      "mostrar_se": [
+        "c2.oque.intimo",
+        "a2.oque.intimo",
+        "a5.quer.fotos",
+        "v1.intimo.sim",
+        "p3.intimo.sim",
+        "p4.tipo.sexual",
+        "l1.fotos.sim"
+      ]
+    },
+    {
+      "id": "v4.origem",
+      "dimensao": "alcance",
+      "texto": "Como o conteúdo saiu de você?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "v4.origem.enviei",
+          "texto": "Eu mesmo enviei"
+        },
+        {
+          "id": "v4.origem.obrigado",
+          "texto": "Fui obrigado ou enganado"
+        },
+        {
+          "id": "v4.origem.outro",
+          "texto": "De outra forma"
+        },
+        {
+          "id": "v4.origem.pnd",
+          "texto": "Prefiro não dizer"
+        }
+      ],
+      "mostrar_se": [
+        "c2.oque.intimo",
+        "a2.oque.intimo",
+        "a5.quer.fotos",
+        "v1.intimo.sim",
+        "p3.intimo.sim",
+        "p4.tipo.sexual",
+        "l1.fotos.sim"
+      ]
+    },
+    {
+      "id": "v4.onde",
+      "dimensao": "alcance",
+      "texto": "Onde foi compartilhado? (pode marcar mais de uma)",
+      "tipo": "multipla",
+      "respostas": [
+        {
+          "id": "v4.onde.grupo",
+          "texto": "Em um grupo"
+        },
+        {
+          "id": "v4.onde.rede",
+          "texto": "Em rede social"
+        },
+        {
+          "id": "v4.onde.site",
+          "texto": "Em um site"
+        },
+        {
+          "id": "v4.onde.nsei",
+          "texto": "Não sei"
+        }
+      ],
+      "mostrar_se": [
+        "c2.oque.intimo",
+        "a2.oque.intimo",
+        "a5.quer.fotos",
+        "v1.intimo.sim",
+        "p3.intimo.sim",
+        "p4.tipo.sexual",
+        "l1.fotos.sim"
+      ]
+    },
+    {
+      "id": "v4.exigem",
+      "dimensao": "risco",
+      "texto": "Estão exigindo algo de você agora?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "v4.exigem.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "v4.exigem.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "v4.exigem.nsei",
+          "texto": "Não sei"
+        }
+      ],
+      "mostrar_se": [
+        "c2.oque.intimo",
+        "a2.oque.intimo",
+        "a5.quer.fotos",
+        "v1.intimo.sim",
+        "p3.intimo.sim",
+        "p4.tipo.sexual",
+        "l1.fotos.sim"
+      ]
+    },
+    {
+      "id": "v5.conta",
+      "dimensao": "alcance",
+      "texto": "Qual conta foi invadida?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "v5.conta.rede",
+          "texto": "Rede social"
+        },
+        {
+          "id": "v5.conta.email",
+          "texto": "E-mail"
+        },
+        {
+          "id": "v5.conta.jogo",
+          "texto": "Jogo"
+        },
+        {
+          "id": "v5.conta.banco",
+          "texto": "Banco"
+        }
+      ],
+      "mostrar_se": [
+        "g2.controla.nao",
+        "g3.roubado.sim"
+      ]
+    },
+    {
+      "id": "v5.acesso",
+      "dimensao": "risco",
+      "texto": "Você ainda tem acesso à conta?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "v5.acesso.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "v5.acesso.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "v5.acesso.nsei",
+          "texto": "Não sei"
+        }
+      ],
+      "mostrar_se": [
+        "g2.controla.nao",
+        "g3.roubado.sim"
+      ]
+    },
+    {
+      "id": "v5.senha",
+      "dimensao": "risco",
+      "texto": "Você usava a mesma senha em outros lugares?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "v5.senha.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "v5.senha.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "v5.senha.nsei",
+          "texto": "Não sei"
+        }
+      ],
+      "mostrar_se": [
+        "g2.controla.nao",
+        "g3.roubado.sim"
+      ]
+    },
+    {
+      "id": "v5.oque",
+      "dimensao": "consequencias",
+      "texto": "O que expuseram ou fizeram? (pode marcar mais de uma)",
+      "tipo": "multipla",
+      "respostas": [
+        {
+          "id": "v5.oque.fotos",
+          "texto": "Expuseram fotos"
+        },
+        {
+          "id": "v5.oque.conversas",
+          "texto": "Expuseram conversas"
+        },
+        {
+          "id": "v5.oque.dinheiro",
+          "texto": "Tiraram dinheiro"
+        },
+        {
+          "id": "v5.oque.outro",
+          "texto": "Outra coisa"
+        }
+      ],
+      "mostrar_se": [
+        "g2.controla.nao",
+        "g3.roubado.sim"
+      ]
+    },
+    {
+      "id": "p1.faz",
+      "dimensao": "alcance",
+      "texto": "O que o perfil faz? (pode marcar mais de uma)",
+      "tipo": "multipla",
+      "respostas": [
+        {
+          "id": "p1.faz.posta",
+          "texto": "Posta coisas"
+        },
+        {
+          "id": "p1.faz.fala",
+          "texto": "Fala com meus amigos"
+        },
+        {
+          "id": "p1.faz.pede",
+          "texto": "Pede dinheiro ou dados"
+        }
+      ]
+    },
+    {
+      "id": "p1.denunciou",
+      "dimensao": "alcance",
+      "texto": "Você já denunciou à plataforma?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "p1.denunciou.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "p1.denunciou.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "p1.denunciou.nsei",
+          "texto": "Não sei"
+        }
+      ]
+    },
+    {
+      "id": "p1.endereco",
+      "dimensao": "alcance",
+      "texto": "Você tem o endereço (link) do perfil?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "p1.endereco.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "p1.endereco.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "p1.endereco.nsei",
+          "texto": "Não sei"
+        }
+      ]
+    },
+    {
+      "id": "p2.pagina",
+      "dimensao": "alcance",
+      "texto": "Você sabe o nome ou o endereço da página?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "p2.pagina.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "p2.pagina.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "p2.pagina.nsei",
+          "texto": "Não sei"
+        }
+      ],
+      "mostrar_se": [
+        "c5.pagina.sim",
+        "p5.papel.alvo"
+      ]
+    },
+    {
+      "id": "p2.oque",
+      "dimensao": "alcance",
+      "texto": "O que publicaram sobre você? (pode marcar mais de uma)",
+      "tipo": "multipla",
+      "respostas": [
+        {
+          "id": "p2.oque.foto",
+          "texto": "Foto minha"
+        },
+        {
+          "id": "p2.oque.nome",
+          "texto": "Meu nome"
+        },
+        {
+          "id": "p2.oque.boatos",
+          "texto": "Boatos"
+        },
+        {
+          "id": "p2.oque.outro",
+          "texto": "Outra coisa"
+        }
+      ],
+      "mostrar_se": [
+        "c5.pagina.sim",
+        "p5.papel.alvo"
+      ]
+    },
+    {
+      "id": "p2.seguidores",
+      "dimensao": "alcance",
+      "texto": "Quantos seguidores a página tem?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "p2.seguidores.poucos",
+          "texto": "Poucos"
+        },
+        {
+          "id": "p2.seguidores.muitos",
+          "texto": "Muitos"
+        },
+        {
+          "id": "p2.seguidores.nsei",
+          "texto": "Não sei"
+        }
+      ],
+      "mostrar_se": [
+        "c5.pagina.sim",
+        "p5.papel.alvo"
+      ]
+    },
+    {
+      "id": "p3.grave",
+      "dimensao": "alcance",
+      "texto": "A acusação é grave, como crime ou conduta sexual?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "p3.grave.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "p3.grave.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "p3.grave.nsei",
+          "texto": "Não sei"
+        }
+      ],
+      "mostrar_se": [
+        "c2.oque.acusacao",
+        "p2.oque.boatos"
+      ]
+    },
+    {
+      "id": "p3.acreditam",
+      "dimensao": "alcance",
+      "texto": "Quantas pessoas acreditam?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "p3.acreditam.ninguem",
+          "texto": "Ninguém"
+        },
+        {
+          "id": "p3.acreditam.poucas",
+          "texto": "Poucas"
+        },
+        {
+          "id": "p3.acreditam.muitas",
+          "texto": "Muitas"
+        },
+        {
+          "id": "p3.acreditam.nsei",
+          "texto": "Não sei"
+        }
+      ],
+      "mostrar_se": [
+        "c2.oque.acusacao",
+        "p2.oque.boatos"
+      ]
+    },
+    {
+      "id": "p3.escola",
+      "dimensao": "consequencias",
+      "texto": "Isso afeta sua vida na escola?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "p3.escola.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "p3.escola.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "p3.escola.nsei",
+          "texto": "Não sei"
+        }
+      ],
+      "mostrar_se": [
+        "c2.oque.acusacao",
+        "p2.oque.boatos"
+      ]
+    },
+    {
+      "id": "p3.intimo",
+      "dimensao": "alcance",
+      "texto": "O boato é íntimo?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "p3.intimo.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "p3.intimo.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "p3.intimo.nsei",
+          "texto": "Não sei"
+        }
+      ],
+      "mostrar_se": [
+        "c2.oque.acusacao",
+        "p2.oque.boatos"
+      ]
+    },
+    {
+      "id": "p4.tipo",
+      "dimensao": "alcance",
+      "texto": "Sobre o que é? (pode marcar mais de uma)",
+      "tipo": "multipla",
+      "respostas": [
+        {
+          "id": "p4.tipo.aparencia",
+          "texto": "Aparência"
+        },
+        {
+          "id": "p4.tipo.corpo",
+          "texto": "Corpo"
+        },
+        {
+          "id": "p4.tipo.popularidade",
+          "texto": "Popularidade"
+        },
+        {
+          "id": "p4.tipo.sexual",
+          "texto": "Tem tom sexual"
+        }
+      ]
+    },
+    {
+      "id": "p4.outros",
+      "dimensao": "alcance",
+      "texto": "Outras pessoas também estão nisso?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "p4.outros.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "p4.outros.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "p4.outros.nsei",
+          "texto": "Não sei"
+        }
+      ]
+    },
+    {
+      "id": "p4.votos",
+      "dimensao": "alcance",
+      "texto": "Quantas pessoas votaram?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "p4.votos.poucas",
+          "texto": "Poucas"
+        },
+        {
+          "id": "p4.votos.muitas",
+          "texto": "Muitas"
+        },
+        {
+          "id": "p4.votos.nsei",
+          "texto": "Não sei"
+        }
+      ]
+    },
+    {
+      "id": "p5.papel",
+      "dimensao": "alcance",
+      "texto": "Você é alvo ou está vendo acontecer com outras pessoas?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "p5.papel.alvo",
+          "texto": "Eu sou alvo"
+        },
+        {
+          "id": "p5.papel.outros",
+          "texto": "Vejo acontecer com outras pessoas"
+        }
+      ],
+      "mostrar_se": [
+        "c5.pagina.sim"
+      ]
+    },
+    {
+      "id": "p5.quantas",
+      "dimensao": "alcance",
+      "texto": "Quantas pessoas são expostas?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "p5.quantas.uma",
+          "texto": "Uma"
+        },
+        {
+          "id": "p5.quantas.poucas",
+          "texto": "Poucas"
+        },
+        {
+          "id": "p5.quantas.muitas",
+          "texto": "Muitas"
+        },
+        {
+          "id": "p5.quantas.nsei",
+          "texto": "Não sei"
+        }
+      ],
+      "mostrar_se": [
+        "c5.pagina.sim"
+      ]
+    },
+    {
+      "id": "p5.mostram",
+      "dimensao": "alcance",
+      "texto": "O que mostram? (pode marcar mais de uma)",
+      "tipo": "multipla",
+      "respostas": [
+        {
+          "id": "p5.mostram.fotos",
+          "texto": "Fotos"
+        },
+        {
+          "id": "p5.mostram.conversas",
+          "texto": "Conversas"
+        },
+        {
+          "id": "p5.mostram.boatos",
+          "texto": "Boatos"
+        },
+        {
+          "id": "p5.mostram.outro",
+          "texto": "Outra coisa"
+        }
+      ],
+      "mostrar_se": [
+        "c5.pagina.sim"
+      ]
+    },
+    {
+      "id": "g1.pagou",
+      "dimensao": "consequencias",
+      "texto": "Você já pagou?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "g1.pagou.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "g1.pagou.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "g1.pagou.nsei",
+          "texto": "Não sei"
+        }
+      ],
+      "mostrar_se": [
+        "a5.quer.dinheiro",
+        "g4.pediram.dinheiro",
+        "g5.fez.pagou"
+      ]
+    },
+    {
+      "id": "g1.quanto",
+      "dimensao": "consequencias",
+      "texto": "Quanto foi?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "g1.quanto.pouco",
+          "texto": "Pouco dinheiro"
+        },
+        {
+          "id": "g1.quanto.muito",
+          "texto": "Uma quantia grande para mim"
+        },
+        {
+          "id": "g1.quanto.nsei",
+          "texto": "Não sei"
+        }
+      ],
+      "mostrar_se": [
+        "a5.quer.dinheiro",
+        "g4.pediram.dinheiro",
+        "g5.fez.pagou"
+      ]
+    },
+    {
+      "id": "g1.meio",
+      "dimensao": "alcance",
+      "texto": "Por qual meio você pagou?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "g1.meio.pix",
+          "texto": "Pix"
+        },
+        {
+          "id": "g1.meio.cartao",
+          "texto": "Cartão"
+        },
+        {
+          "id": "g1.meio.outro",
+          "texto": "Outro meio"
+        }
+      ],
+      "mostrar_se": [
+        "a5.quer.dinheiro",
+        "g4.pediram.dinheiro",
+        "g5.fez.pagou"
+      ]
+    },
+    {
+      "id": "g1.prazo",
+      "dimensao": "risco",
+      "texto": "Existe um prazo?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "g1.prazo.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "g1.prazo.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "g1.prazo.nsei",
+          "texto": "Não sei"
+        }
+      ],
+      "mostrar_se": [
+        "a5.quer.dinheiro",
+        "g4.pediram.dinheiro",
+        "g5.fez.pagou"
+      ]
+    },
+    {
+      "id": "g1.ameacado",
+      "dimensao": "risco",
+      "texto": "Você foi ameaçado?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "g1.ameacado.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "g1.ameacado.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "g1.ameacado.nsei",
+          "texto": "Não sei"
+        }
+      ],
+      "mostrar_se": [
+        "a5.quer.dinheiro",
+        "g4.pediram.dinheiro",
+        "g5.fez.pagou"
+      ]
+    },
+    {
+      "id": "g2.passou",
+      "dimensao": "consequencias",
+      "texto": "Você já passou a informação?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "g2.passou.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "g2.passou.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "g2.passou.nsei",
+          "texto": "Não sei"
+        }
+      ],
+      "mostrar_se": [
+        "v5.oque.dinheiro",
+        "g4.pediram.dados",
+        "g5.fez.dados"
+      ]
+    },
+    {
+      "id": "g2.controla",
+      "dimensao": "risco",
+      "texto": "Você ainda controla a conta?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "g2.controla.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "g2.controla.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "g2.controla.nsei",
+          "texto": "Não sei"
+        }
+      ],
+      "mostrar_se": [
+        "v5.oque.dinheiro",
+        "g4.pediram.dados",
+        "g5.fez.dados"
+      ]
+    },
+    {
+      "id": "g2.trocou",
+      "dimensao": "risco",
+      "texto": "Você já trocou a senha?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "g2.trocou.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "g2.trocou.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "g2.trocou.nsei",
+          "texto": "Não sei"
+        }
+      ],
+      "mostrar_se": [
+        "v5.oque.dinheiro",
+        "g4.pediram.dados",
+        "g5.fez.dados"
+      ]
+    },
+    {
+      "id": "g3.abriu",
+      "dimensao": "consequencias",
+      "texto": "O que você fez com o link ou arquivo?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "g3.abriu.abriu",
+          "texto": "Abri"
+        },
+        {
+          "id": "g3.abriu.baixou",
+          "texto": "Baixei"
+        },
+        {
+          "id": "g3.abriu.nada",
+          "texto": "Não abri nem baixei"
+        }
+      ]
+    },
+    {
+      "id": "g3.estranho",
+      "dimensao": "consequencias",
+      "texto": "O aparelho ficou estranho depois?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "g3.estranho.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "g3.estranho.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "g3.estranho.nsei",
+          "texto": "Não sei"
+        }
+      ]
+    },
+    {
+      "id": "g3.aparelho",
+      "dimensao": "alcance",
+      "texto": "Foi no celular da escola ou no seu?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "g3.aparelho.escola",
+          "texto": "No da escola"
+        },
+        {
+          "id": "g3.aparelho.meu",
+          "texto": "No meu"
+        },
+        {
+          "id": "g3.aparelho.outro",
+          "texto": "Em outro"
+        }
+      ]
+    },
+    {
+      "id": "g3.roubado",
+      "dimensao": "consequencias",
+      "texto": "Algo foi roubado, como conta ou dinheiro?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "g3.roubado.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "g3.roubado.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "g3.roubado.nsei",
+          "texto": "Não sei"
+        }
+      ]
+    },
+    {
+      "id": "g4.quem",
+      "dimensao": "alcance",
+      "texto": "Quem fingiram ser?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "g4.quem.colega",
+          "texto": "Um colega"
+        },
+        {
+          "id": "g4.quem.professor",
+          "texto": "Professor ou pessoa da escola"
+        },
+        {
+          "id": "g4.quem.banco",
+          "texto": "Um banco"
+        },
+        {
+          "id": "g4.quem.familiar",
+          "texto": "Um familiar"
+        },
+        {
+          "id": "g4.quem.outro",
+          "texto": "Outra pessoa ou organização"
+        }
+      ],
+      "mostrar_se": [
+        "p1.faz.pede"
+      ]
+    },
+    {
+      "id": "g4.pediram",
+      "dimensao": "alcance",
+      "texto": "O que pediram? (pode marcar mais de uma)",
+      "tipo": "multipla",
+      "respostas": [
+        {
+          "id": "g4.pediram.dinheiro",
+          "texto": "Dinheiro"
+        },
+        {
+          "id": "g4.pediram.dados",
+          "texto": "Dados pessoais"
+        },
+        {
+          "id": "g4.pediram.outro",
+          "texto": "Outra coisa"
+        }
+      ],
+      "mostrar_se": [
+        "p1.faz.pede"
+      ]
+    },
+    {
+      "id": "g4.respondeu",
+      "dimensao": "consequencias",
+      "texto": "Você já respondeu?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "g4.respondeu.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "g4.respondeu.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "g4.respondeu.nsei",
+          "texto": "Não sei"
+        }
+      ],
+      "mostrar_se": [
+        "p1.faz.pede"
+      ]
+    },
+    {
+      "id": "g5.onde",
+      "dimensao": "alcance",
+      "texto": "Onde você viu a oferta?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "g5.onde.rede",
+          "texto": "Rede social"
+        },
+        {
+          "id": "g5.onde.mensagem",
+          "texto": "Mensagem"
+        },
+        {
+          "id": "g5.onde.site",
+          "texto": "Site"
+        },
+        {
+          "id": "g5.onde.outro",
+          "texto": "Outro lugar"
+        }
+      ]
+    },
+    {
+      "id": "g5.fez",
+      "dimensao": "consequencias",
+      "texto": "O que você fez? (pode marcar mais de uma)",
+      "tipo": "multipla",
+      "respostas": [
+        {
+          "id": "g5.fez.pagou",
+          "texto": "Paguei"
+        },
+        {
+          "id": "g5.fez.dados",
+          "texto": "Mandei dados"
+        },
+        {
+          "id": "g5.fez.nada",
+          "texto": "Nada ainda"
+        }
+      ]
+    },
+    {
+      "id": "g5.colegas",
+      "dimensao": "alcance",
+      "texto": "Outros colegas também caíram?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "g5.colegas.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "g5.colegas.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "g5.colegas.nsei",
+          "texto": "Não sei"
+        }
+      ]
+    },
+    {
+      "id": "l1.idade",
+      "dimensao": "alcance",
+      "texto": "Quantos anos a pessoa tem?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "l1.idade.parecida",
+          "texto": "Parecida com a minha"
+        },
+        {
+          "id": "l1.idade.mais_velha",
+          "texto": "Mais velha que eu"
+        },
+        {
+          "id": "l1.idade.adulta",
+          "texto": "Adulta"
+        },
+        {
+          "id": "l1.idade.nsei",
+          "texto": "Não sei"
+        }
+      ]
+    },
+    {
+      "id": "l1.segredo",
+      "dimensao": "risco",
+      "texto": "A pessoa pede segredo?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "l1.segredo.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "l1.segredo.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "l1.segredo.nsei",
+          "texto": "Não sei"
+        }
+      ]
+    },
+    {
+      "id": "l1.fotos",
+      "dimensao": "risco",
+      "texto": "Ela pede fotos?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "l1.fotos.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "l1.fotos.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "l1.fotos.nsei",
+          "texto": "Não sei"
+        }
+      ]
+    },
+    {
+      "id": "l1.encontro",
+      "dimensao": "risco",
+      "texto": "Ela pede para se encontrar?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "l1.encontro.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "l1.encontro.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "l1.encontro.nsei",
+          "texto": "Não sei"
+        }
+      ]
+    },
+    {
+      "id": "l1.pessoalmente",
+      "dimensao": "risco",
+      "texto": "Já aconteceu algo pessoalmente?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "l1.pessoalmente.sim",
+          "texto": "Sim"
+        },
+        {
+          "id": "l1.pessoalmente.nao",
+          "texto": "Não"
+        },
+        {
+          "id": "l1.pessoalmente.nsei",
+          "texto": "Não sei"
+        }
+      ]
+    }
+  ],
+  "pesos": {},
+  "alertas": [],
+  "faixas": {
+    "alta": 6,
+    "media": 3
+  }
+}

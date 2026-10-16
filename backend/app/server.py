@@ -36,6 +36,7 @@ from .auth import criar_usuario, gerar_senha_inicial, redefinir_senha
 from .backup import fazer_backup, limpar_antigos, pasta_do_dia
 from .config import Config, load_config, trocar_chave_de_sessao
 from .db import connect, init_db
+from .questionario import QuestionarioInvalido, carregar as carregar_questionario
 
 ADMIN = "coordenacao"
 # códigos de saída; 2 fica para erro de uso do argparse
@@ -347,6 +348,12 @@ def main(argv: list[str] | None = None) -> int:
     except (OSError, sqlite3.Error, ValueError) as erro:
         print(f"Nao foi possivel usar a pasta de dados: {_sem_endereco(str(erro))}",
               file=sys.stderr)
+        return SAIDA_ERRO_INICIO
+    try:
+        carregar_questionario(config.questionario_path)
+    except QuestionarioInvalido as erro:
+        # definição quebrada: para na partida, sem traceback
+        print(f"Questionario invalido: {_sem_endereco(str(erro))}", file=sys.stderr)
         return SAIDA_ERRO_INICIO
     if args.criar_admin:
         return _criar_admin(config)

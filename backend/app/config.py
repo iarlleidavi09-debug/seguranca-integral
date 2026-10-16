@@ -59,6 +59,14 @@ class Config:
             return copia
         return Path(__file__).parent / "risk_terms.json"
 
+    @property
+    def questionario_path(self) -> Path:
+        # cópia em data_dir permite ajustar o questionário sem recompilar
+        copia = self.data_dir / "questionario.json"
+        if copia.exists():
+            return copia
+        return Path(__file__).parent / "questionario.json"
+
 
 def load_config(data_dir: Path | None = None) -> Config:
     """Carrega a configuração, criando a pasta e a chave na primeira execução."""

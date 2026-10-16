@@ -21,6 +21,7 @@ for portal in ('aluno', 'coordenacao'):
 dados = [
     (os.path.join(APP, 'static'), 'app/static'),
     (os.path.join(APP, 'risk_terms.json'), 'app'),
+    (os.path.join(APP, 'questionario.json'), 'app'),
 ]
 
 a = Analysis(
