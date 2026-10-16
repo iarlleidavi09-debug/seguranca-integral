@@ -390,3 +390,9 @@ def test_leia_me_lan_existe_e_cita_firewall_e_ip_fixo():
     for chave in ("IP fixo", "Privada", "HTTP", "127.0.0.1:4000", "isolamento"):
         assert chave in texto
     assert not any(c in texto for c in ("—", "–"))  # sem travessao longo
+
+
+def test_iss_sem_residuo_de_gerador_de_texto():
+    # concatenacao de aspas triplas ou variavel solta ("bs") so se forma quando o .iss e gerado por script
+    texto = _ler(ISS)
+    assert "''' +" not in texto and "+ bs +" not in texto

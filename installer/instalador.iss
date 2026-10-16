@@ -317,8 +317,8 @@ begin
   begin
     RemoverTarefa;
 #ifdef LAN
-    Exec(ExpandConstant('{sys}''' + bs + '''WindowsPowerShell''' + bs + '''v1.0''' + bs + '''powershell.exe'),
-      '-NoProfile -ExecutionPolicy Bypass -File "' + ExpandConstant('{app}''' + bs + '''lan.ps1') + '" -Remover',
+    Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
+      '-NoProfile -ExecutionPolicy Bypass -File "' + ExpandConstant('{app}\lan.ps1') + '" -Remover',
       '', SW_HIDE, ewWaitUntilTerminated, Codigo);
 #endif
   end;
