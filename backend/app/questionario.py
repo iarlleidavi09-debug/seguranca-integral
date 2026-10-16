@@ -73,6 +73,51 @@ class Questionario:
         faixas = self.dados.get("faixas") or {}
         return faixas.get("alta", 6), faixas.get("media", 3)
 
+    def descrever(self, respostas: dict | None) -> dict | None:
+        """Respostas em texto legível para a coordenação; `None` sem respostas.
+
+        Dimensões na ordem fixa, sem as vazias; itens na ordem das perguntas da
+        definição. Id que não existe mais aparece como o próprio id. Nunca lança:
+        a definição pode ter mudado depois que o caso foi gravado.
+        """
+        if not respostas or not isinstance(respostas, dict):
+            return None
+        situacoes = {s["id"]: s for s in self.dados.get("situacoes", [])}
+        sid = respostas.get("situacao")
+        sid = sid if isinstance(sid, str) else ""
+        situacao = situacoes.get(sid, {})
+        opcoes = {o["id"]: o["texto"] for o in situacao.get("opcoes", [])}
+        marcadas = respostas.get("marcadas")
+        marcadas = marcadas if isinstance(marcadas, list) else []
+
+        dadas = respostas.get("respostas")
+        dadas = dadas if isinstance(dadas, dict) else {}
+        perguntas = {p["id"]: p for p in self.dados.get("perguntas", [])}
+        itens: dict[str, list] = {d: [] for d in DIMENSOES}
+        conhecidas = [p["id"] for p in self.dados.get("perguntas", []) if p["id"] in dadas]
+        desconhecidas = [pid for pid in dadas if pid not in perguntas]
+        for pid in conhecidas + desconhecidas:
+            ids = dadas[pid] if isinstance(dadas[pid], list) else []
+            ids = [i for i in ids if isinstance(i, str)]
+            if not ids:
+                continue
+            pergunta = perguntas.get(pid)
+            if pergunta is None:
+                # pergunta removida: agrupa em alcance, a dimensão mais neutra
+                dimensao, texto, textos = "alcance", str(pid), {}
+            else:
+                dimensao, texto = pergunta["dimensao"], pergunta["texto"]
+                textos = {r["id"]: r["texto"] for r in pergunta["respostas"]}
+            itens[dimensao].append(
+                {"pergunta": texto, "respostas": [textos.get(i, i) for i in ids]})
+        rotulos = self.dados.get("dimensoes", {})
+        return {
+            "situacao": {"id": sid, "nome": situacao.get("nome", sid)},
+            "marcadas": [opcoes.get(i, i) for i in marcadas if isinstance(i, str)],
+            "dimensoes": [{"id": d, "rotulo": rotulos.get(d, d), "itens": itens[d]}
+                          for d in DIMENSOES if itens[d]],
+        }
+
     def validar_respostas(self, bruto: str | None, tipo: str) -> dict | None:
         """Confere o JSON enviado pelo aluno e devolve o dicionário normalizado.
 

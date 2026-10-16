@@ -133,3 +133,39 @@ Resposta de `/api/acompanhar`: `status` (um dos três), `mensagens` `[{autor, te
 ### O que falta para o front
 
 O front ainda usa rótulos e `api.ts` da v1: a adaptação das telas (status em 3 valores, quarta faixa crítica, justificativa de prioridade, fila com busca e último acesso, registro de resolução, área pós-resolução do aluno, alerta de recorrência) é o trabalho dos planos 2 e 3. Anexos da resolução e dados opcionais seguem pendentes.
+
+## Contrato do questionário (v2 B)
+
+### GET `/api/questionario` (aluno, porta 3000)
+
+- 200 com `{"situacoes", "dimensoes", "perguntas"}` e cabeçalho `Cache-Control: no-store`. Nunca traz `pesos`, `alertas` nem `faixas`.
+- `situacoes`: `[{id, tipo, nome, descricao, opcoes: [{id, texto, perguntas: [ids]}]}]` (a ordem é a da tela). `tipo` é o mesmo de `POST /api/denuncias`.
+- `perguntas`: `[{id, dimensao, texto, tipo, respostas: [{id, texto}], mostrar_se?}]`. `tipo` é `unica` ou `multipla`. Uma pergunta aparece quando alguma opção marcada a cita em `perguntas`, ou quando alguma resposta de `mostrar_se` já foi dada.
+- `dimensoes`: id para rótulo (`quando`, `frequencia`, `alcance`, `consequencias`, `risco`).
+- 503 `{"erro": "questionario indisponivel"}` se a definição estiver quebrada; 429 pelo limitador de consultas. A definição é lida a cada chamada.
+
+### Campo `respostas` do `POST /api/denuncias`
+
+- Campo de formulário (multipart) com texto JSON: `{"situacao": "<id>", "marcadas": ["<id da opção>"], "respostas": {"<id da pergunta>": ["<id da resposta>"]}}`. Ausente ou vazio significa "sem respostas".
+- Limites: até 8192 bytes; até 60 ids no total (`marcadas` mais todas as respostas); só texto nos ids; sem ids repetidos; pergunta `unica` aceita no máximo um id.
+- Conferências: a situação existe e o `tipo` do pedido é o dela; cada opção pertence à situação; cada pergunta existe e cada resposta pertence a ela. O servidor não confere se a pergunta estava visível (`mostrar_se`).
+- Qualquer falha responde 400 `{"erro": "respostas invalidas"}`, sem criar o caso e sem deixar anexo no disco (inclui JSON malformado e aninhamento profundo).
+- Exceção: se a definição do servidor estiver quebrada, as respostas são descartadas e o caso é criado normalmente (201). O pedido de ajuda nunca é bloqueado pelo questionário.
+- Quando `respostas` é enviado, o front do aluno deixa de gerar o bloco "Situações marcadas:" no relato: o relato vai só com o texto do aluno.
+- Lembrete para o front: quando a resposta de `q6` ("Você está seguro agora?") for `q6.nao` ("Não") ou `q6.hoje` ("Quero falar com alguém hoje"), mostrar a tela de orientação (apoio imediato) depois do envio.
+
+### Triagem
+
+`pesos` e `alertas` chegam vazios (`{}` e `[]`) e `faixas` no padrão (`alta` 6, `media` 3) em `questionario.json`: as respostas ainda não alteram prioridade, pontos nem motivos. Os pesos serão ajustados depois, sem mudar o contrato.
+
+### Detalhe da coordenação: chave `questionario`
+
+`GET /api/casos/<id>` ganhou a chave `questionario`, única chave nova. É `null` quando o caso não tem respostas (casos antigos, pedido sem `respostas`, valor gravado corrompido ou definição quebrada no servidor); senão:
+
+```
+{"situacao": {"id", "nome"},
+ "marcadas": ["texto da opção"],
+ "dimensoes": [{"id", "rotulo", "itens": [{"pergunta": "texto", "respostas": ["texto"]}]}]}
+```
+
+As dimensões vêm na ordem `quando`, `frequencia`, `alcance`, `consequencias`, `risco`, sem as vazias; os itens seguem a ordem das perguntas da definição. Id que não existe mais na definição aparece como o próprio id (perguntas removidas ficam em `alcance`). A resposta da coordenação não inclui `pesos`, `alertas` nem `faixas`. O `respostas_json` bruto não sai.

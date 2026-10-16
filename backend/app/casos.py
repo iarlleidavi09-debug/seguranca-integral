@@ -263,12 +263,17 @@ COLUNAS_DETALHE = (
     "id", "tipo", "relato", "quando", "onde", "em_andamento", "anonimo",
     "nome", "turma", "prioridade", "prioridade_original", "pontos",
     "motivos_json", "status", "simulacao", "criado_em", "atualizado_em",
-    "recorrencia_pendente",
+    "recorrencia_pendente", "respostas_json",
 )
 
 
-def detalhe_caso(conn: sqlite3.Connection, caso_id: int) -> dict | None:
-    """Caso completo para a coordenação, sem o hash do código."""
+def detalhe_caso(conn: sqlite3.Connection, caso_id: int,
+                 questionario=None) -> dict | None:
+    """Caso completo para a coordenação, sem o hash do código.
+
+    `questionario` é a definição carregada (ou None); a chave `questionario`
+    do resultado traz as respostas em texto, ou None.
+    """
     linha = conn.execute(
         f"SELECT {', '.join(COLUNAS_DETALHE)} FROM casos WHERE id = ?", (caso_id,)
     ).fetchone()
@@ -276,6 +281,13 @@ def detalhe_caso(conn: sqlite3.Connection, caso_id: int) -> dict | None:
         return None
     caso = _bools(dict(linha))
     caso["motivos"] = json.loads(caso.pop("motivos_json") or "[]")
+    bruto = caso.pop("respostas_json")
+    try:
+        respostas = json.loads(bruto) if bruto else None
+    except (ValueError, RecursionError):
+        respostas = None
+    caso["questionario"] = (
+        questionario.descrever(respostas) if questionario is not None else None)
     caso["anexos"] = [
         dict(a) for a in conn.execute(
             "SELECT id, tipo, tamanho FROM anexos WHERE caso_id = ? ORDER BY id",

@@ -780,7 +780,7 @@ def test_detalhe_usa_so_colunas_conhecidas_do_caso(coord_logado, config):
         "motivos", "status", "recorrencia_pendente", "ultimo_acesso",
         "simulacao", "criado_em", "atualizado_em",
         "anexos", "eventos", "mensagens", "notas", "resolucoes",
-        "situacoes", "revisoes_recorrencia",
+        "situacoes", "revisoes_recorrencia", "questionario",
     }
     assert not any("hash" in chave for chave in d)
 
@@ -1232,3 +1232,88 @@ def test_detalhe_nao_da_500_se_registrar_acesso_falhar(coord_logado, config, mon
     assert r.status_code == 200
     assert r.get_json()["ultimo_acesso"] is None
     assert r.get_json()["id"] == caso_id
+
+
+# --- questionário no detalhe -------------------------------------------------
+def _caso_com_respostas(config, respostas):
+    c = connect(config)
+    try:
+        criar_caso(c, config, {"tipo": "ameaca", "relato": RELATO, "anonimo": True},
+                   [], respostas=respostas)
+        return c.execute("SELECT MAX(id) FROM casos").fetchone()[0]
+    finally:
+        c.close()
+
+
+def test_detalhe_mostra_questionario_com_textos(coord_logado, config):
+    caso_id = _caso_com_respostas(config, {
+        "situacao": "ameaca", "marcadas": ["a1"],
+        "respostas": {"q1": ["q1.agora"], "q6": ["q6.hoje"]}})
+    q = coord_logado.get(f"/api/casos/{caso_id}").get_json()["questionario"]
+    assert q["situacao"]["id"] == "ameaca"
+    assert q["situacao"]["nome"] != "ameaca"
+    assert q["marcadas"] and q["marcadas"][0] != "a1"
+    assert [d["id"] for d in q["dimensoes"]] == ["quando", "risco"]
+    assert all(i["respostas"] and "q1.agora" not in i["respostas"]
+               for d in q["dimensoes"] for i in d["itens"])
+    assert not {"pesos", "alertas", "faixas"} & set(q)
+
+
+def test_detalhe_sem_respostas_tem_questionario_nulo(coord_logado, config):
+    caso_id, _ = _caso(config)
+    assert coord_logado.get(f"/api/casos/{caso_id}").get_json()["questionario"] is None
+
+
+def test_detalhe_caso_antigo_sem_coluna_preenchida(coord_logado, config):
+    c = connect(config)
+    try:
+        c.execute(
+            "INSERT INTO casos (codigo_hash, tipo, relato, anonimo, prioridade, "
+            "prioridade_original, pontos, motivos_json, status, simulacao, "
+            "criado_em, atualizado_em) VALUES ('h', 'outro', 'relato antigo aqui', "
+            "1, 'baixa', 'baixa', 0, '[]', 'novo', 0, '2026-01-01T00:00:00Z', "
+            "'2026-01-01T00:00:00Z')")
+        c.commit()
+        caso_id = c.execute("SELECT MAX(id) FROM casos").fetchone()[0]
+    finally:
+        c.close()
+    d = coord_logado.get(f"/api/casos/{caso_id}")
+    assert d.status_code == 200
+    assert d.get_json()["questionario"] is None
+
+
+def test_detalhe_resposta_de_id_que_sumiu_nao_quebra(coord_logado, config):
+    caso_id = _caso_com_respostas(config, {
+        "situacao": "ameaca", "marcadas": ["velho"],
+        "respostas": {"qvelha": ["qvelha.x"], "q1": ["q1.agora"]}})
+    r = coord_logado.get(f"/api/casos/{caso_id}")
+    assert r.status_code == 200
+    assert r.get_json()["questionario"]["marcadas"] == ["velho"]
+
+
+def test_detalhe_json_corrompido_vira_nulo(coord_logado, config):
+    caso_id, _ = _caso(config)
+    c = connect(config)
+    try:
+        c.execute("UPDATE casos SET respostas_json = '{quebrado' WHERE id = ?", (caso_id,))
+        c.commit()
+    finally:
+        c.close()
+    r = coord_logado.get(f"/api/casos/{caso_id}")
+    assert r.status_code == 200 and r.get_json()["questionario"] is None
+
+
+def test_detalhe_definicao_quebrada_nao_derruba_o_detalhe(coord_logado, config):
+    caso_id = _caso_com_respostas(config, {
+        "situacao": "ameaca", "marcadas": [], "respostas": {"q1": ["q1.agora"]}})
+    config.data_dir.mkdir(parents=True, exist_ok=True)
+    (config.data_dir / "questionario.json").write_text("{quebrado", encoding="utf-8")
+    r = coord_logado.get(f"/api/casos/{caso_id}")
+    assert r.status_code == 200
+    assert r.get_json()["questionario"] is None
+    assert r.get_json()["relato"] == RELATO
+
+
+def test_detalhe_do_questionario_exige_sessao(config, coord_client):
+    caso_id = _caso_com_respostas(config, None)
+    assert coord_client.get(f"/api/casos/{caso_id}").status_code == 401

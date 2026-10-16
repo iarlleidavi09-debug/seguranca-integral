@@ -386,3 +386,57 @@ def test_limiares_vem_das_faixas_e_padrao_6_3(real):
     assert _com_regras({}, [], {"alta": 8, "media": 4}).limiares() == (8, 4)
     assert real.limiares() == (6, 3)
     assert Questionario(dados={}).limiares() == (6, 3)
+
+
+# --- descrever: texto legível para a coordenação -----------------------------
+def test_descrever_sem_respostas_e_nulo(real):
+    assert real.descrever(None) is None
+    assert real.descrever({}) is None
+
+
+def test_descrever_agrupa_por_dimensao_na_ordem_fixa(real):
+    r = {"situacao": "ameaca", "marcadas": ["a1"],
+         "respostas": {"q6": ["q6.nao"], "q3": ["q3.conhecida"], "q1": ["q1.agora"]}}
+    d = real.descrever(r)
+    assert d["situacao"] == {"id": "ameaca", "nome": real.dados["situacoes"][1]["nome"]}
+    opcao = next(o for o in real.dados["situacoes"][1]["opcoes"] if o["id"] == "a1")
+    assert d["marcadas"] == [opcao["texto"]]
+    assert [x["id"] for x in d["dimensoes"]] == ["quando", "alcance", "risco"]
+    quando = d["dimensoes"][0]
+    assert quando["rotulo"] == real.dados["dimensoes"]["quando"]
+    perg = next(p for p in real.dados["perguntas"] if p["id"] == "q1")
+    resp = next(x for x in perg["respostas"] if x["id"] == "q1.agora")
+    assert quando["itens"] == [{"pergunta": perg["texto"], "respostas": [resp["texto"]]}]
+    assert "q1.agora" not in json.dumps(d)
+
+
+def test_descrever_omite_dimensao_vazia_e_resposta_vazia(real):
+    r = {"situacao": "ameaca", "marcadas": [], "respostas": {"q1": []}}
+    d = real.descrever(r)
+    assert d["dimensoes"] == []
+    assert d["marcadas"] == []
+
+
+def test_descrever_itens_na_ordem_da_definicao(real):
+    r = {"situacao": "ameaca", "marcadas": [],
+         "respostas": {"c1.prints": ["c1.prints.sim"], "q3": ["q3.grupo"]}}
+    alcance = real.descrever(r)["dimensoes"][0]
+    ordem = [p["texto"] for p in real.dados["perguntas"] if p["id"] in ("q3", "c1.prints")]
+    assert [i["pergunta"] for i in alcance["itens"]] == ordem
+
+
+def test_descrever_id_desconhecido_vira_o_proprio_id(real):
+    r = {"situacao": "sumiu", "marcadas": ["x9"],
+         "respostas": {"qfantasma": ["qfantasma.a"], "q1": ["q1.antigo"]}}
+    d = real.descrever(r)
+    assert d["situacao"] == {"id": "sumiu", "nome": "sumiu"}
+    assert d["marcadas"] == ["x9"]
+    ids = {i["pergunta"]: i["respostas"] for dim in d["dimensoes"] for i in dim["itens"]}
+    assert ids["qfantasma"] == ["qfantasma.a"]
+    assert ["q1.antigo"] in ids.values()
+
+
+def test_descrever_nunca_lanca_com_formato_estranho(real):
+    for ruim in ({"situacao": 1, "marcadas": None, "respostas": []},
+                 {"respostas": {"q1": "q1.agora"}}, "texto", []):
+        real.descrever(ruim)

@@ -19,6 +19,7 @@ from flask.sessions import SecureCookieSessionInterface
 from . import auth, casos, simulation
 from ._comum import registrar_rotas_finais
 from .db import connect
+from .questionario import QuestionarioInvalido, carregar
 from .security import chave_limitador, https_encaminhado
 from .uploads import AnexoInvalido, caminho_anexo
 
@@ -239,7 +240,12 @@ def resumo():
 @bp.get("/api/casos/<int:caso_id>")
 def detalhe(caso_id: int):
     conn = _db()
-    caso = casos.detalhe_caso(conn, caso_id)
+    try:
+        # lê a cada chamada; definição quebrada não derruba o detalhe
+        definicao = carregar(current_app.config["SI_CONFIG"].questionario_path)
+    except QuestionarioInvalido:
+        definicao = None
+    caso = casos.detalhe_caso(conn, caso_id, definicao)
     if caso is None:
         return _nao_encontrado()
     try:
