@@ -15,16 +15,45 @@ O tema segue `docs/design/tokens.md` e `prefers-color-scheme`. A fonte é empaco
 
 **Divergência com `docs/design/tokens.md`:** o documento pede "Atkinson Hyperlegible Next" nos pesos 400, 600 e 700. Usamos "Atkinson Hyperlegible" (pacote `@fontsource/atkinson-hyperlegible`, que não traz o peso 600 nem a família Next), então todo texto que o design marca com 600 sai em 700. Se a Next for empacotada depois, basta trocar a dependência e o `--fonte` em `tema.css`. Não depende de Google Fonts, CDN, estilos inline ou scripts inline.
 
-O rascunho guarda apenas os campos textuais e escolhas em `si-aluno-rascunho-v1`. Não guarda código, imagens ou conversa. É apagado após o envio. Anexos permanecem em memória durante uma tentativa com falha e precisam ser adicionados novamente se a tela for fechada. Toda operação de localStorage trata indisponibilidade.
+### Telas e passos
+
+1. **Início**: apresentação, o botão "Preciso de ajuda", o campo para acompanhar por código e o aviso "Antes de contar" (inclui a orientação de usar dados móveis para anonimato total).
+2. **Pedir ajuda**, em quatro passos: situação (Cyberbullying, Ameaças, Vazamento, Perfil falso, Golpe, Aliciamento ou Outros); desdobramentos (opções marcadas, só nas cinco situações que as têm); relato, quando, onde e "está acontecendo agora"; provas (até 5 imagens) e identificação (anônimo por padrão).
+3. **Confirmação**: mostra o código de acompanhamento uma única vez, com botão de copiar.
+4. **Acompanhar**: linha do tempo de três etapas (Recebido, Em investigação, Resolvido), conversa com a coordenação e, com o caso resolvido, a área pós-resolução.
+
+As opções marcadas entram no texto do relato, depois do texto do aluno, num bloco `Situações marcadas:` com uma linha `- <opção>` por opção. O texto próprio precisa de pelo menos 10 caracteres; o relato final aceita até 5000.
+
+**Rascunho de 24 horas.** O texto e as escolhas ficam em `si-aluno-rascunho-v2` e expiram 24 horas depois da última edição (abrir a tela não renova o prazo). A chave antiga `si-aluno-rascunho-v1` é apagada ao abrir. O rascunho é apagado no envio ou em "Limpar rascunho", e nunca guarda código, imagens nem conversa. Se o navegador bloquear o armazenamento, a tela avisa e segue sem rascunho. Anexos permanecem só em memória.
+
+**Girar imagem.** No passo 4, cada imagem (exceto GIF) tem o botão "Girar", que gira 90 graus no próprio navegador antes do envio. Se a rotação falhar ou a imagem girada passar de 5 MB, a original continua anexada e uma mensagem explica. O envio fica bloqueado enquanto uma imagem gira.
+
+**Pós-resolução.** Com o caso resolvido, o aluno vê o desfecho, as providências e o resultado (texto puro, nunca HTML) e responde "Melhorou" ou "Voltou a acontecer". "Voltou" sinaliza recorrência para a coordenação revisar. Se a coordenação reabrir o caso, o bloco some e a resolução antiga deixa de aparecer. O aluno nunca vê prioridade, autoria da equipe nem notas.
+
+**Privacidade do código.** O código de acompanhamento só viaja no corpo de requisições `POST`. Não vai para a URL, para `localStorage` nem para `sessionStorage`, e a confirmação é o único lugar em que aparece.
 
 ## Verificação em navegador
+
+Duas verificações, ambas com Chrome instalado. As capturas (`verificacao/capturas/`) e os `resultado*.json` são locais e não entram no commit.
+
+**Com API simulada** (rápida):
 
 ```powershell
 npm run build:aluno
 npm run test:navegador
 ```
 
-Requer Chrome instalado. O script serve o build com a CSP do brief e **API simulada**. Verifica o percurso em 375, 768 e 1280 px, claro e escuro, e grava 42 capturas em `verificacao/capturas/` e resultados em `verificacao/resultado.json`. Esses artefatos são locais e não entram no commit. Não substitui a integração com Flask e banco real.
+O script serve o build com a CSP do portal e uma API falsa, e percorre 375, 768 e 1280 px nos temas claro e escuro.
+
+**Com o backend real** (`verificacao/aluno.mjs`): suba o servidor com uma pasta de dados temporária (portas altas e limites de taxa desligados no `config.json`), crie o administrador de teste pelo primeiro acesso da coordenação e rode:
+
+```powershell
+$env:SI_ALUNO_URL='http://127.0.0.1:23000'; $env:SI_COORD_URL='http://127.0.0.1:24000'
+$env:SI_ADMIN_NOME='Admin Teste'; $env:SI_COORD_SENHA='<senha de teste>'
+node verificacao/aluno.mjs
+```
+
+O script percorre, em 375, 768, 900, 1024 e 1280 px e nos dois temas: início, pedido completo (com desdobramentos, imagem girada e identificação anônima), confirmação com código, acompanhar por código, conversa, resolução registrada pela API da coordenação (com marcação HTML para provar o texto literal), pós-resolução, "Voltou a acontecer", recorrência vista pela coordenação e reabertura. Em cada combinação confere rolagem horizontal, violações de CSP, erros de console, foco visível e texto cortado. No fim, envia um pedido por situação com todas as opções marcadas e registra prioridade e motivos, para provar que as opções não elevam a triagem sozinhas. `SI_LARGURAS`, `SI_TEMAS` e `SI_TRIAGEM=0` reduzem a rodada. Apague a pasta temporária e encerre o servidor ao final.
 
 ## Portal da coordenação
 
@@ -33,7 +62,7 @@ npm run build:coord
 npm run dev:coord
 ```
 
-O build gera `../backend/app/static/coordenacao/index.html`. `npm test` roda as suítes dos dois portais, sem navegador. A verificação em Chrome real da coordenação é `verificacao/coordenacao.mjs` (precisa de `SI_COORD_URL` e `SI_COORD_SENHA`).
+O build gera `../backend/app/static/coordenacao/index.html`. `npm test` roda as suítes dos dois portais, sem navegador. A verificação em Chrome real da coordenação é `verificacao/coordenacao.mjs` (precisa de `SI_COORD_URL`, `SI_ALUNO_URL` e `SI_COORD_SENHA`).
 
 ### Telas e endereços
 

@@ -1,6 +1,7 @@
 /* Portal do aluno. Usa as variáveis de ../shared/tema.css, redefinidas pelo tema ameixa e pêssego abaixo. */
-/* O tema vale só dentro do portal do aluno; a coordenação e o tema.css não mudam. */
-.aluno-app {
+/* O tema vale só no portal do aluno; a coordenação e o tema.css não mudam. */
+/* :root:has(.aluno-app) leva os tokens ao html e ao body, para o fundo do tema aparecer também no overscroll. */
+:root:has(.aluno-app), .aluno-app {
   --fundo-base: #FFF9F4;
   --fundo-superficie: #FFFFFF;
   --fundo-superficie-2: #F8EDE6;
@@ -19,7 +20,7 @@
   --bilhete-fundo: #FFDDD0;
 }
 @media (prefers-color-scheme: dark) {
-  .aluno-app {
+  :root:has(.aluno-app), .aluno-app {
     --fundo-base: #1E1320;
     --fundo-superficie: #2A1B2C;
     --fundo-superficie-2: #35243A;
@@ -112,6 +113,7 @@
 
 /* Pedido de ajuda: cartões de situação e fim de etapa */
 .aluno-app .fluxo { max-width: 780px; }
+.aluno-app .passos { flex-wrap: wrap; gap: var(--espaco-2) var(--espaco-3); }
 .aluno-app .passo-contagem { display: flex; flex-wrap: wrap; gap: var(--espaco-1) var(--espaco-3); }
 .aluno-app .situacoes { display: grid; grid-template-columns: 1fr; gap: var(--espaco-3); margin: var(--espaco-4) 0; }
 .aluno-app .situacao { display: flex; align-items: flex-start; gap: var(--espaco-3); padding: var(--espaco-4) var(--espaco-5); min-height: var(--controle-altura); background: var(--fundo-superficie); border: var(--linha-fina) solid var(--borda-forte); border-radius: var(--raio-lg); cursor: pointer; margin: 0; font-weight: 400; }
@@ -128,6 +130,8 @@
 @media (prefers-reduced-motion: no-preference) {
   .aluno-app .situacao { transition: background-color 150ms ease-out, border-color 150ms ease-out; }
 }
+.aluno-app .resposta p[id='limite-resposta'] { margin-bottom: var(--espaco-3); }
+.aluno-app .resposta + p[role='status'] { margin-top: var(--espaco-3); }
 .aluno-app .anexos .botao + .botao { margin-top: var(--espaco-2); }
 
 /* Acompanhamento: linha do tempo de três etapas e área pós-resolução */
@@ -141,6 +145,11 @@
 .aluno-app .etapa[data-estado='feita'] .etapa-marca { border-color: var(--primaria-base); color: var(--primaria-base); }
 .aluno-app .pos-resolucao { background: var(--fundo-superficie); border: var(--linha-fina) solid var(--borda-suave); border-radius: var(--raio-lg); padding: var(--espaco-5); margin-bottom: var(--espaco-8); }
 .aluno-app .pos-resolucao h2:focus { outline: var(--linha-foco) solid var(--foco-anel); outline-offset: var(--espaco-1); }
+.aluno-app .pos-resolucao h2 { margin-bottom: var(--espaco-2); }
+.aluno-app .pos-resolucao h3 { margin: var(--espaco-5) 0 var(--espaco-1); }
+.aluno-app .pos-resolucao > time { display: block; margin-top: var(--espaco-4); }
+.aluno-app .pos-pergunta h3 { margin-top: 0; }
+.aluno-app .pos-pergunta p[role='status'] { margin-top: var(--espaco-3); }
 .aluno-app .pos-desfecho { font-weight: 700; }
 .aluno-app .texto-livre { white-space: pre-wrap; overflow-wrap: anywhere; }
 .aluno-app .pos-pergunta { border-top: var(--linha-fina) solid var(--borda-suave); margin-top: var(--espaco-5); padding-top: var(--espaco-5); }

@@ -1,6 +1,6 @@
 # Mapa e índice das interfaces
 
-As definições atuais estão em [docs/DEFINICOES.md](docs/DEFINICOES.md). A seção da coordenação descreve o portal da v2 (3 status, 4 prioridades, resolução e pós-resolução); a do aluno segue a base original.
+As definições atuais estão em [docs/DEFINICOES.md](docs/DEFINICOES.md). A seção da coordenação descreve o portal da v2 (3 status, 4 prioridades, resolução e pós-resolução); a do aluno descreve o pedido de ajuda em quatro passos, o acompanhamento em três estados e a área pós-resolução.
 
 Prévias aprovadas: [aluno jovem e expressivo](http://127.0.0.1:5173/aluno-revisao.html) e [coordenação acolhedora](http://127.0.0.1:5173/revisao.html). O índice da base original permanece em [interfaces.html](http://127.0.0.1:5173/interfaces.html).
 
@@ -13,53 +13,60 @@ Mapeamento do frontend copiado, baseado nos componentes e seus gatilhos de naveg
 | Aluno | [Abrir aluno](http://127.0.0.1:5173/) | `index.html` → `src/aluno/main.tsx` → `src/aluno/App.tsx` |
 | Coordenação | [Abrir coordenação](http://127.0.0.1:5173/coordenacao.html) | `coordenacao.html` → `src/coord/main.tsx` → `src/coord/App.tsx` |
 
-Os links exigem o servidor local ativo. Nesta cópia há apenas frontend: as transições que exigem resposta da API dependem de um backend compatível.
+Os links exigem o servidor local ativo. As transições que exigem resposta da API dependem do backend (`python backend/entrada.py`).
 
 ## Fluxo do aluno
 
 ```mermaid
 flowchart TD
   A[Início] -->|Preciso de ajuda| B[1. Qual é a situação?]
-  B -->|Escolher tipo e Continuar| C[2. O que aconteceu?]
-  C -->|Relato válido e Continuar| D[3. Provas e identificação]
-  D -->|Quero me identificar| E[Campos de nome e turma]
-  E -->|Quero ficar anônimo| D
-  D -->|Enviar pedido de ajuda e API aceitar| F[Seu pedido foi recebido]
-  E -->|Enviar pedido de ajuda e API aceitar| F
+  B -->|Escolher situação e Continuar| C[2. O que está acontecendo?]
+  B -->|Aliciamento ou Outros, sem desdobramentos| D[3. O que aconteceu?]
+  C -->|Marcar opções e Continuar| D
+  D -->|Relato válido e Continuar| E[4. Provas e identificação]
+  E -->|Enviar pedido de ajuda e API aceitar| F[Confirmação com código]
   F -->|Acompanhar meu caso| G[Acompanhamento]
   A -->|Preencher código e Acompanhar| G
-  G -->|API encontrar o código| H[Status e conversa com a coordenação]
+  G -->|Código encontrado| H[Etapas, conversa e, se resolvido, pós-resolução]
+  H -->|Melhorou ou Voltou a acontecer| H
   C -->|Voltar| B
   D -->|Voltar| C
+  E -->|Voltar| D
 ```
 
 | ID | Interface | Gatilho para chegar | Condição | Componente |
 | --- | --- | --- | --- | --- |
-| A01 | Início: “Você pode pedir ajuda.” | Abrir o portal ou clicar em **Voltar ao início** | Não exige API | `src/aluno/Inicio.tsx` |
-| A02 | Passo 1: “Qual é a situação?” | A01 → **Preciso de ajuda** | Não exige API | `src/aluno/Denuncia.tsx` |
-| A03 | Passo 2: “O que aconteceu?” | A02 → escolher um tipo → **Continuar** | Tipo obrigatório | `src/aluno/Denuncia.tsx` |
-| A04 | Passo 3: “Provas e identificação” | A03 → preencher relato → **Continuar** | Relato de 10 a 5000 caracteres, após remover espaços nas pontas | `src/aluno/Denuncia.tsx` |
-| A04a | Campos “Seu nome” e “Sua turma” | A04 → **Quero me identificar** | Nome passa a ser obrigatório para enviar; turma opcional | `src/aluno/Denuncia.tsx` |
-| A04b | Prévias de imagens anexadas | A04 → **Adicionar imagens** → selecionar arquivos | Até 5 imagens; até 5 MB cada; PNG, JPEG, WebP ou GIF | `src/aluno/Denuncia.tsx` |
-| A05 | Confirmação: “Seu pedido foi recebido.” | A04 → **Enviar pedido de ajuda** | Validação aprovada e sucesso de `POST /api/denuncias` | `src/aluno/Confirmacao.tsx` |
-| A06 | Acompanhamento: consulta/carregamento | A01 → código não vazio → **Acompanhar**, ou A05 → **Acompanhar meu caso** | A entrada dispara consulta à API; o código precisa existir para mostrar o caso | `src/aluno/Acompanhar.tsx` |
-| A06a | Status e “Conversa com a coordenação” | A06 → consulta aceita | Sucesso de `POST /api/acompanhar` | `src/aluno/Acompanhar.tsx` |
+| A01 | Início: “Você não precisa lidar com isso sozinho.” | Abrir o portal ou clicar em **Voltar ao início** | Não exige API; traz o bilhete, o campo de código e o aviso “Antes de contar” | `src/aluno/Inicio.tsx` |
+| A02 | Passo 1: “Qual é a situação?” | A01 → **Preciso de ajuda** | Seis situações mais Outros; escolha obrigatória | `src/aluno/Denuncia.tsx` |
+| A03 | Passo 2: “O que está acontecendo?” | A02 → situação com opções → **Continuar** | Só para Cyberbullying, Ameaças, Vazamento, Perfil falso e Golpe; pelo menos uma opção. Aliciamento e Outros pulam este passo | `src/aluno/Denuncia.tsx` |
+| A04 | Passo 3: “O que aconteceu?” | A03 → **Continuar** | Texto próprio de pelo menos 10 caracteres; o relato final (texto e bloco `Situações marcadas:`) tem até 5000; o contador mostra o excesso | `src/aluno/Denuncia.tsx` |
+| A05 | Passo 4: “Provas e identificação” | A04 → **Continuar** | Imagens opcionais; anônimo por padrão | `src/aluno/Denuncia.tsx` |
+| A05a | Campos “Seu nome” e “Sua turma” | A05 → **Quero me identificar** | Nome obrigatório; turma opcional | `src/aluno/Denuncia.tsx` |
+| A05b | Prévias de imagens, com **Girar** e **Remover** | A05 → **Adicionar imagens** | Até 5 imagens de até 5 MB; PNG, JPEG, WebP ou GIF; GIF não gira | `src/aluno/Denuncia.tsx`, `src/aluno/girarImagem.ts` |
+| A06 | Confirmação: “Você deu o primeiro passo.” | A05 → **Enviar pedido de ajuda** | Sucesso de `POST /api/denuncias`; mostra o código uma única vez | `src/aluno/Confirmacao.tsx` |
+| A07 | Acompanhamento | A01 → código → **Acompanhar**, ou A06 → **Acompanhar meu caso** | Sucesso de `POST /api/acompanhar` | `src/aluno/Acompanhar.tsx` |
+| A07a | Linha do tempo de três etapas | A07 | Recebido, Em investigação, Resolvido; cada etapa diz “Concluída”, “Etapa atual” ou “Próxima” | `src/aluno/Acompanhar.tsx` |
+| A07b | Conversa com a coordenação | A07 | Mensagens do caso e campo de resposta | `src/aluno/Acompanhar.tsx` |
+| A08 | “Seu caso foi resolvido” | A07 com `pos_resolucao` verdadeiro e resolução presente | Mostra desfecho, providências e resultado como texto; pergunta “Como você está agora?” | `src/aluno/PosResolucao.tsx` |
 
 ### Retornos e ações internas do aluno
 
 | Onde | Gatilho | Resultado |
 | --- | --- | --- |
-| Qualquer tela fora do início | **Voltar ao início** | Volta a A01; desabilitado durante envio do pedido |
-| Passos 2 e 3 | **Voltar** | Retrocede uma etapa e mantém os campos |
-| Formulário com rascunho | **Limpar rascunho** | Limpa campos textuais/escolhas e retorna ao passo 1; não remove os anexos já selecionados |
-| Passo 3 | **Quero ficar anônimo** | Oculta e limpa nome/turma |
-| Prévia de anexo | **Remover** | Remove a imagem selecionada |
-| Confirmação | **Copiar código** | Copia o código e mostra sucesso ou falha, sem mudar de tela |
-| Acompanhamento sem caso | Código → **Acompanhar** | Refaz a consulta |
-| Conversa carregada | **Atualizar conversa** | Busca novamente status e mensagens |
-| Conversa carregada | Resposta → **Enviar resposta** | Envia texto de 1 a 2000 caracteres e tenta atualizar a conversa |
+| Qualquer tela fora do início | **Voltar ao início** | Volta a A01; desabilitado durante o envio do pedido |
+| Passos 2, 3 e 4 | **Voltar** | Retrocede uma etapa e mantém os campos; no passo 3 sem desdobramentos volta ao passo 1 |
+| Formulário com rascunho | **Limpar rascunho** | Apaga o rascunho e volta ao passo 1; não remove imagens já anexadas |
+| Passo 1 | Trocar de situação | Descarta as opções marcadas da situação anterior |
+| Passo 4 | **Quero ficar anônimo** | Oculta e limpa nome e turma |
+| Prévia de anexo | **Girar** | Gira 90 graus; se falhar ou passar de 5 MB, a original continua anexada; o envio fica bloqueado enquanto gira |
+| Prévia de anexo | **Remover** | Remove a imagem |
+| Confirmação | **Copiar código** | Copia o código e avisa o resultado, sem mudar de tela |
+| Acompanhamento sem caso | Código → **Acompanhar** | Consulta; aceita minúsculas, espaços e código sem hífen |
+| Conversa carregada | **Atualizar conversa** | Busca de novo etapas, mensagens e pós-resolução |
+| Conversa carregada | Resposta → **Enviar resposta** | Envia de 1 a 2000 caracteres e atualiza a conversa |
+| Pós-resolução | **Melhorou** ou **Voltou a acontecer** | Envia a situação, agradece e mostra “Você informou”; pode ser repetido; “voltou” alerta a coordenação |
 
-**Endereços:** todas as telas do aluno usam a mesma página `/`. Não há links diretos para os passos, a confirmação ou um caso. Recarregar reinicia no início. O rascunho textual pode ser restaurado ao abrir novamente o formulário, mas o passo volta a 1; imagens precisam ser adicionadas novamente após sair do formulário.
+**Endereços e privacidade:** todas as telas do aluno usam a mesma página `/`. Não há links diretos para passos, confirmação ou caso, e recarregar reinicia no início. O código de acompanhamento nunca vai para a URL, para `localStorage` nem para `sessionStorage`: viaja só no corpo de `POST`. O rascunho guarda o texto e as escolhas por 24 horas (chave `si-aluno-rascunho-v2`) e é apagado no envio; imagens, código e conversa nunca entram nele.
 
 ## Fluxo da coordenação
 
@@ -151,14 +158,16 @@ flowchart TD
 | Interface | Estado | Gatilho |
 | --- | --- | --- |
 | Início do aluno | Erro de código vazio | **Acompanhar** sem preencher código |
-| Pedido de ajuda | Erro de validação | **Continuar**/**Enviar** com tipo ausente, relato fora do limite ou nome obrigatório ausente |
-| Pedido de ajuda | Erro de anexo | Selecionar formato não aceito, arquivo acima de 5 MB ou mais de 5 imagens |
-| Pedido de ajuda | Aviso de rascunho | Armazenamento local indisponível ou **Limpar rascunho** |
+| Pedido de ajuda | Erro de validação | **Continuar**/**Enviar** com situação ou opção ausente, texto próprio curto, relato acima do limite ou nome ausente |
+| Pedido de ajuda | Erro de anexo | Formato não aceito, arquivo acima de 5 MB, mais de 5 imagens ou falha ao girar |
+| Pedido de ajuda | Aviso de rascunho | Armazenamento local indisponível ou **Limpar rascunho**; rascunho com mais de 24 horas some sem aviso |
 | Pedido de ajuda | Enviando | Pedido enviado à API; bloqueia campos e retornos durante a operação |
 | Pedido de ajuda | Falha no envio | API/rede falha; mantém o relato na tela |
 | Confirmação | Imagens recusadas | API aceita pedido e retorna `anexos_recusados` |
 | Acompanhamento | Buscando caso / erro / conversa vazia | Consulta iniciada / API falha / caso retornado sem mensagens |
 | Acompanhamento | Enviando resposta / sucesso / falha de atualização | Envio iniciado / API aceita / envio aceita, mas consulta seguinte falha |
+| Pós-resolução | Agradecimento / erro 409, 429 ou de rede | Situação aceita / caso reaberto, limite de tentativas ou falha; no 409 o bloco some e o caso é recarregado |
+| Acompanhamento | Caso reaberto | `pos_resolucao` falso: o aluno deixa de ver a resolução antiga |
 | Login | Entrando / dados inválidos / servidor ocupado / limite de tentativas | Envio do login e respostas da API |
 | Login | Sessão encerrada | Uma chamada da coordenação responde HTTP 401 com sessão antes autenticada |
 | Casos e Pós-resolução | Carregando / vazia / sem resultados / erro | Consulta inicial / lista vazia / filtros sem resultados / API falha |
@@ -176,6 +185,7 @@ flowchart TD
 | Confirmação do pedido | `POST /api/denuncias` |
 | Status e conversa do aluno | `POST /api/acompanhar` |
 | Resposta do aluno | `POST /api/acompanhar/mensagens` |
+| Situação pós-resolução (melhorou ou voltou) | `POST /api/acompanhar/situacao` |
 | Sessão da coordenação | `GET /api/eu` |
 | Entrar / sair | `POST /api/login` / `POST /api/logout` |
 | Contagens da Visão geral e da navegação | `GET /api/resumo` |
@@ -195,4 +205,4 @@ Referência das requisições e tratamento de sessão: `src/shared/api.ts`.
 
 ## Limites da verificação
 
-Este índice descreve os caminhos implementados no código. Os testes do portal rodam contra um servidor falso; a verificação com backend real e Chrome fica em `verificacao/coordenacao.mjs`. A prévia `interfaces.html` usa dados fictícios no formato da v2 e não envia nada ao backend.
+Este índice descreve os caminhos implementados no código. Os testes do portal rodam contra um servidor falso; a verificação com backend real e Chrome fica em `verificacao/coordenacao.mjs` e `verificacao/aluno.mjs`. A prévia `interfaces.html` usa dados fictícios no formato da v2 e não envia nada ao backend.
