@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ErroApi, mensagemErro } from '../shared/api';
+import { mensagemErro } from '../shared/api';
 import type { Caso, Situacao } from '../shared/api';
 import { dataLegivel, rotuloDesfecho } from './rotulos';
 
@@ -31,9 +31,7 @@ export default function PosResolucao({ caso, aoInformar, ocupado }: { caso: Caso
       await aoInformar(situacao);
       setObrigado(agradecimento[situacao]); setFocar(n => n + 1);
     } catch (erro) {
-      setFalha(erro instanceof ErroApi && erro.status === 429
-        ? 'Muitas tentativas. Tente de novo em alguns minutos.'
-        : mensagemErro(erro, 'situacao'));
+      setFalha(mensagemErro(erro, 'situacao'));
     } finally { setEnviando(false); travado.current = false; }
   }
   const desabilitado = ocupado || enviando;
@@ -42,8 +40,10 @@ export default function PosResolucao({ caso, aoInformar, ocupado }: { caso: Caso
     <p className="pos-desfecho">{rotuloDesfecho(resolucao.desfecho)}</p>
     <h3>O que foi feito</h3>
     <p className="texto-livre">{resolucao.providencias}</p>
-    <h3>Resultado</h3>
-    <p className="texto-livre">{resolucao.resultado}</p>
+    {(resolucao.resultado ?? '').trim() && <>
+      <h3>Resultado</h3>
+      <p className="texto-livre">{resolucao.resultado}</p>
+    </>}
     <time className="texto-pequeno" dateTime={resolucao.criado_em}>{dataLegivel(resolucao.criado_em)}</time>
     <div className="pos-pergunta">
       <h3>Como você está agora?</h3>

@@ -34,7 +34,7 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
   async function consultar() {
     if (!codigo.trim()) { setErro('Digite seu código para acompanhar.'); return; }
     const atual = ++consulta.current;
-    setCarregando(true); setErro(''); setCaso(null); setAviso('');
+    setCarregando(true); setErro(''); setErroSituacao(''); setCaso(null); setAviso('');
     try {
       const dados = await acompanhar(codigo);
       if (atual === consulta.current) { setCaso(dados); setCodigoAtivo(codigo); setCodigo(''); }
@@ -55,7 +55,7 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
   }
   async function atualizar() {
     const atual = ++consulta.current;
-    setCarregando(true); setErro('');
+    setCarregando(true); setErro(''); setErroSituacao('');
     try { const dados = await acompanhar(codigoAtivo); if (atual === consulta.current) { setCaso(dados); setAviso('Conversa atualizada.'); } }
     catch (falha) { if (atual === consulta.current) setErro(mensagemErro(falha)); }
     finally { if (atual === consulta.current) setCarregando(false); }
@@ -83,6 +83,8 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
   }
   const atual = caso ? etapas.indexOf(rotuloStatus(caso.status)) : -1;
   const blocoVisivel = !!caso && caso.pos_resolucao && !!caso.resolucao;
+  // uma resolução nova torna o erro de 409 antigo obsoleto
+  useEffect(() => { if (blocoVisivel) setErroSituacao(''); }, [blocoVisivel]);
   return <section>
     <h1>Acompanhar meu caso</h1>
     {!caso && !carregando && <form noValidate onSubmit={e => { e.preventDefault(); void consultar(); }}>

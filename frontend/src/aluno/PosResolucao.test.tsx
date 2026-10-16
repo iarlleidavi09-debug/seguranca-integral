@@ -63,7 +63,7 @@ describe('PosResolucao', () => {
     const user = userEvent.setup();
     render(<PosResolucao caso={caso()} aoInformar={vi.fn().mockRejectedValue(new ErroApi(429))} ocupado={false} />);
     await user.click(screen.getByRole('button', { name: 'Melhorou' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('Muitas tentativas. Tente de novo em alguns minutos.');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Foram feitas muitas tentativas. Aguarde alguns minutos e tente de novo.');
     expect(screen.queryByText(/Obrigado por contar/)).toBeNull();
     expect(screen.getByRole('button', { name: 'Melhorou' })).toBeEnabled();
   });
@@ -105,5 +105,16 @@ describe('PosResolucao', () => {
     rerender(<PosResolucao caso={caso({ pos_resolucao: false, resolucao: null })} aoInformar={aoInformar} ocupado={false} />);
     rerender(<PosResolucao caso={caso()} aoInformar={aoInformar} ocupado={false} />);
     expect(screen.queryByText('Obrigado por contar. A equipe vai ver.')).toBeNull();
+  });
+  it.each(['', '   '])('sem resultado (%j) não mostra o título nem o parágrafo de Resultado', (resultado) => {
+    render(<PosResolucao caso={caso({ resolucao: { desfecho: 'solucionada', providencias: 'Conversamos.', resultado, criado_em: '2026-10-14T12:00:00Z' } })} aoInformar={vi.fn()} ocupado={false} />);
+    expect(screen.getByText('Conversamos.')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Resultado' })).toBeNull();
+    expect(document.querySelectorAll('.texto-livre')).toHaveLength(1);
+  });
+  it('com resultado preenchido continua mostrando o título', () => {
+    render(<PosResolucao caso={caso()} aoInformar={vi.fn()} ocupado={false} />);
+    expect(screen.getByRole('heading', { name: 'Resultado' })).toBeInTheDocument();
+    expect(screen.getByText('Tudo certo')).toBeInTheDocument();
   });
 });

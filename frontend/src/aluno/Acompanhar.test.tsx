@@ -136,7 +136,7 @@ describe('Acompanhar', () => {
     await screen.findByRole('heading', { name: 'Seu caso foi resolvido' });
     responder({}, 429);
     await user.click(screen.getByRole('button', { name: 'Voltou a acontecer' }));
-    expect(await screen.findByText('Muitas tentativas. Tente de novo em alguns minutos.')).toBeInTheDocument();
+    expect(await screen.findByText('Foram feitas muitas tentativas. Aguarde alguns minutos e tente de novo.')).toBeInTheDocument();
     vi.mocked(fetch).mockRejectedValueOnce(new TypeError('rede'));
     await user.click(screen.getByRole('button', { name: 'Voltou a acontecer' }));
     expect(await screen.findByText(/Não foi possível conectar/)).toBeInTheDocument();
@@ -183,5 +183,35 @@ describe('Acompanhar', () => {
     await user.click(screen.getByRole('button', { name: 'Melhorou' }));
     expect(await screen.findByText('Obrigado por contar. A equipe vai ver.')).toBeInTheDocument();
     expect(screen.getByText('Não foi possível atualizar agora. Use Atualizar conversa.')).toBeInTheDocument();
+  });
+  it('o erro do 409 some ao atualizar a conversa', async () => {
+    const user = userEvent.setup();
+    responder(resolvido);
+    render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+    await screen.findByRole('heading', { name: 'Seu caso foi resolvido' });
+    responder({ erro: 'x' }, 409);
+    responder({ ...resolvido, status: 'em_investigacao', pos_resolucao: false, resolucao: null });
+    await user.click(screen.getByRole('button', { name: 'Melhorou' }));
+    expect(await screen.findByText('Esse caso ainda não foi resolvido.')).toBeInTheDocument();
+    responder({ ...resolvido, status: 'em_investigacao', pos_resolucao: false, resolucao: null });
+    await user.click(screen.getByRole('button', { name: 'Atualizar conversa' }));
+    await waitFor(() => expect(screen.queryByText('Esse caso ainda não foi resolvido.')).toBeNull());
+  });
+  it('o erro do 409 some quando o caso é resolvido de novo', async () => {
+    const user = userEvent.setup();
+    responder(resolvido);
+    render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+    await screen.findByRole('heading', { name: 'Seu caso foi resolvido' });
+    responder({ erro: 'x' }, 409);
+    responder({ ...resolvido, status: 'em_investigacao', pos_resolucao: false, resolucao: null });
+    await user.click(screen.getByRole('button', { name: 'Melhorou' }));
+    expect(await screen.findByText('Esse caso ainda não foi resolvido.')).toBeInTheDocument();
+    // a nova resolução chega por uma consulta que não passa por Atualizar (resposta de envio)
+    responder({ ok: true }, 201);
+    responder(resolvido);
+    await user.type(screen.getByLabelText('Sua resposta'), 'oi');
+    await user.click(screen.getByRole('button', { name: 'Enviar resposta' }));
+    await screen.findByRole('heading', { name: 'Seu caso foi resolvido' });
+    expect(screen.queryByText('Esse caso ainda não foi resolvido.')).toBeNull();
   });
 });
