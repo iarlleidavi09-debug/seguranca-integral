@@ -1,6 +1,8 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { TEMPO_LIMITE_QUESTIONARIO } from '../shared/api';
+import type { Questionario } from '../shared/api';
 import { DEFINICAO_TESTE, chamadasDeEnvio, formDoEnvio, simularQuestionario } from '../test/questionario';
 import App from './App';
 import Denuncia from './Denuncia';
@@ -95,7 +97,7 @@ describe('Passos e validação', () => {
     const user = await abrirApp();
     await user.click(situacao(nome));
     await continuar(user);
-    expect(screen.getByRole('heading', { name: 'O que aconteceu?' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'O que aconteceu?' })).toBeInTheDocument();
     expect(screen.getByText('Passo 3 de 4')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Voltar' }));
     expect(screen.getByRole('heading', { name: 'Qual é a situação?' })).toBeInTheDocument();
@@ -104,7 +106,7 @@ describe('Passos e validação', () => {
   it('relato curto não avança', async () => {
     const user = await abrirApp();
     await ateRelato(user, /^Outros\./, []);
-    await user.type(screen.getByLabelText('O que aconteceu?'), 'curto');
+    await user.type(await screen.findByLabelText('O que aconteceu?'), 'curto');
     await continuar(user);
     expect(screen.getByRole('alert')).toHaveTextContent('Conte um pouco mais, com pelo menos 10 caracteres.');
     expect(screen.queryByRole('heading', { name: 'Provas e identificação' })).not.toBeInTheDocument();
@@ -893,5 +895,105 @@ describe('Definição real do servidor', () => {
       expect(lista.length).toBeGreaterThan(0);
     }
     expect(Object.keys(envio.respostas).length).toBeGreaterThan(0);
+  });
+});
+
+/** O primeiro GET do questionário fica pendente até `entregar()`; sem chamá-lo, é um fetch que nunca resolve. */
+function definicaoManual(definicao: Questionario = DEFINICAO_TESTE) {
+  const controle = { entregar: () => {} };
+  vi.mocked(fetch).mockImplementationOnce(() => new Promise<Response>(resolve => { controle.entregar = () => resolve(new Response(JSON.stringify(definicao), { status: 200 })); }));
+  return controle;
+}
+const entregarDefinicao = (controle: { entregar: () => void }) => act(async () => { controle.entregar(); await new Promise(r => setTimeout(r, 0)); });
+
+describe('Definição que demora ou nunca chega', () => {
+  it('fetch que nunca resolve: mostra o carregamento, bloqueia o Continuar e "Continuar só com o relato" segue sem respostas', async () => {
+    definicaoManual();
+    const user = await abrirApp();
+    await user.click(situacao(/^Ameaças\./));
+    await continuar(user);
+    expect(screen.getByRole('status')).toHaveTextContent('Carregando as perguntas…');
+    expect(screen.getByRole('heading', { name: 'O que está acontecendo?' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Continuar' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'Continuar só com o relato' }));
+    expect(screen.getByRole('heading', { name: 'O que aconteceu?' })).toBeInTheDocument();
+    expect(screen.getByText('Passo 3 de 4')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent(AVISO_FALHA);
+    responder({ codigo: 'K7M2-9QXD' }, 201);
+    await enviar(user);
+    await screen.findByText('K7M2-9QXD');
+    expect(formDoEnvio().has('respostas')).toBe(false);
+    expect(formDoEnvio().get('relato')).toBe(relato);
+  });
+  it('passado o tempo limite o passo 2 é pulado sozinho, com o aviso', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      definicaoManual();
+      render(<Denuncia onEnviado={() => {}} />);
+      fireEvent.click(situacao(/^Ameaças\./));
+      fireEvent.click(screen.getByRole('button', { name: 'Continuar' }));
+      expect(screen.getByRole('status')).toHaveTextContent('Carregando as perguntas…');
+      await act(async () => { await vi.advanceTimersByTimeAsync(TEMPO_LIMITE_QUESTIONARIO - 1); });
+      expect(screen.getByRole('status')).toHaveTextContent('Carregando as perguntas…');
+      await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+      expect(screen.getByRole('heading', { name: 'O que aconteceu?' })).toBeInTheDocument();
+      expect(screen.getByRole('status')).toHaveTextContent(AVISO_FALHA);
+    } finally { vi.useRealTimers(); }
+  });
+  it('a definição que chega depois do clique em "Continuar só com o relato" é ignorada', async () => {
+    const definicao = definicaoManual();
+    const user = await abrirApp();
+    await user.click(situacao(/^Ameaças\./));
+    await continuar(user);
+    await user.click(screen.getByRole('button', { name: 'Continuar só com o relato' }));
+    await entregarDefinicao(definicao);
+    expect(screen.getByRole('heading', { name: 'O que aconteceu?' })).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent(AVISO_FALHA);
+    await user.click(screen.getByRole('button', { name: 'Voltar' }));
+    expect(screen.getByRole('heading', { name: 'Qual é a situação?' })).toBeInTheDocument();
+    await continuar(user);
+    expect(screen.getByRole('heading', { name: 'O que aconteceu?' })).toBeInTheDocument();
+    responder({ codigo: 'K7M2-9QXD' }, 201);
+    await enviar(user);
+    await screen.findByText('K7M2-9QXD');
+    expect(formDoEnvio().has('respostas')).toBe(false);
+  });
+  it('a definição que chega normalmente, depois do Continuar, abre o passo 2', async () => {
+    const definicao = definicaoManual();
+    const user = await abrirApp();
+    await user.click(situacao(/^Ameaças\./));
+    await continuar(user);
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    await entregarDefinicao(definicao);
+    expect(await screen.findByRole('checkbox', { name: opcaoAmeaca[0] })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Continuar' })).toBeEnabled();
+    expect(screen.queryByRole('button', { name: 'Continuar só com o relato' })).not.toBeInTheDocument();
+  });
+  it('Aliciamento não pula o passo 2 antes da definição chegar: o servidor tem uma opção para ele', async () => {
+    const comOpcao: Questionario = { ...DEFINICAO_TESTE, situacoes: DEFINICAO_TESTE.situacoes.map(s => s.id === 'aliciamento' ? { ...s, opcoes: [{ id: 'l1', texto: 'Alguém me pede segredo.', perguntas: ['q1'] }] } : s) };
+    const definicao = definicaoManual(comOpcao);
+    const user = await abrirApp();
+    await user.click(situacao(/^Aliciamento\./));
+    await continuar(user);
+    expect(screen.getByRole('status')).toHaveTextContent('Carregando as perguntas…');
+    expect(screen.getByRole('heading', { name: 'O que está acontecendo?' })).toBeInTheDocument();
+    await entregarDefinicao(definicao);
+    expect(await screen.findByRole('checkbox', { name: 'Alguém me pede segredo.' })).toBeInTheDocument();
+  });
+  it('Outros, quando a definição chega sem opções para ele, segue para o relato sem aviso', async () => {
+    const definicao = definicaoManual();
+    const user = await abrirApp();
+    await user.click(situacao(/^Outros\./));
+    await continuar(user);
+    await entregarDefinicao(definicao);
+    expect(await screen.findByRole('heading', { name: 'O que aconteceu?' })).toBeInTheDocument();
+    expect(screen.queryByText(AVISO_FALHA)).not.toBeInTheDocument();
+  });
+  it('a contagem "Pergunta N de M" descreve o grupo da pergunta', async () => {
+    const user = await abrirApp();
+    await marcarOpcoes(user, [opcaoAmeaca[0]]);
+    expect(screen.getByRole('group', { name: q('q1').texto })).toHaveAccessibleDescription('Pergunta 1 de 2');
+    await user.click(resposta('Sim, agora'));
+    expect(screen.getByRole('group', { name: q('q1').texto })).toHaveAccessibleDescription('Pergunta 1 de 3');
   });
 });

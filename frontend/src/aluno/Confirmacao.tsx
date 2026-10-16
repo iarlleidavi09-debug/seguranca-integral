@@ -17,7 +17,7 @@ export default function Confirmacao({ resultado, onAcompanhar, orientacao = fals
       <button className="botao secundario" onClick={() => void copiar()}>Copiar código</button>
       <p className="texto-pequeno" role="status">{aviso}</p>
     </div>
-    {orientacao && <div className="aviso orientacao"><p>{TEXTO_ORIENTACAO}</p></div>}
+    {orientacao && <div className="aviso orientacao" role="status"><p>{TEXTO_ORIENTACAO}</p></div>}
     <p className="aviso">Anote e guarde seu código. Ele só aparece nesta confirmação. Você vai precisar dele para voltar ao caso.</p>
     {respostasNaoEnviadas && <p className="texto-pequeno">As respostas às perguntas não foram enviadas, mas o seu relato chegou à coordenação.</p>}
     {!!resultado.anexos_recusados?.length && <div className="erro" role="alert"><p>Seu pedido foi recebido, mas estas imagens foram recusadas:</p>

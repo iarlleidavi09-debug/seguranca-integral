@@ -46,8 +46,9 @@ export default function Denuncia({ onEnviado, onEnviando, passoInicial = 1, dado
   const situacao = SITUACOES.find(s => s.id === dados.situacaoId);
   const def = typeof definicao === 'object' && definicao ? definicao : null;
   const opcoesDoServidor = def?.situacoes.find(s => s.id === dados.situacaoId)?.opcoes ?? [];
-  // enquanto a definição carrega, a lista local só indica se vale esperar pelo passo 2
-  const temDetalhes = def ? opcoesDoServidor.length > 0 : definicao === 'carregando' && (situacao?.opcoes.length ?? 0) > 0;
+  // Enquanto a definição carrega, qualquer situação espera por ela no passo 2 (o servidor tem opções até para
+  // Aliciamento e Outros); se ela chegar sem opções, ou falhar, o efeito abaixo leva ao relato.
+  const temDetalhes = def ? opcoesDoServidor.length > 0 : definicao === 'carregando';
   const visiveis = def ? perguntasVisiveis(def, dados.situacaoId, dados.marcadas, dados.respostas) : [];
   const idAtual = visitadas[visitadas.length - 1];
   const perguntaAtual = def && passo === 2 && fase === 'pergunta' ? def.perguntas.find(p => p.id === idAtual && visiveis.includes(p.id)) : undefined;
@@ -75,7 +76,10 @@ export default function Denuncia({ onEnviado, onEnviando, passoInicial = 1, dado
   }, [passo, fase, idAtual]);
   useEffect(() => {
     let vivo = true;
-    obterQuestionario().then(q => { if (vivo) setDefinicao(q); }).catch(() => { if (vivo) setDefinicao(null); });
+    // uma resposta tardia não troca o estado se o aluno já seguiu só com o relato
+    obterQuestionario()
+      .then(q => { if (vivo) setDefinicao(atual => atual === 'carregando' ? q : atual); })
+      .catch(() => { if (vivo) setDefinicao(atual => atual === 'carregando' ? null : atual); });
     return () => { vivo = false; };
   }, []);
   // com a definição na mão, descarta do rascunho o que ela não conhece; isso não renova o prazo de 24 horas
@@ -275,7 +279,10 @@ export default function Denuncia({ onEnviado, onEnviando, passoInicial = 1, dado
             <span><b>{s.nome}</b><small>{s.descricao}</small></span>
           </label>)}</div>
         </fieldset>}
-        {passo === 2 && fase === 'opcoes' && definicao === 'carregando' && <p role="status">Carregando as perguntas…</p>}
+        {passo === 2 && fase === 'opcoes' && definicao === 'carregando' && <div>
+          <p role="status">Carregando as perguntas…</p>
+          <button type="button" className="botao secundario" onClick={() => setDefinicao(null)}>Continuar só com o relato</button>
+        </div>}
         {passo === 2 && fase === 'opcoes' && def && <fieldset className="sem-borda">
           <legend>Marque tudo o que se parece com o que você está vivendo.</legend>
           <div className="opcoes-tipo">{opcoesDoServidor.map(o => <label className="opcao" key={o.id}>
@@ -283,8 +290,8 @@ export default function Denuncia({ onEnviado, onEnviando, passoInicial = 1, dado
           </label>)}</div>
         </fieldset>}
         {perguntaAtual && <div className="pergunta">
-          <p className="texto-pequeno pergunta-contagem">{`Pergunta ${visitadas.length} de ${Math.max(visiveis.length, visitadas.length)}`}</p>
-          <fieldset className="sem-borda">
+          <p id="pergunta-contagem" className="texto-pequeno pergunta-contagem">{`Pergunta ${visitadas.length} de ${Math.max(visiveis.length, visitadas.length)}`}</p>
+          <fieldset className="sem-borda" aria-describedby="pergunta-contagem">
             <legend ref={legenda} tabIndex={-1}>{perguntaAtual.texto}</legend>
             <div className="opcoes-tipo">{perguntaAtual.respostas.map(r => <label className="opcao" key={r.id}>
               <input type={perguntaAtual.tipo === 'unica' ? 'radio' : 'checkbox'} name={perguntaAtual.id}

@@ -66,14 +66,27 @@ export type Opcao = { id: string; texto: string; perguntas: string[] };
 export type SituacaoQ = { id: string; tipo: string; nome: string; descricao: string; opcoes: Opcao[] };
 export type Questionario = { dimensoes: Record<string, string>; situacoes: SituacaoQ[]; perguntas: Pergunta[] };
 
-/** Definição do questionário (sem pesos nem alertas). Falha de rede ou 503 viram ErroApi. */
+/** Quanto esperar pela definição antes de seguir sem ela. */
+export const TEMPO_LIMITE_QUESTIONARIO = 8000;
+
+/** Definição do questionário (sem pesos nem alertas). Falha de rede, tempo esgotado ou 503 viram ErroApi. */
 export async function obterQuestionario(): Promise<Questionario> {
-  let resposta: Response;
-  try { resposta = await fetch('/api/questionario', { method: 'GET', credentials: 'same-origin', cache: 'no-store' }); }
-  catch { throw new ErroApi(0); }
-  if (!resposta.ok) throw new ErroApi(resposta.status);
-  try { return await resposta.json() as Questionario; }
-  catch { throw new ErroApi(502); }
+  const controle = new AbortController();
+  let cronometro: ReturnType<typeof setTimeout> | undefined;
+  // a corrida garante a desistência mesmo que o fetch ignore o sinal de cancelamento
+  const esgotado = new Promise<never>((_, rejeitar) => {
+    cronometro = setTimeout(() => { controle.abort(); rejeitar(new ErroApi(0)); }, TEMPO_LIMITE_QUESTIONARIO);
+  });
+  const buscar = async (): Promise<Questionario> => {
+    let resposta: Response;
+    try { resposta = await fetch('/api/questionario', { method: 'GET', credentials: 'same-origin', cache: 'no-store', signal: controle.signal }); }
+    catch { throw new ErroApi(0); }
+    if (!resposta.ok) throw new ErroApi(resposta.status);
+    try { return await resposta.json() as Questionario; }
+    catch { throw new ErroApi(controle.signal.aborted ? 0 : 502); }
+  };
+  try { return await Promise.race([buscar(), esgotado]); }
+  finally { clearTimeout(cronometro); }
 }
 
 // ---------------------------------------------------------------------------

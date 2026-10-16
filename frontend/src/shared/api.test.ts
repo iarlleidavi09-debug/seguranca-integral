@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { acompanhar, enviarDenuncia, obterQuestionario, enviarMensagem, enviarSituacao, ErroApi, listarCasos, mensagemErro, mudarPrioridade, registrarResolucao, revisarRecorrencia } from './api';
+import { TEMPO_LIMITE_QUESTIONARIO, acompanhar, enviarDenuncia, obterQuestionario, enviarMensagem, enviarSituacao, ErroApi, listarCasos, mensagemErro, mudarPrioridade, registrarResolucao, revisarRecorrencia } from './api';
 
 describe('Cliente da API', () => {
   it.each([400, 404, 413, 429, 500])('mantém status HTTP %i e fornece recuperação', async status => {
@@ -22,6 +22,17 @@ describe('Cliente da API', () => {
     vi.mocked(fetch).mockResolvedValueOnce(resposta);
     const erro = await enviarDenuncia(new FormData()).catch(e => e);
     expect(erro.erroServidor).toBe('');
+  });
+  it('obterQuestionario desiste depois do tempo limite com o mesmo erro de rede', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      vi.mocked(fetch).mockImplementationOnce(() => new Promise(() => {}));
+      const pendente = obterQuestionario().catch(e => e);
+      await vi.advanceTimersByTimeAsync(TEMPO_LIMITE_QUESTIONARIO);
+      const erro = await pendente;
+      expect(erro).toBeInstanceOf(ErroApi);
+      expect(erro.status).toBe(0);
+    } finally { vi.useRealTimers(); }
   });
   it('tipa falhas de rede com status 0', async () => {
     vi.mocked(fetch).mockRejectedValueOnce(new TypeError('Failed to fetch'));
