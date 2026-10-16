@@ -21,8 +21,10 @@ Os links exigem o servidor local ativo. As transições que exigem resposta da A
 flowchart TD
   A[Início] -->|Preciso de ajuda| B[1. Qual é a situação?]
   B -->|Escolher situação e Continuar| C[2. O que está acontecendo?]
-  B -->|Aliciamento ou Outros, sem desdobramentos| D[3. O que aconteceu?]
-  C -->|Marcar opções e Continuar| D
+  B -->|Definição indisponível| D[3. O que aconteceu?]
+  C -->|Marcar opções e Continuar| C2[Perguntas encadeadas, uma por tela]
+  C2 -->|Responder ou pular e Continuar| D
+  C -->|Definição falha ou demora| D
   D -->|Relato válido e Continuar| E[4. Provas e identificação]
   E -->|Enviar pedido de ajuda e API aceitar| F[Confirmação com código]
   F -->|Acompanhar meu caso| G[Acompanhamento]
@@ -38,8 +40,10 @@ flowchart TD
 | --- | --- | --- | --- | --- |
 | A01 | Início: “Você não precisa lidar com isso sozinho.” | Abrir o portal ou clicar em **Voltar ao início** | Não exige API; traz o bilhete, o campo de código e o aviso “Antes de contar” | `src/aluno/Inicio.tsx` |
 | A02 | Passo 1: “Qual é a situação?” | A01 → **Preciso de ajuda** | Seis situações mais Outros; escolha obrigatória | `src/aluno/Denuncia.tsx` |
-| A03 | Passo 2: “O que está acontecendo?” | A02 → situação com opções → **Continuar** | Só para Cyberbullying, Ameaças, Vazamento, Perfil falso e Golpe; pelo menos uma opção. Aliciamento e Outros pulam este passo | `src/aluno/Denuncia.tsx` |
-| A04 | Passo 3: “O que aconteceu?” | A03 → **Continuar** | Texto próprio de pelo menos 10 caracteres; o relato final (texto e bloco `Situações marcadas:`) tem até 5000; o contador mostra o excesso | `src/aluno/Denuncia.tsx` |
+| A03 | Passo 2: “O que está acontecendo?” (opções) | A02 → situação → **Continuar** | Opções vindas de `GET /api/questionario`; pelo menos uma opção. Se a definição falhar, o passo é pulado com aviso; se demorar, aparece “Carregando as perguntas…” e **Continuar só com o relato** (saída automática em 8 s) | `src/aluno/Denuncia.tsx` |
+| A03a | Passo 2: perguntas encadeadas | A03 → **Continuar** | Uma pergunta por tela, com “Pergunta N de M” e foco na pergunta; nenhuma é obrigatória; responder pode abrir outras perguntas e mudar a resposta fecha as dependentes | `src/aluno/Denuncia.tsx`, `src/aluno/fluxo.ts` |
+| A03b | Orientação de risco | A03a → “Você está seguro agora?” com “Não” ou “Quero falar com alguém hoje” | Aviso de apoio imediato na tela e de novo na confirmação; não bloqueia o fluxo | `src/aluno/Denuncia.tsx`, `src/aluno/Confirmacao.tsx` |
+| A04 | Passo 3: “O que aconteceu?” | A03 → **Continuar** | Texto próprio de pelo menos 10 caracteres; o relato vai só com o texto do aluno e tem até 5000; o contador mostra o excesso | `src/aluno/Denuncia.tsx` |
 | A05 | Passo 4: “Provas e identificação” | A04 → **Continuar** | Imagens opcionais; anônimo por padrão | `src/aluno/Denuncia.tsx` |
 | A05a | Campos “Seu nome” e “Sua turma” | A05 → **Quero me identificar** | Nome obrigatório; turma opcional | `src/aluno/Denuncia.tsx` |
 | A05b | Prévias de imagens, com **Girar** e **Remover** | A05 → **Adicionar imagens** | Até 5 imagens de até 5 MB; PNG, JPEG, WebP ou GIF; GIF não gira | `src/aluno/Denuncia.tsx`, `src/aluno/girarImagem.ts` |
@@ -54,9 +58,12 @@ flowchart TD
 | Onde | Gatilho | Resultado |
 | --- | --- | --- |
 | Qualquer tela fora do início | **Voltar ao início** | Volta a A01; desabilitado durante o envio do pedido |
-| Passos 2, 3 e 4 | **Voltar** | Retrocede uma etapa e mantém os campos; no passo 3 sem desdobramentos volta ao passo 1 |
+| Passos 2, 3 e 4 | **Voltar** | Retrocede uma etapa ou uma pergunta e mantém os campos; do relato volta à última pergunta vista; sem detalhes volta ao passo 1 |
 | Formulário com rascunho | **Limpar rascunho** | Apaga o rascunho e volta ao passo 1; não remove imagens já anexadas |
-| Passo 1 | Trocar de situação | Descarta as opções marcadas da situação anterior |
+| Passo 1 | Trocar de situação | Descarta as opções marcadas e as respostas da situação anterior |
+| Perguntas | Mudar ou desmarcar uma resposta | Fecha as perguntas que dependiam dela e apaga as respostas delas |
+| Passo 2 (definição indisponível) | Aviso “Não foi possível carregar as perguntas agora” | O pedido segue só com situação e relato |
+| Confirmação | 400 `respostas invalidas` no envio | Reenvia uma vez sem `respostas`; a confirmação avisa que as respostas não foram enviadas |
 | Passo 4 | **Quero ficar anônimo** | Oculta e limpa nome e turma |
 | Prévia de anexo | **Girar** | Gira 90 graus; se falhar ou passar de 5 MB, a original continua anexada; o envio fica bloqueado enquanto gira |
 | Prévia de anexo | **Remover** | Remove a imagem |
@@ -66,7 +73,7 @@ flowchart TD
 | Conversa carregada | Resposta → **Enviar resposta** | Envia de 1 a 2000 caracteres e atualiza a conversa |
 | Pós-resolução | **Melhorou** ou **Voltou a acontecer** | Envia a situação, agradece e mostra “Você informou”; pode ser repetido; “voltou” alerta a coordenação |
 
-**Endereços e privacidade:** todas as telas do aluno usam a mesma página `/`. Não há links diretos para passos, confirmação ou caso, e recarregar reinicia no início. O código de acompanhamento nunca vai para a URL, para `localStorage` nem para `sessionStorage`: viaja só no corpo de `POST`. O rascunho guarda o texto e as escolhas por 24 horas (chave `si-aluno-rascunho-v2`) e é apagado no envio; imagens, código e conversa nunca entram nele.
+**Endereços e privacidade:** todas as telas do aluno usam a mesma página `/`. Não há links diretos para passos, confirmação ou caso, e recarregar reinicia no início. O código de acompanhamento nunca vai para a URL, para `localStorage` nem para `sessionStorage`: viaja só no corpo de `POST`. O rascunho guarda o texto, as opções e as respostas (por id) por 24 horas (chave `si-aluno-rascunho-v3`; ao restaurar, o passo volta ao 1) e é apagado no envio; imagens, código e conversa nunca entram nele.
 
 ## Fluxo da coordenação
 
@@ -112,6 +119,7 @@ flowchart TD
 | C03p | Pós-resolução | Menu **Pós-resolução** | `#pos-resolucao`; só casos resolvidos | `src/coord/Fila.tsx` (modo pós) |
 | C04 | Detalhe do caso | C03 ou C03p → clicar na linha, ou abrir `#caso-ID` | Exemplo: `/coordenacao.html#caso-123`; exige sessão e caso existente | `src/coord/Caso.tsx` |
 | C04a | Aba “Relato e investigação” | Padrão ao abrir C04 | Relato, quando, onde e anexos; mesmo endereço do caso | `src/coord/Caso.tsx` |
+| C04f | Bloco “Respostas do aluno” | C04a | Situação, opções marcadas e perguntas por dimensão (Quando e se continua, Frequência, Quem e quantos souberam, Consequências, Risco agora), tudo como texto; sem respostas mostra “O aluno não respondeu ao questionário.” | `src/coord/RespostasAluno.tsx` |
 | C04b | Aba “Conversa” | C04 → **Conversa** | Mensagens ao aluno | `src/coord/Conversa.tsx` |
 | C04c | Aba “Notas internas” | C04 → **Notas internas** | Só a coordenação vê; setas, Home e End alternam as abas | `src/coord/Conversa.tsx` |
 | C04d | Aba “Histórico” | C04 → **Histórico** | Eventos com autoria | `src/coord/Caso.tsx` |
@@ -159,6 +167,7 @@ flowchart TD
 | --- | --- | --- |
 | Início do aluno | Erro de código vazio | **Acompanhar** sem preencher código |
 | Pedido de ajuda | Erro de validação | **Continuar**/**Enviar** com situação ou opção ausente, texto próprio curto, relato acima do limite ou nome ausente |
+| Pedido de ajuda | Definição indisponível ou demorada | `GET /api/questionario` falha (por exemplo 503) ou passa de 8 s; o pedido segue só com situação e relato |
 | Pedido de ajuda | Erro de anexo | Formato não aceito, arquivo acima de 5 MB, mais de 5 imagens ou falha ao girar |
 | Pedido de ajuda | Aviso de rascunho | Armazenamento local indisponível ou **Limpar rascunho**; rascunho com mais de 24 horas some sem aviso |
 | Pedido de ajuda | Enviando | Pedido enviado à API; bloqueia campos e retornos durante a operação |
@@ -173,6 +182,7 @@ flowchart TD
 | Casos e Pós-resolução | Carregando / vazia / sem resultados / erro | Consulta inicial / lista vazia / filtros sem resultados / API falha |
 | Caso | Carregando / erro de carga | Abertura do caso / API falha; **Voltar aos casos** permanece disponível |
 | Caso | Conflito (409) ao resolver ou revisar | Outra pessoa já registrou; a mensagem orienta e o caso é recarregado |
+| Caso | “O aluno não respondeu ao questionário.” | `questionario` nulo no detalhe (caso antigo, pedido sem respostas ou definição quebrada no servidor) |
 | Caso | Sem anexos, sem motivos ou conversa vazia | Dados retornados sem os respectivos registros |
 | Caso | Relato anônimo/identificado, quando/onde, selos | Campos e marcadores retornados pela API; aparecem dentro do detalhe, incluindo o último acesso |
 | Usuários | Carregando / erro / criado / desativado | Consulta e operações na API |

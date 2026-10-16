@@ -3,13 +3,15 @@
 //   SI_COORD_URL=http://127.0.0.1:14000 SI_ALUNO_URL=http://127.0.0.1:13000 \
 //   SI_ADMIN_NOME=Admin SI_COORD_SENHA=... node verificacao/aluno.mjs
 // Opcional: SI_LARGURAS=375,768 SI_TEMAS=light SI_TRIAGEM=0 (padrão: tudo).
+// Percursos: (A) Ameaças com salto e volta, (B) Cyberbullying com troca de situação, (C) rascunho,
+// (D) definição indisponível (503 por interceptação), (E) definição que nunca responde.
 // O administrador de teste é criado pela API de primeiro acesso, se o banco estiver sem contas.
 // A coordenação é operada pela API (sessão do administrador de teste); nada secreto é impresso.
 import { chromium } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { deflateSync } from 'node:zlib';
-import { SITUACOES, comporRelato } from '../src/aluno/situacoes.ts';
+import { perguntasVisiveis, montarEnvio } from '../src/aluno/fluxo.ts';
 
 const coord = process.env.SI_COORD_URL;
 const aluno = process.env.SI_ALUNO_URL;
@@ -69,8 +71,18 @@ function png(w, h) {
 }
 const imagem = png(160, 80);
 
+// definição real do questionário, lida do servidor de teste (só para escolher respostas e montar a triagem)
+const def = await (await fetch(`${aluno}/api/questionario`)).json();
+const textoResposta = Object.fromEntries(def.perguntas.flatMap(p => p.respostas.map(r => [r.id, r.texto])));
+const textoOpcao = Object.fromEntries(def.situacoes.flatMap(s => s.opcoes.map(o => [o.id, o.texto])));
+const primeiraResposta = (id) => def.perguntas.find(p => p.id === id).respostas[0].id;
+// campos do multipart enviado pelo navegador
+const respostasDoEnvio = (corpo) => { const m = /name="respostas"\r\n\r\n([^\r]*)\r\n/.exec(corpo ?? ''); return m ? JSON.parse(m[1]) : null; };
+const relatoDoEnvio = (corpo) => (/name="relato"\r\n\r\n([^\r]*)\r\n/.exec(corpo ?? '') ?? [])[1] ?? null;
+
 const rodada = Date.now().toString(36).slice(-4);
 const resultados = [];
+const casosVerificados = [];
 await entrarNaCoordenacao();
 const navegador = await chromium.launch({ channel: 'chrome', headless: true, env: { ...process.env, TEMP: temporaria, TMP: temporaria } });
 try {
@@ -79,15 +91,19 @@ try {
       const nome = `${largura}-${tema}`;
       const marca = `zz${rodada}${largura}${tema[0]}`;
       const contexto = await navegador.newContext({ viewport: { width: largura, height: 900 }, colorScheme: tema, permissions: ['clipboard-read', 'clipboard-write'] });
+      const violacoes = [];
+      await contexto.exposeFunction('__relatarViolacao', (v) => violacoes.push(v));
       await contexto.addInitScript(() => {
-        window.__violacoes = [];
-        document.addEventListener('securitypolicyviolation', e => window.__violacoes.push(`${e.violatedDirective} ${e.blockedURI}`));
+        document.addEventListener('securitypolicyviolation', e => window.__relatarViolacao(`${e.violatedDirective} ${e.blockedURI}`));
       });
       const pagina = await contexto.newPage();
       const erros = [];
       const problemas = [];
       const passos = [];
       const respostasRuins = [];
+      const envios = [];
+      // o corpo multipart com arquivos só aparece na interceptação; o pedido segue sem alteração
+      await pagina.route('**/api/denuncias', async rota => { envios.push(rota.request().postDataBuffer()?.toString('utf8') ?? ''); await rota.continue(); });
       pagina.on('response', r => { if (r.status() >= 400) respostasRuins.push(`${r.status()} ${new URL(r.url()).pathname}`); });
       pagina.on('console', m => {
         const falhaDeRecurso = /^Failed to load resource/.test(m.text());
@@ -143,6 +159,50 @@ try {
         if (semAnel.length) problemas.push(`foco sem indicador em ${onde}: ${semAnel.join(' | ')}`);
       };
       const rolarAoTopo = () => pagina.evaluate(() => scrollTo(0, 0));
+      const botaoContinuar = () => pagina.getByRole('button', { name: 'Continuar', exact: true });
+      const legenda = async () => (await pagina.locator('.pergunta legend').textContent().catch(() => null));
+      const idAtual = () => pagina.locator('.pergunta input').first().getAttribute('name');
+      const contagem = async () => { const t = await pagina.locator('#pergunta-contagem').innerText(); const m = /Pergunta (\d+) de (\d+)/.exec(t); return { n: Number(m[1]), de: Number(m[2]) }; };
+      const responder = async (ids) => { for (const rid of ids) await pagina.locator('.pergunta').getByLabel(textoResposta[rid], { exact: true }).check(); };
+      const desmarcar = async (rid) => pagina.locator('.pergunta').getByLabel(textoResposta[rid], { exact: true }).uncheck();
+      // Continuar/Voltar dentro das perguntas: espera a tela mudar (outra pergunta, ou o relato)
+      const trocarTela = async (botao) => {
+        const antes = await legenda();
+        await botao.click();
+        await pagina.waitForFunction(a => { const l = document.querySelector('.pergunta legend'); return !l || l.textContent !== a; }, antes);
+      };
+      const avancar = () => trocarTela(botaoContinuar());
+      const voltarUma = () => trocarTela(pagina.getByRole('button', { name: 'Voltar', exact: true }));
+      // responde (primeira resposta, salvo `escolhas`) até chegar em `ate` (sem responder) ou ao relato
+      const percorrer = async (escolhas = {}, ate = null, depois = {}) => {
+        const vistas = [];
+        for (let n = 0; n < 90; n++) {
+          if (!(await pagina.locator('.pergunta').count())) return { vistas, parou: null };
+          const id = await idAtual();
+          if (id === ate) return { vistas, parou: id };
+          vistas.push(id);
+          await responder(escolhas[id] ?? [primeiraResposta(id)]);
+          if (depois[id]) await depois[id]();
+          await avancar();
+        }
+        throw new Error('perguntas demais: ' + vistas.join(','));
+      };
+      const aSituacao = async (nome) => {
+        await pagina.getByRole('radio', { name: new RegExp('^' + nome) }).check();
+        await botaoContinuar().click();
+        await pagina.getByRole('heading', { name: 'O que está acontecendo?' }).waitFor();
+      };
+      const marcarOpcoes = async (ids) => { for (const oid of ids) await pagina.getByRole('checkbox', { name: textoOpcao[oid], exact: true }).check(); };
+      const escreverRelato = async (texto) => {
+        await pagina.getByRole('heading', { name: 'O que aconteceu?', level: 1 }).waitFor();
+        await pagina.getByLabel('O que aconteceu?', { exact: true }).fill(texto);
+      };
+      const enviarAnonimo = async () => {
+        await botaoContinuar().click();
+        await pagina.getByRole('heading', { name: 'Provas e identificação' }).waitFor();
+        await pagina.getByRole('button', { name: 'Enviar pedido de ajuda' }).click();
+        await pagina.getByRole('heading', { name: 'Você deu o primeiro passo.' }).waitFor();
+      };
 
       try {
         // ---- Início
@@ -172,36 +232,72 @@ try {
         await ok('passo 1 mostra as situações', () => pagina.getByRole('heading', { name: 'Qual é a situação?' }).waitFor());
         await ok('foco no título do passo', () => pagina.waitForFunction(() => document.activeElement?.tagName === 'H1'));
         await foto('passo1'); await medir('passo1'); await cortes('passo1'); await foco('passo1', 8);
-        await pagina.getByRole('button', { name: 'Continuar' }).click();
+        await botaoContinuar().click();
         await ok('passo 1 exige uma situação', () => pagina.getByRole('alert').filter({ hasText: 'Escolha uma situação' }).waitFor());
-        await pagina.getByRole('radio', { name: /^Cyberbullying/ }).check();
+        await pagina.getByRole('radio', { name: /^Ameaças/ }).check();
         await foto('passo1-escolhida'); await medir('passo1-escolhida');
-        await pagina.getByRole('button', { name: 'Continuar' }).click();
+        await botaoContinuar().click();
 
-        // ---- passo 2: desdobramentos
-        await ok('passo 2 mostra os desdobramentos', () => pagina.getByRole('heading', { name: 'O que está acontecendo?' }).waitFor());
-        await pagina.getByRole('button', { name: 'Continuar' }).click();
+        // ---- (A) passo 2: opções do servidor e perguntas encadeadas
+        await ok('passo 2 mostra as opções da situação', () => pagina.getByRole('heading', { name: 'O que está acontecendo?' }).waitFor());
+        await botaoContinuar().click();
         await ok('passo 2 exige uma opção', () => pagina.getByRole('alert').filter({ hasText: 'Escolha pelo menos uma opção' }).waitFor());
-        await pagina.getByRole('checkbox', { name: /humilhando/ }).check();
-        await pagina.getByRole('checkbox', { name: /perseguindo com mensagens/ }).check();
+        await marcarOpcoes(['a1', 'a5']);
         await foto('passo2'); await medir('passo2'); await cortes('passo2'); await foco('passo2', 8);
-        // voltar e avançar não duplica o bloco das opções
-        await pagina.getByRole('button', { name: 'Voltar', exact: true }).click();
-        await pagina.getByRole('button', { name: 'Continuar' }).click();
-        await pagina.getByRole('button', { name: 'Continuar' }).click();
+        await botaoContinuar().click();
+        await pagina.locator('.pergunta legend').waitFor();
+        await ok('foco na pergunta da vez', () => pagina.waitForFunction(() => document.activeElement?.tagName === 'LEGEND'));
+        await foto('pergunta'); await medir('pergunta'); await cortes('pergunta'); await foco('pergunta', 8);
+        const ate = await percorrer({ q6: ['q6.nao'] }, 'a5.quer', {
+          q6: async () => {
+            await ok('q6.nao mostra a orientação de risco na própria pergunta', async () => {
+              await pagina.locator('.pergunta .aviso.orientacao').waitFor();
+              if (!/procure um adulto de confiança/.test(await pagina.locator('.pergunta .aviso.orientacao').innerText())) throw new Error('texto');
+            });
+            await foto('pergunta-risco'); await medir('pergunta-risco'); await cortes('pergunta-risco');
+          },
+        });
+        await ok('as perguntas seguem a ordem da definição até a5.quer', async () => { if (ate.parou !== 'a5.quer') throw new Error(String(ate.parou)); });
+        // salto: a5.quer abre perguntas de v4 (fotos) e g1 (dinheiro) conforme a resposta
+        const antesSalto = await contagem();
+        await responder(['a5.quer.dinheiro', 'a5.quer.fotos']);
+        const depoisSalto = await contagem();
+        await ok('marcar dinheiro e fotos abre perguntas de g1 e v4 (contagem sobe 9)', async () => { if (depoisSalto.de - antesSalto.de !== 9) throw new Error(`${antesSalto.de} -> ${depoisSalto.de}`); });
+        await foto('pergunta-salto'); await medir('pergunta-salto');
+        await avancar(); await responder([primeiraResposta('a5.fez')]);
+        await avancar(); await responder([primeiraResposta('a5.prazo')]);
+        await avancar();
+        await ok('depois de a5.prazo vem a pergunta de v4', async () => { if ((await idAtual()) !== 'v4.menor') throw new Error(String(await idAtual())); });
+        await responder(['v4.menor.sim']);
+        // volta três perguntas e tira "Mandar fotos": v4 some, g1 continua
+        await voltarUma(); await voltarUma(); await voltarUma();
+        await ok('voltar três vezes mostra a5.quer com as respostas guardadas', async () => {
+          if ((await idAtual()) !== 'a5.quer') throw new Error(String(await idAtual()));
+          if (!(await pagina.locator('.pergunta').getByLabel('Mandar fotos', { exact: true }).isChecked())) throw new Error('resposta perdida');
+        });
+        await desmarcar('a5.quer.fotos');
+        const depoisVolta = await contagem();
+        await ok('desmarcar fotos fecha as 4 perguntas de v4', async () => { if (depoisSalto.de - depoisVolta.de !== 4) throw new Error(`${depoisSalto.de} -> ${depoisVolta.de}`); });
+        await avancar(); await avancar(); await avancar();
+        await ok('depois de a5.prazo a próxima é de g1 e v4 não volta', async () => { if ((await idAtual()) !== 'g1.pagou') throw new Error(String(await idAtual())); });
+        await foto('pergunta-g1'); await medir('pergunta-g1'); await cortes('pergunta-g1');
+        await percorrer();
+        await ok('as perguntas terminam no relato', () => pagina.getByRole('heading', { name: 'O que aconteceu?', level: 1 }).waitFor());
 
         // ---- passo 3: relato
+        const relatoA = `Alguém me ameaça por mensagem e quer algo de mim, ref ${marca}.`;
         await ok('passo 3 abre o relato', () => pagina.getByRole('heading', { name: 'O que aconteceu?', level: 1 }).waitFor());
-        await pagina.getByRole('button', { name: 'Continuar' }).click();
+        await botaoContinuar().click();
         await ok('passo 3 exige texto próprio de 10 caracteres', () => pagina.getByRole('alert').filter({ hasText: 'pelo menos 10 caracteres' }).waitFor());
-        await pagina.getByLabel('O que aconteceu?', { exact: true }).fill(`Mensagens ofensivas no grupo da turma, ref ${marca}.`);
+        await pagina.getByLabel('O que aconteceu?', { exact: true }).fill(relatoA);
         await pagina.getByLabel(/Quando aconteceu/).fill('Desde segunda-feira');
         await pagina.getByLabel(/Onde aconteceu/).fill('Grupo da turma no aplicativo de mensagens');
         await foto('passo3'); await medir('passo3'); await cortes('passo3'); await foco('passo3', 8);
         // o rascunho fica no navegador (texto), sem código nem imagens
         await ok('rascunho de 24 horas guarda só o texto', async () => {
-          const r = await pagina.evaluate(() => JSON.parse(localStorage.getItem('si-aluno-rascunho-v2') ?? 'null'));
+          const r = await pagina.evaluate(() => JSON.parse(localStorage.getItem('si-aluno-rascunho-v3') ?? 'null'));
           if (!r || !r.salvoEm) throw new Error('sem rascunho');
+          if (JSON.stringify(r).includes('v4.')) throw new Error('rascunho com resposta de v4');
         });
         await pagina.getByRole('button', { name: 'Continuar' }).click();
 
@@ -237,23 +333,41 @@ try {
           if (copiado !== codigo) throw new Error('conteúdo diferente');
         });
         await ok('rascunho some depois do envio', async () => {
-          if (await pagina.evaluate(() => localStorage.getItem('si-aluno-rascunho-v2'))) throw new Error('rascunho continua');
+          if (await pagina.evaluate(() => localStorage.getItem('si-aluno-rascunho-v3'))) throw new Error('rascunho continua');
         });
         await ok('código fora de URL e do armazenamento', async () => {
           const r = await pagina.evaluate(() => JSON.stringify([location.href, { ...localStorage }, { ...sessionStorage }]));
           if (r.includes(codigo) || r.includes(codigo.replace('-', ''))) throw new Error('código encontrado');
         });
+        await ok('a confirmação mostra a orientação de risco', async () => {
+          await pagina.locator('.confirmacao .aviso.orientacao').waitFor();
+          if (/não foram enviadas/.test(await pagina.locator('.confirmacao').innerText())) throw new Error('respostas não enviadas');
+        });
         await pagina.waitForTimeout(250);
         await foto('confirmacao'); await medir('confirmacao'); await cortes('confirmacao'); await foco('confirmacao', 6);
+        await ok('o navegador enviou respostas só de perguntas visíveis, sem v4, e o relato limpo', async () => {
+          const e = envios[0];
+          const r = respostasDoEnvio(e);
+          if (!r) throw new Error('sem campo respostas');
+          if (r.situacao !== 'ameaca' || r.marcadas.join() !== 'a1,a5') throw new Error(`situacao/marcadas ${r.situacao} ${r.marcadas}`);
+          if (Object.keys(r.respostas).some(k => k.startsWith('v4.'))) throw new Error('resposta de pergunta que fechou');
+          if (!r.respostas['g1.pagou'] || r.respostas.q6?.join() !== 'q6.nao') throw new Error('faltam respostas');
+          if (JSON.stringify(r.respostas['a5.quer']) !== '["a5.quer.dinheiro"]') throw new Error('a5.quer ' + JSON.stringify(r.respostas['a5.quer']));
+          if (relatoDoEnvio(e) !== relatoA || /Situações marcadas/.test(e)) throw new Error('relato com bloco');
+        });
         const caso = await achar(marca);
-        await ok('coordenação recebe o pedido com as 2 opções, sem duplicar o bloco', async () => {
+        await ok('coordenação recebe o caso com o questionário no detalhe e o relato limpo', async () => {
           if (!caso) throw new Error('caso não encontrado');
           const d = await api('GET', `/api/casos/${caso.id}`);
-          const n = (d.relato.match(/Situações marcadas:/g) ?? []).length;
-          if (n !== 1 || !d.relato.includes('- Estão me humilhando') || !d.relato.includes('- Estão me perseguindo')) throw new Error(`bloco x${n}`);
+          if (d.relato !== relatoA) throw new Error('relato diferente');
+          const q = d.questionario;
+          if (!q || q.situacao.id !== 'ameaca' || q.marcadas.length !== 2) throw new Error('questionario ' + JSON.stringify(q)?.slice(0, 80));
+          const risco = q.dimensoes.find(x => x.id === 'risco');
+          if (!risco || !risco.itens.some(it => it.respostas.includes('Não'))) throw new Error('sem risco Não');
           if (!d.anonimo || d.nome) throw new Error('não está anônimo');
           if (d.anexos.length !== 1) throw new Error(`anexos ${d.anexos.length}`);
         });
+        casosVerificados.push({ combinacao: nome, id: caso?.id, marca });
 
         // ---- Acompanhar (botão da confirmação) e depois por código digitado
         await pagina.getByRole('button', { name: 'Acompanhar meu caso' }).click();
@@ -331,13 +445,121 @@ try {
         await ok('código inexistente mostra a mensagem de 404', () => pagina.getByRole('alert').filter({ hasText: 'Não foi possível encontrar o caso' }).waitFor());
         await foto('codigo-invalido'); await medir('codigo-invalido');
         await rolarAoTopo();
-        // 404 e a falta de acesso esperada ao testar código inválido
-        for (const r of respostasRuins) if (!r.endsWith('/api/acompanhar')) erros.push(`resposta inesperada ${r}`);
+
+        // ---- (B) Cyberbullying: c3 + c3.piadas.sim abre as perguntas de c1 sem marcar c1; trocar de situação limpa tudo
+        const marcaB = `${marca}b`;
+        await pagina.goto(`${aluno}/`);
+        await pagina.getByRole('button', { name: 'Preciso de ajuda' }).click();
+        await aSituacao('Cyberbullying');
+        await marcarOpcoes(['c3']);
+        await botaoContinuar().click();
+        await pagina.locator('.pergunta legend').waitFor();
+        const vB = await percorrer({ 'c3.piadas': ['c3.piadas.sim'] });
+        await ok('c3.piadas.sim abre as perguntas de c1 sem c1 marcada', async () => {
+          for (const id of ['c1.onde', 'c1.prints', 'c1.alvos', 'c1.testemunhas']) if (!vB.vistas.includes(id)) throw new Error(`faltou ${id}; vistas ${vB.vistas.join(',')}`);
+          if (vB.vistas.indexOf('c1.onde') < vB.vistas.indexOf('c3.piadas')) throw new Error('c1 antes de c3.piadas');
+        });
+        await foto('cyber-relato'); await medir('cyber-relato');
+        // volta ao passo 1 e troca de situação
+        for (let n = 0; n < 40 && !(await pagina.getByRole('heading', { name: 'Qual é a situação?' }).isVisible()); n++) {
+          await pagina.getByRole('button', { name: 'Voltar', exact: true }).click();
+          await pagina.waitForTimeout(40);
+        }
+        await ok('voltar chega ao passo 1', () => pagina.getByRole('heading', { name: 'Qual é a situação?' }).waitFor());
+        await aSituacao('Golpe');
+        await ok('trocar de situação limpa as opções marcadas', async () => {
+          if ((await pagina.getByRole('checkbox', { checked: true }).count()) !== 0) throw new Error('opção continua marcada');
+        });
+        await marcarOpcoes(['g1']);
+        await botaoContinuar().click();
+        await pagina.locator('.pergunta legend').waitFor();
+        const vG = await percorrer();
+        await ok('as perguntas do golpe não trazem as de cyberbullying', async () => {
+          if (vG.vistas.some(id => id.startsWith('c'))) throw new Error(vG.vistas.join(','));
+        });
+        await escreverRelato(`Pediram dinheiro por mensagem, ref ${marcaB}.`);
+        await enviarAnonimo();
+        await ok('o envio da troca leva só situação e opção nova', async () => {
+          const r = respostasDoEnvio(envios[1]);
+          if (!r || r.situacao !== 'golpe' || r.marcadas.join() !== 'g1') throw new Error(JSON.stringify(r)?.slice(0, 100));
+          if (Object.keys(r.respostas).some(k => /^c\d/.test(k))) throw new Error('resposta da situação anterior');
+          const d = await api('GET', `/api/casos/${(await achar(marcaB)).id}`);
+          if (d.questionario?.situacao.id !== 'golpe' || d.questionario.marcadas.length !== 1) throw new Error('questionario no caso');
+        });
+        await foto('cyber-confirmacao'); await medir('cyber-confirmacao'); await cortes('cyber-confirmacao');
+
+        // ---- (C) rascunho: sair no meio e voltar restaura; o passo volta ao 1
+        await pagina.goto(`${aluno}/`);
+        await pagina.evaluate(() => localStorage.clear());
+        await pagina.getByRole('button', { name: 'Preciso de ajuda' }).click();
+        await aSituacao('Cyberbullying');
+        await marcarOpcoes(['c3']);
+        await botaoContinuar().click();
+        await pagina.locator('.pergunta legend').waitFor();
+        await responder(['q1.agora']);
+        await avancar(); await responder(['q2.dia']);
+        await pagina.goto(`${aluno}/`);
+        await pagina.getByRole('button', { name: 'Preciso de ajuda' }).click();
+        await ok('o rascunho volta no passo 1 com a situação marcada', async () => {
+          await pagina.getByRole('heading', { name: 'Qual é a situação?' }).waitFor();
+          if (!(await pagina.getByRole('radio', { name: /^Cyberbullying/ }).isChecked())) throw new Error('situação perdida');
+        });
+        await botaoContinuar().click();
+        await ok('as opções e as respostas voltam marcadas', async () => {
+          await pagina.getByRole('checkbox', { name: textoOpcao.c3, exact: true }).waitFor();
+          if (!(await pagina.getByRole('checkbox', { name: textoOpcao.c3, exact: true }).isChecked())) throw new Error('opção perdida');
+          await botaoContinuar().click();
+          await pagina.locator('.pergunta legend').waitFor();
+          if ((await idAtual()) !== 'q1' || !(await pagina.locator('.pergunta').getByLabel('Sim, agora', { exact: true }).isChecked())) throw new Error('resposta de q1 perdida');
+        });
+        await foto('rascunho-restaurado'); await medir('rascunho-restaurado'); await cortes('rascunho-restaurado');
+        await pagina.evaluate(() => localStorage.clear());
+
+        // ---- (D) definição indisponível: 503 no GET /api/questionario; o pedido segue só com situação e relato
+        const marcaD = `${marca}d`;
+        await pagina.route('**/api/questionario', r => r.fulfill({ status: 503, contentType: 'application/json', body: '{"erro":"questionario indisponivel"}' }));
+        await pagina.goto(`${aluno}/`);
+        await pagina.getByRole('button', { name: 'Preciso de ajuda' }).click();
+        await pagina.getByRole('radio', { name: /^Ameaças/ }).check();
+        await botaoContinuar().click();
+        await ok('sem definição o passo 2 é pulado e o aviso aparece no relato', async () => {
+          await pagina.getByRole('heading', { name: 'O que aconteceu?', level: 1 }).waitFor();
+          await pagina.getByText('Não foi possível carregar as perguntas agora').waitFor();
+        });
+        await foto('sem-definicao'); await medir('sem-definicao'); await cortes('sem-definicao');
+        await escreverRelato(`Alguém me ameaçou por mensagem, ref ${marcaD}.`);
+        await enviarAnonimo();
+        await ok('o pedido chegou sem o campo respostas e a coordenação o vê sem questionário', async () => {
+          if (respostasDoEnvio(envios[2]) !== null || /name="respostas"/.test(envios[2])) throw new Error('enviou respostas');
+          const d = await api('GET', `/api/casos/${(await achar(marcaD)).id}`);
+          if (d.questionario !== null) throw new Error('questionario não nulo');
+          if (relatoDoEnvio(envios[2]) !== `Alguém me ameaçou por mensagem, ref ${marcaD}.`) throw new Error('relato');
+        });
+        casosVerificados.push({ combinacao: nome, id: (await achar(marcaD))?.id, marca: marcaD, semRespostas: true });
+        await pagina.unroute('**/api/questionario');
+
+        // ---- (E) definição que nunca responde: "Carregando as perguntas…" e "Continuar só com o relato"
+        await pagina.route('**/api/questionario', () => { /* nunca responde */ });
+        await pagina.goto(`${aluno}/`);
+        await pagina.getByRole('button', { name: 'Preciso de ajuda' }).click();
+        await pagina.getByRole('radio', { name: /^Outros/ }).check();
+        await botaoContinuar().click();
+        await ok('fetch pendente mostra o carregando e a saída só com o relato', async () => {
+          await pagina.getByText('Carregando as perguntas…').waitFor();
+          await pagina.getByRole('button', { name: 'Continuar só com o relato' }).waitFor();
+          if (!(await pagina.getByRole('button', { name: 'Continuar', exact: true }).isDisabled())) throw new Error('Continuar habilitado');
+        });
+        await foto('carregando'); await medir('carregando'); await cortes('carregando'); await foco('carregando', 4);
+        await pagina.getByRole('button', { name: 'Continuar só com o relato' }).click();
+        await ok('"Continuar só com o relato" leva ao relato', () => pagina.getByRole('heading', { name: 'O que aconteceu?', level: 1 }).waitFor());
+        await pagina.unroute('**/api/questionario');
+        await pagina.evaluate(() => localStorage.clear());
+        // 404 do código inválido e o 503 simulado são esperados
+        for (const r of respostasRuins) if (!r.endsWith('/api/acompanhar') && !r.endsWith('/api/questionario')) erros.push(`resposta inesperada ${r}`);
       } catch (falha) {
         problemas.push(`ABORTADO: ${String(falha.message ?? falha).split('\n')[0]}`);
         await foto('falha').catch(() => {});
       }
-      const violacoes = await pagina.evaluate(() => window.__violacoes).catch(() => []);
       const estilos = await pagina.evaluate(() => [...document.querySelectorAll('[style]')].map(e => `${e.tagName.toLowerCase()}.${e.className}`)).catch(() => ['?']);
       resultados.push({ nome, passos: passos.length, maiorExcessoHorizontal: maiorExcesso, elementosComStyle: estilos, violacoesCsp: violacoes, errosConsole: erros, problemas });
       await contexto.close();
@@ -345,23 +567,41 @@ try {
   }
 } finally { await navegador.close(); }
 
-// ---- Triagem: nenhuma opção aprovada deve elevar a prioridade sozinha
+// ---- Triagem: as respostas não alteram prioridade nem pontos (pesos e alertas vazios)
 const triagem = [];
 if (process.env.SI_TRIAGEM !== '0') {
-  const neutro = 'Preciso conversar já'; // relato neutro de 20 caracteres, mais o bloco das opções
-  for (const s of SITUACOES.filter(x => x.opcoes.length)) {
+  const neutro = 'Preciso conversar já'; // relato neutro de 20 caracteres
+  const novoCaso = async (tipo, respostas) => {
     const form = new FormData();
-    form.append('tipo', s.tipo);
-    form.append('relato', comporRelato(neutro, s.opcoes));
+    form.append('tipo', tipo); form.append('relato', neutro);
     form.append('anonimo', 'true'); form.append('em_andamento', 'false'); form.append('quando', ''); form.append('onde', '');
+    if (respostas) form.append('respostas', respostas);
     const r = await fetch(`${aluno}/api/denuncias`, { method: 'POST', body: form });
-    if (r.status !== 201) { triagem.push({ situacao: s.id, erro: `denuncia ${r.status}` }); continue; }
+    if (r.status !== 201) throw new Error(`denuncia ${r.status}`);
     // os casos são criados em sequência: o mais novo do tipo é o que acabou de entrar
-    const lista = (await api('GET', `/api/casos?tipo=${s.tipo}`)).casos;
-    const achado = lista.filter(c => !c.simulacao).sort((a, b) => b.id - a.id)[0];
+    const achado = (await api('GET', `/api/casos?tipo=${tipo}`)).casos.filter(c => !c.simulacao).sort((a, b) => b.id - a.id)[0];
     const d = await api('GET', `/api/casos/${achado.id}`);
-    triagem.push({ situacao: s.id, caso: achado.id, prioridade: d.prioridade, pontos: d.pontos, motivos: achado.motivos });
+    return { caso: achado.id, prioridade: d.prioridade, pontos: d.pontos, motivos: achado.motivos, questionario: d.questionario !== null };
+  };
+  for (const s of def.situacoes) {
+    const marcadas = s.opcoes.map(o => o.id);
+    // a primeira resposta de cada pergunta visível, até estabilizar
+    let respostas = {};
+    for (let n = 0; n < 12; n++) {
+      const visiveis = perguntasVisiveis(def, s.id, marcadas, respostas);
+      const novas = Object.fromEntries(visiveis.map(id => [id, [primeiraResposta(id)]]));
+      if (JSON.stringify(novas) === JSON.stringify(respostas)) break;
+      respostas = novas;
+    }
+    const corpo = montarEnvio(def, s.id, marcadas, respostas);
+    const ids = marcadas.length + Object.values(respostas).flat().length;
+    try {
+      const sem = await novoCaso(s.tipo, null);
+      const com = await novoCaso(s.tipo, corpo);
+      const igual = sem.prioridade === com.prioridade && sem.pontos === com.pontos && JSON.stringify(sem.motivos) === JSON.stringify(com.motivos);
+      triagem.push({ situacao: s.id, opcoes: marcadas.length, perguntas: Object.keys(respostas).length, ids, bytes: Buffer.byteLength(corpo), semRespostas: { prioridade: sem.prioridade, pontos: sem.pontos }, comRespostas: { prioridade: com.prioridade, pontos: com.pontos, comQuestionario: com.questionario }, igual });
+    } catch (e) { triagem.push({ situacao: s.id, ids, erro: String(e.message ?? e) }); }
   }
 }
-await writeFile(fileURLToPath(new URL('./resultado-aluno.json', import.meta.url)), JSON.stringify({ resultados, triagem }, null, 2));
-console.log(JSON.stringify({ resultados, triagem }, null, 2));
+await writeFile(fileURLToPath(new URL('./resultado-aluno.json', import.meta.url)), JSON.stringify({ resultados, triagem, casosVerificados }, null, 2));
+console.log(JSON.stringify({ resultados, triagem, casosVerificados }, null, 2));

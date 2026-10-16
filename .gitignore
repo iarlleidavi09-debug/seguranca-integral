@@ -21,3 +21,4 @@ frontend/verificacao/resultado-aluno.json
 
 # rascunhos e relatorios dos agentes (skills do superpowers)
 .superpowers/
+frontend/verificacao/resultado-*.json

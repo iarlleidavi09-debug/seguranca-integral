@@ -44,9 +44,10 @@ try {
       const nome = `${largura}-${tema}`;
       const marca = `zz${rodada}${largura}${tema[0]}`;
       const contexto = await navegador.newContext({ viewport: { width: largura, height: 900 }, colorScheme: tema });
+      const violacoes = [];
+      await contexto.exposeFunction('__relatarViolacao', (v) => violacoes.push(v));
       await contexto.addInitScript(() => {
-        window.__violacoes = [];
-        document.addEventListener('securitypolicyviolation', e => window.__violacoes.push(`${e.violatedDirective} ${e.blockedURI}`));
+        document.addEventListener('securitypolicyviolation', e => window.__relatarViolacao(`${e.violatedDirective} ${e.blockedURI}`));
       });
       const pagina = await contexto.newPage();
       const erros = [];
@@ -107,6 +108,16 @@ try {
       const codCritico = await criarCaso({ ...base, tipo: 'ameaca', em_andamento: 'true', relato: `Ele me ameaçou na saída e disse vou te bater hoje, ref ${marca} critico.` });
       await criarCaso({ ...base, tipo: 'cyberbullying', relato: `Mensagens ofensivas no grupo da turma, ref ${marca} leve.` });
       await criarCaso({ ...base, tipo: 'golpe', relato: `Pediram dinheiro por mensagem em troca de silêncio, ref ${marca} golpe.` });
+      // caso com respostas do questionário (cyberbullying; c3.piadas.sim abre as perguntas de c1)
+      const respostasQ = JSON.stringify({
+        situacao: 'cyberbullying', marcadas: ['c3'],
+        respostas: {
+          q1: ['q1.agora'], q2: ['q2.semana'], q5: ['q5.evito', 'q5.sono'],
+          'c1.onde': ['c1.onde.grupo', 'c1.onde.rede'], 'c1.prints': ['c1.prints.sim'],
+          'c3.de': ['c3.de.grupo'], 'c3.piadas': ['c3.piadas.sim'],
+        },
+      });
+      await criarCaso({ ...base, tipo: 'cyberbullying', respostas: respostasQ, relato: `Fui deixado de fora das conversas da turma, ref ${marca} questionario.` });
 
       // ---- Primeiro acesso ou login
       await pagina.goto(`${coord}/`);
@@ -157,8 +168,8 @@ try {
       await foto('casos'); await medir('casos'); await cortes('casos'); await foco('casos', 10);
       const busca = pagina.getByLabel('Buscar por assunto ou número do caso');
       await busca.fill(`ref ${marca}`);
-      await ok('busca por texto acha os 3 casos da rodada', async () => {
-        await pagina.waitForFunction(n => document.querySelectorAll('.casos-linha').length === n, 3);
+      await ok('busca por texto acha os 4 casos da rodada', async () => {
+        await pagina.waitForFunction(n => document.querySelectorAll('.casos-linha').length === n, 4);
       });
       await foto('casos-busca');
       const linhaCritica = pagina.locator('.casos-linha', { hasText: `${marca} critico` });
@@ -185,18 +196,42 @@ try {
         if (await pagina.getByRole('button', { name: 'Limpar filtros' }).count()) throw new Error('botão continua');
       });
       await busca.fill(`ref ${marca}`);
-      await pagina.waitForFunction(() => document.querySelectorAll('.casos-linha').length === 3);
+      await pagina.waitForFunction(() => document.querySelectorAll('.casos-linha').length === 4);
       // hover em linha crítica/alta no layout atual
       await linhaCritica.hover();
       await foto('casos-hover');
       const tabela = await pagina.evaluate(() => getComputedStyle(document.querySelector('.casos-tabela')).display);
       passos.push(`tabela display=${tabela}`);
 
+      // ---- Caso com respostas do aluno
+      const linhaQ = pagina.locator('.casos-linha', { hasText: `${marca} questionario` });
+      await linhaQ.getByRole('button').click();
+      await ok('caso abre com o bloco "Respostas do aluno" na aba do relato', async () => {
+        await pagina.getByRole('heading', { name: /Caso \d+: Cyberbullying/ }).waitFor();
+        await pagina.getByRole('heading', { name: 'Respostas do aluno' }).waitFor();
+      });
+      await ok('o bloco mostra situação, opção marcada e itens por dimensão', async () => {
+        const t = await pagina.locator('.respostas-aluno').innerText();
+        for (const x of ['Situação: Cyberbullying', 'Estão me excluindo de propósito.', 'Sim, agora', 'Grupo da turma', 'Rede social', 'Evito vir à escola']) if (!t.includes(x)) throw new Error(`falta "${x}"`);
+        const grupos = await pagina.locator('.respostas-aluno h4').allInnerTexts();
+        if (grupos.length < 3) throw new Error('dimensões ' + grupos.join(','));
+        if (/O aluno não respondeu/.test(t)) throw new Error('mostrou vazio');
+      });
+      await pagina.waitForTimeout(300);
+      await foto('caso-respostas'); await medir('caso-respostas'); await cortes('caso-respostas'); await foco('caso-respostas', 10);
+      await pagina.getByRole('button', { name: 'Casos', exact: true }).click();
+      await pagina.getByLabel('Buscar por assunto ou número do caso').fill(`ref ${marca}`);
+      await pagina.waitForFunction(() => document.querySelectorAll('.casos-linha').length === 4);
+
       // ---- Caso crítico
       await linhaCritica.getByRole('button').click();
       await ok('caso abre com o título em foco', async () => {
         await pagina.getByRole('heading', { name: /Caso \d+: Ameaça/ }).waitFor();
         await pagina.waitForFunction(() => document.activeElement?.tagName === 'H1');
+      });
+      await ok('caso sem respostas mostra que o aluno não respondeu', async () => {
+        await pagina.getByRole('heading', { name: 'Respostas do aluno' }).waitFor();
+        await pagina.getByText('O aluno não respondeu ao questionário.').waitFor();
       });
       await ok('hash tem só o número', async () => { if (!/#caso-\d+$/.test(pagina.url())) throw new Error(pagina.url()); });
       await ok('motivos do alerta aparecem', () => pagina.getByText(/violência|violencia/i).first().waitFor());
@@ -319,7 +354,6 @@ try {
         problemas.push(`ABORTADO: ${String(falha.message ?? falha).split('\n')[0]}`);
         await foto('falha').catch(() => {});
       }
-      const violacoes = await pagina.evaluate(() => window.__violacoes).catch(() => []);
       const estilos = await pagina.evaluate(() => document.querySelectorAll('[style]').length).catch(() => -1);
       resultados.push({ nome, passos: passos.length, maiorExcessoHorizontal: maiorLargura, elementosComStyle: estilos, violacoesCsp: violacoes, errosConsole: erros, problemas });
       await contexto.close();
