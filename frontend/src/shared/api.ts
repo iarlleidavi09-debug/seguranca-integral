@@ -117,12 +117,17 @@ export type MensagemCoord = Mensagem & { usuario_id: number | null; usuario: str
 export type Resolucao = { desfecho: Desfecho; providencias: string; resultado: string; usuario: string | null; criado_em: string };
 export type SituacaoInformada = { situacao: Situacao; criado_em: string };
 export type RevisaoRecorrencia = { usuario: string | null; criado_em: string };
+export type QuestionarioCaso = {
+  situacao: { id: string; nome: string }; marcadas: string[];
+  dimensoes: { id: string; rotulo: string; itens: { pergunta: string; respostas: string[] }[] }[];
+};
 export type CasoDetalhe = Omit<CasoFila, 'resumo' | 'ultimo_acesso_por' | 'ultimo_acesso_em'> & {
   relato: string; quando: string | null; onde: string | null;
   nome: string | null; turma: string | null; prioridade_original: Prioridade;
   ultimo_acesso: { por: string | null; em: string } | null;
   anexos: AnexoCaso[]; eventos: Evento[]; mensagens: MensagemCoord[]; notas: Nota[];
   resolucoes: Resolucao[]; situacoes: SituacaoInformada[]; revisoes_recorrencia: RevisaoRecorrencia[];
+  questionario: QuestionarioCaso | null;
 };
 
 export class ErroCoord extends ErroApi {

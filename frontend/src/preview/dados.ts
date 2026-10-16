@@ -7,6 +7,14 @@ export const casoExemplo: CasoDetalhe = {
   em_andamento: false, anonimo: true, simulacao: true,
   criado_em: data, atualizado_em: data, relato: 'Exemplo fictício para avaliar a interface: encontrei um perfil usando meu nome e gostaria de conversar com a escola.',
   quando: 'Hoje', onde: 'Rede social', nome: null, turma: null,
+  questionario: {
+    situacao: { id: 'perfil_falso', nome: 'Perfil falso' },
+    marcadas: ['Alguém usa meu nome e minhas fotos', 'Outras pessoas já viram o perfil'],
+    dimensoes: [
+      { id: 'quando', rotulo: 'Quando', itens: [{ pergunta: 'Quando você viu o perfil?', respostas: ['Hoje'] }] },
+      { id: 'alcance', rotulo: 'Alcance', itens: [{ pergunta: 'Quem mais sabe?', respostas: ['Colegas da turma', 'Amigos de fora da escola'] }] },
+    ],
+  },
   motivos: ['tipo: perfil_falso'], anexos: [{ id: 1, tipo: 'image/svg+xml', tamanho: 1000 }],
   eventos: [{ id: 1, tipo: 'criado', usuario_id: null, usuario: null, detalhe: 'prioridade media', criado_em: data }],
   mensagens: [

@@ -7,6 +7,7 @@ import {
 import type { CasoDetalhe, Desfecho, Prioridade as ValorPrioridade } from '../shared/api';
 import Anexos from './Anexos';
 import Conversa, { TEXTO_MAX } from './Conversa';
+import RespostasAluno from './RespostasAluno';
 import PosResolucao from './PosResolucao';
 import RegistrarResolucao from './RegistrarResolucao';
 import ReavaliarPrioridade from './ReavaliarPrioridade';
@@ -181,6 +182,7 @@ export default function Caso({ id, aoVoltar, aoMudar, abaInicial = 'relato', ane
               {caso.quando && <><dt>Quando</dt><dd>{caso.quando}</dd></>}
               {caso.onde && <><dt>Onde</dt><dd>{caso.onde}</dd></>}
             </dl>}
+            <RespostasAluno questionario={caso.questionario} />
             <h2>Anexos</h2>
             <Anexos caso={caso} anexoInicial={anexoInicial} imagemPrevia={imagemPrevia} />
           </>}

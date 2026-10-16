@@ -12,7 +12,7 @@ const base = {
 const detalhe = (extra: Record<string, unknown> = {}) => ({
   ...base, relato: 'Relato completo do aluno.', quando: 'ontem', onde: 'aplicativo da turma',
   nome: null, turma: null, motivos: ['tipo: ameaca', 'ocorrendo agora', 'termos de risco: violencia'],
-  ultimo_acesso: null,
+  ultimo_acesso: null, questionario: null,
   anexos: [{ id: 9, tipo: 'png', tamanho: 100 }],
   eventos: [
     { id: 1, tipo: 'criado', usuario_id: null, usuario: null, detalhe: 'gravidade alta', criado_em: '2026-10-14T10:00:00+00:00' },
@@ -290,6 +290,23 @@ describe('Caso: abas', () => {
     expect(within(painel).getByText('aplicativo da turma')).toBeInTheDocument();
     expect(within(painel).getByAltText('Anexo 1 do caso 5')).toBeInTheDocument();
     expect(screen.getAllByRole('tab').map(t => t.textContent)).toEqual(['Relato e investigação', 'Conversa', 'Notas internas', 'Histórico']);
+  });
+
+  it('o bloco Respostas do aluno vem depois do relato e antes dos anexos', async () => {
+    await abrirCaso({ questionario: { situacao: { id: 'ameacas', nome: 'Ameaças' }, marcadas: ['Recebi mensagens'], dimensoes: [{ id: 'quando', rotulo: 'Quando aconteceu', itens: [{ pergunta: 'Foi recente?', respostas: ['Hoje'] }] }] } });
+    const painel = await screen.findByRole('tabpanel');
+    const relato = within(painel).getByText('Relato completo do aluno.');
+    const bloco = within(painel).getByRole('heading', { level: 3, name: 'Respostas do aluno' });
+    const anexos = within(painel).getByRole('heading', { name: 'Anexos' });
+    expect(within(painel).getByText('Situação: Ameaças')).toBeInTheDocument();
+    expect(relato.compareDocumentPosition(bloco) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(bloco.compareDocumentPosition(anexos) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('sem questionário mostra a mensagem no lugar do bloco', async () => {
+    await abrirCaso();
+    const painel = await screen.findByRole('tabpanel');
+    expect(within(painel).getByText('O aluno não respondeu ao questionário.')).toBeInTheDocument();
   });
 
   it('Conversa mostra o nome da pessoa da coordenação quando houver e o formulário', async () => {
