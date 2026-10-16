@@ -7,7 +7,7 @@ import { apagarRascunho, lerRascunho, salvarRascunho } from './rascunho';
 import type { DadosRascunho } from './rascunho';
 import { LIMITE_RELATO, SITUACOES, comporRelato, tipoDe } from './situacoes';
 
-const vazio: DadosRascunho = { situacaoId: '', marcadas: [], relato: '', quando: '', onde: '', em_andamento: false, anonimo: true, nome: '', turma: '' };
+const vazio: DadosRascunho = { situacaoId: '', marcadas: [], respostas: {}, relato: '', quando: '', onde: '', em_andamento: false, anonimo: true, nome: '', turma: '' };
 const etapas = ['Situação', 'Detalhes', 'Relato', 'Provas'];
 const titulos = ['Qual é a situação?', 'O que está acontecendo?', 'O que aconteceu?', 'Provas e identificação'];
 type Anexo = { arquivo: File; url: string; id: number };

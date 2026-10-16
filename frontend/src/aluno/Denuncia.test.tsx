@@ -6,7 +6,7 @@ import Denuncia from './Denuncia';
 import { salvarRascunho } from './rascunho';
 import { SITUACOES } from './situacoes';
 
-const CHAVE = 'si-aluno-rascunho-v2';
+const CHAVE = 'si-aluno-rascunho-v3';
 const relato = 'Estão me ameaçando no aplicativo da turma.';
 const opcaoAmeaca = SITUACOES.find(s => s.id === 'ameaca')!.opcoes;
 const responder = (body: unknown, status = 200) => vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify(body), { status }));
@@ -461,7 +461,7 @@ describe('Rascunho', () => {
     expect(screen.getByRole('heading', { name: 'O que está acontecendo?' })).toBeInTheDocument();
   });
   it('restaura situação, opções e relato ao abrir, no passo 1', async () => {
-    salvarRascunho({ situacaoId: 'ameaca', marcadas: [opcaoAmeaca[1]], relato, quando: 'ontem', onde: 'grupo', em_andamento: true, anonimo: true, nome: '', turma: '' });
+    salvarRascunho({ situacaoId: 'ameaca', marcadas: [opcaoAmeaca[1]], respostas: {}, relato, quando: 'ontem', onde: 'grupo', em_andamento: true, anonimo: true, nome: '', turma: '' });
     const user = userEvent.setup();
     render(<Denuncia onEnviado={() => {}} />);
     expect(screen.getByRole('heading', { name: 'Qual é a situação?' })).toBeInTheDocument();
@@ -474,7 +474,7 @@ describe('Rascunho', () => {
     expect(screen.getByLabelText('Está acontecendo agora?')).toBeChecked();
   });
   it('não restaura rascunho expirado nem o da versão antiga', () => {
-    salvarRascunho({ situacaoId: 'ameaca', marcadas: [], relato, quando: '', onde: '', em_andamento: false, anonimo: true, nome: '', turma: '' }, Date.now() - 24 * 60 * 60 * 1000 - 5000);
+    salvarRascunho({ situacaoId: 'ameaca', marcadas: [], respostas: {}, relato, quando: '', onde: '', em_andamento: false, anonimo: true, nome: '', turma: '' }, Date.now() - 24 * 60 * 60 * 1000 - 5000);
     localStorage.setItem('si-aluno-rascunho-v1', JSON.stringify({ tipo: 'ameaca', relato }));
     render(<Denuncia onEnviado={() => {}} />);
     expect(situacao(/^Ameaças\./)).not.toBeChecked();
@@ -484,7 +484,7 @@ describe('Rascunho', () => {
   it('reabrir sem editar não renova o prazo; editar renova', async () => {
     const hora = 60 * 60 * 1000;
     const antes = Date.now() - 23 * hora;
-    salvarRascunho({ situacaoId: 'ameaca', marcadas: [opcaoAmeaca[0]], relato, quando: '', onde: '', em_andamento: false, anonimo: true, nome: '', turma: '' }, antes);
+    salvarRascunho({ situacaoId: 'ameaca', marcadas: [opcaoAmeaca[0]], respostas: {}, relato, quando: '', onde: '', em_andamento: false, anonimo: true, nome: '', turma: '' }, antes);
     const user = userEvent.setup();
     render(<Denuncia onEnviado={() => {}} />);
     expect(situacao(/^Ameaças\./)).toBeChecked();
@@ -494,7 +494,7 @@ describe('Rascunho', () => {
   });
   it('rascunho de 25 horas não é restaurado nem regravado', () => {
     const hora = 60 * 60 * 1000;
-    salvarRascunho({ situacaoId: 'ameaca', marcadas: [], relato, quando: '', onde: '', em_andamento: false, anonimo: true, nome: '', turma: '' }, Date.now() - 25 * hora);
+    salvarRascunho({ situacaoId: 'ameaca', marcadas: [], respostas: {}, relato, quando: '', onde: '', em_andamento: false, anonimo: true, nome: '', turma: '' }, Date.now() - 25 * hora);
     render(<Denuncia onEnviado={() => {}} />);
     expect(situacao(/^Ameaças\./)).not.toBeChecked();
     expect(localStorage.getItem(CHAVE)).toBeNull();

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { acompanhar, enviarDenuncia, enviarMensagem, enviarSituacao, ErroApi, listarCasos, mensagemErro, mudarPrioridade, registrarResolucao, revisarRecorrencia } from './api';
+import { acompanhar, enviarDenuncia, obterQuestionario, enviarMensagem, enviarSituacao, ErroApi, listarCasos, mensagemErro, mudarPrioridade, registrarResolucao, revisarRecorrencia } from './api';
 
 describe('Cliente da API', () => {
   it.each([400, 404, 413, 429, 500])('mantém status HTTP %i e fornece recuperação', async status => {
@@ -27,6 +27,24 @@ describe('Cliente da API', () => {
     expect(fetch).toHaveBeenCalledWith('/api/acompanhar/mensagens', expect.objectContaining({
       method: 'POST', body: JSON.stringify({ codigo: 'K7M29QXD', texto: 'Minha resposta' }),
     }));
+  });
+  describe('questionário (v2 B)', () => {
+    const def = { dimensoes: { quando: 'Quando' }, situacoes: [], perguntas: [] };
+    it('faz GET em /api/questionario e devolve o objeto', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify(def), { status: 200 }));
+      await expect(obterQuestionario()).resolves.toEqual(def);
+      const [url, init] = vi.mocked(fetch).mock.calls[0];
+      expect(url).toBe('/api/questionario');
+      expect(init?.method ?? 'GET').toBe('GET');
+    });
+    it('503 e falha de rede lançam ErroApi', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce(new Response('{"erro":"questionario indisponivel"}', { status: 503 }));
+      await expect(obterQuestionario()).rejects.toMatchObject({ status: 503 });
+      vi.mocked(fetch).mockRejectedValueOnce(new TypeError('Failed to fetch'));
+      const erro = await obterQuestionario().catch(e => e);
+      expect(erro).toBeInstanceOf(ErroApi);
+      expect(erro.status).toBe(0);
+    });
   });
   describe('situação do aluno (v2 A)', () => {
     it('envia a situação por POST JSON com o código só no corpo', async () => {

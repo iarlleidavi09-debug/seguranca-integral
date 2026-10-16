@@ -55,6 +55,22 @@ export async function enviarSituacao(codigo: string, situacao: Situacao): Promis
   await post('/api/acompanhar/situacao', JSON.stringify({ codigo: normalizar(codigo), situacao }), true);
 }
 
+export type Resposta = { id: string; texto: string };
+export type Pergunta = { id: string; dimensao: string; texto: string; tipo: 'unica' | 'multipla'; respostas: Resposta[]; mostrar_se?: string[] };
+export type Opcao = { id: string; texto: string; perguntas: string[] };
+export type SituacaoQ = { id: string; tipo: string; nome: string; descricao: string; opcoes: Opcao[] };
+export type Questionario = { dimensoes: Record<string, string>; situacoes: SituacaoQ[]; perguntas: Pergunta[] };
+
+/** Definição do questionário (sem pesos nem alertas). Falha de rede ou 503 viram ErroApi. */
+export async function obterQuestionario(): Promise<Questionario> {
+  let resposta: Response;
+  try { resposta = await fetch('/api/questionario', { method: 'GET', credentials: 'same-origin', cache: 'no-store' }); }
+  catch { throw new ErroApi(0); }
+  if (!resposta.ok) throw new ErroApi(resposta.status);
+  try { return await resposta.json() as Questionario; }
+  catch { throw new ErroApi(502); }
+}
+
 // ---------------------------------------------------------------------------
 // Cliente da coordenação (mesma origem, cookie de sessão)
 // ---------------------------------------------------------------------------

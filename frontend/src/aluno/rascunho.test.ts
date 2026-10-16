@@ -1,15 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 import { apagarRascunho, lerRascunho, salvarRascunho } from './rascunho';
 import type { DadosRascunho } from './rascunho';
-import { SITUACOES } from './situacoes';
 
-const CHAVE = 'si-aluno-rascunho-v2';
+const CHAVE = 'si-aluno-rascunho-v3';
 const HORA = 60 * 60 * 1000;
-const opcao = SITUACOES.find(s => s.id === 'ameaca')!.opcoes[0];
-const base: DadosRascunho = { situacaoId: 'ameaca', marcadas: [opcao], relato: 'Estão me ameaçando.', quando: 'ontem', onde: 'grupo da turma', em_andamento: true, anonimo: false, nome: 'Ana', turma: '2A' };
+const base: DadosRascunho = { situacaoId: 'ameaca', marcadas: ['a1', 'a3'], respostas: { q1: ['q1.agora'], q6: ['q6.nao'] }, relato: 'Estão me ameaçando.', quando: 'ontem', onde: 'grupo da turma', em_andamento: true, anonimo: false, nome: 'Ana', turma: '2A' };
 
 describe('rascunho de 24 horas', () => {
-  it('grava e lê de volta dentro de 24 horas', () => {
+  it('grava e lê de volta dentro de 24 horas, com as respostas', () => {
     expect(salvarRascunho(base, 1000)).toBe(true);
     expect(lerRascunho(1000 + 24 * HORA)).toEqual(base);
     expect(JSON.parse(localStorage.getItem(CHAVE)!).salvoEm).toBe(1000);
@@ -40,10 +38,12 @@ describe('rascunho de 24 horas', () => {
     expect(salvarRascunho(base, 1)).toBe(false);
     expect(() => apagarRascunho()).not.toThrow();
   });
-  it('apaga a chave antiga v1 ao ler', () => {
+  it('apaga as chaves antigas v1 e v2 ao ler e não aproveita o conteúdo delas', () => {
     localStorage.setItem('si-aluno-rascunho-v1', '{"tipo":"ameaca"}');
-    expect(lerRascunho(1)).toBeNull();
+    localStorage.setItem('si-aluno-rascunho-v2', JSON.stringify({ ...base, marcadas: ['texto da opção'], salvoEm: 1 }));
+    expect(lerRascunho(2)).toBeNull();
     expect(localStorage.getItem('si-aluno-rascunho-v1')).toBeNull();
+    expect(localStorage.getItem('si-aluno-rascunho-v2')).toBeNull();
   });
   it('corta os textos nos limites ao ler', () => {
     localStorage.setItem(CHAVE, JSON.stringify({ ...base, relato: 'r'.repeat(6000), quando: 'q'.repeat(300), onde: 'o'.repeat(300), nome: 'n'.repeat(300), turma: 't'.repeat(90), salvoEm: 1 }));
@@ -68,9 +68,32 @@ describe('rascunho de 24 horas', () => {
     localStorage.setItem(CHAVE, JSON.stringify({ ...base, anonimo: true, salvoEm: 1 }));
     expect(lerRascunho(2)).toMatchObject({ nome: '', turma: '' });
   });
-  it('descarta opções marcadas que não pertencem à situação', () => {
-    localStorage.setItem(CHAVE, JSON.stringify({ ...base, marcadas: [opcao, 'texto inventado', 5], salvoEm: 1 }));
-    expect(lerRascunho(2)!.marcadas).toEqual([opcao]);
+  it('descarta ids que não são texto em marcadas e respostas', () => {
+    localStorage.setItem(CHAVE, JSON.stringify({ ...base, marcadas: ['a1', 5, null, 'a3'], respostas: { q1: ['q1.agora', 7, {}], q2: 'x', q3: [9] }, salvoEm: 1 }));
+    const lido = lerRascunho(2)!;
+    expect(lido.marcadas).toEqual(['a1', 'a3']);
+    expect(lido.respostas).toEqual({ q1: ['q1.agora'] });
+  });
+  it('respostas ausente ou de formato errado vira vazio', () => {
+    localStorage.setItem(CHAVE, JSON.stringify({ ...base, respostas: [1, 2], salvoEm: 1 }));
+    expect(lerRascunho(2)!.respostas).toEqual({});
+    const { respostas: _fora, ...semRespostas } = base;
+    localStorage.setItem(CHAVE, JSON.stringify({ ...semRespostas, salvoEm: 1 }));
+    expect(lerRascunho(2)!.respostas).toEqual({});
+  });
+  it('limita a 60 ids no total (marcadas mais respostas)', () => {
+    const marcadas = Array.from({ length: 30 }, (_, i) => 'm' + i);
+    const respostas = { q1: Array.from({ length: 40 }, (_, i) => 'r' + i) };
+    localStorage.setItem(CHAVE, JSON.stringify({ ...base, marcadas, respostas, salvoEm: 1 }));
+    const lido = lerRascunho(2)!;
+    expect(lido.marcadas).toHaveLength(30);
+    expect(lido.respostas.q1).toHaveLength(30);
+  });
+  it('descarta id com mais de 80 caracteres', () => {
+    localStorage.setItem(CHAVE, JSON.stringify({ ...base, marcadas: ['a'.repeat(81), 'b'.repeat(80)], respostas: { q1: ['c'.repeat(81), 'ok'] }, salvoEm: 1 }));
+    const lido = lerRascunho(2)!;
+    expect(lido.marcadas).toEqual(['b'.repeat(80)]);
+    expect(lido.respostas).toEqual({ q1: ['ok'] });
   });
   it('apagarRascunho remove a chave', () => {
     salvarRascunho(base, 1);
