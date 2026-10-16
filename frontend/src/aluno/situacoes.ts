@@ -3,6 +3,8 @@ export type Situacao6 = { id: string; tipo: Tipo; nome: string; descricao: strin
 
 export const LIMITE_RELATO = 5000;
 
+export const TEXTO_ORIENTACAO = 'Se você sente que corre perigo agora, procure um adulto de confiança ou a coordenação da escola hoje. Seu pedido continua sendo enviado.';
+
 export const SITUACOES: Situacao6[] = [
   { id: 'cyberbullying', tipo: 'cyberbullying', nome: 'Cyberbullying', descricao: 'Humilhação, perseguição ou ataques na internet.', opcoes: ['Estão me humilhando ou fazendo piadas comigo.', 'Estão espalhando mentiras ou boatos sobre mim.', 'Estão me excluindo de propósito.', 'Estão me perseguindo com mensagens e comentários.', 'Estão incentivando outras pessoas a me atacar.'] },
   { id: 'ameaca', tipo: 'ameaca', nome: 'Ameaças', descricao: 'Alguém está te ameaçando ou pressionando.', opcoes: ['Disseram que vão me machucar.', 'Ameaçaram divulgar algo particular meu.', 'Disseram que vão me encontrar ou me perseguir fora da internet.', 'Ameaçaram alguém próximo de mim.', 'Estão me ameaçando para me obrigar a fazer algo.'] },

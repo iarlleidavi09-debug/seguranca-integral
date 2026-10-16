@@ -38,4 +38,20 @@ describe('Confirmação', () => {
     await user.click(screen.getByRole('button', { name: 'Acompanhar meu caso' }));
     expect(aoAcompanhar).toHaveBeenCalledTimes(1);
   });
+  it('com orientacao mostra o cuidado e sem ela não mostra', () => {
+    const texto = 'Se você sente que corre perigo agora, procure um adulto de confiança ou a coordenação da escola hoje. Seu pedido continua sendo enviado.';
+    const { rerender } = render(<Confirmacao resultado={{ codigo: 'K7M2-9QXD' }} onAcompanhar={() => {}} orientacao />);
+    expect(screen.getByText(texto)).toBeInTheDocument();
+    rerender(<Confirmacao resultado={{ codigo: 'K7M2-9QXD' }} onAcompanhar={() => {}} orientacao={false} />);
+    expect(screen.queryByText(texto)).toBeNull();
+    rerender(<Confirmacao resultado={{ codigo: 'K7M2-9QXD' }} onAcompanhar={() => {}} />);
+    expect(screen.queryByText(texto)).toBeNull();
+  });
+  it('avisa com discrição quando as respostas do questionário não foram enviadas', () => {
+    const { rerender } = render(<Confirmacao resultado={{ codigo: 'K7M2-9QXD' }} onAcompanhar={() => {}} respostasNaoEnviadas />);
+    expect(screen.getByText(/As respostas às perguntas não foram enviadas/)).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).toBeNull();
+    rerender(<Confirmacao resultado={{ codigo: 'K7M2-9QXD' }} onAcompanhar={() => {}} />);
+    expect(screen.queryByText(/respostas às perguntas/)).toBeNull();
+  });
 });

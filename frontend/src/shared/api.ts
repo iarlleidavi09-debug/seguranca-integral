@@ -8,7 +8,8 @@ export type Caso = {
 };
 
 export class ErroApi extends Error {
-  constructor(public readonly status: number) {
+  /** `erroServidor` guarda o texto de `{"erro": ...}` quando o servidor o envia; as mensagens para o aluno não o usam. */
+  constructor(public readonly status: number, public readonly erroServidor = '') {
     super(`Falha na API (${status})`);
     this.name = 'ErroApi';
   }
@@ -35,7 +36,11 @@ async function post<T>(caminho: string, body: BodyInit, json = false): Promise<T
       ...(json ? { headers: { 'Content-Type': 'application/json' } } : {}),
     });
   } catch { throw new ErroApi(0); }
-  if (!resposta.ok) throw new ErroApi(resposta.status);
+  if (!resposta.ok) {
+    let texto = '';
+    try { const dados = await resposta.json(); if (typeof dados?.erro === 'string') texto = dados.erro; } catch { /* corpo vazio ou que não é JSON */ }
+    throw new ErroApi(resposta.status, texto);
+  }
   try { return await resposta.json() as T; }
   catch { throw new ErroApi(502); }
 }

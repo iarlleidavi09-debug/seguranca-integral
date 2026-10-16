@@ -158,3 +158,9 @@
 @media (min-width: 768px) {
   .aluno-app .etapas { grid-template-columns: repeat(3, 1fr); }
 }
+
+/* Perguntas encadeadas do passo 2 */
+.aluno-app .pergunta-contagem { margin: var(--espaco-4) 0 var(--espaco-2); color: var(--texto-secundario); }
+.aluno-app .pergunta legend { font-weight: 700; }
+.aluno-app .pergunta legend:focus-visible { outline: var(--linha-foco) solid var(--foco-anel); outline-offset: var(--espaco-1); }
+.aluno-app .orientacao { margin-top: var(--espaco-4); border-left: var(--espaco-1) solid var(--primaria-base); }

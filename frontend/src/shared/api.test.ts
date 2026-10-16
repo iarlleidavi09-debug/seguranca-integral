@@ -10,6 +10,19 @@ describe('Cliente da API', () => {
     expect(mensagemErro(erro)).not.toContain('interno');
     expect(mensagemErro(erro).length).toBeGreaterThan(20);
   });
+  it('expõe o texto de erro do servidor em ErroApi sem mudar a mensagem ao aluno', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify({ erro: 'respostas invalidas' }), { status: 400 }));
+    const erro = await enviarDenuncia(new FormData()).catch(e => e);
+    expect(erro).toBeInstanceOf(ErroApi);
+    expect(erro.status).toBe(400);
+    expect(erro.erroServidor).toBe('respostas invalidas');
+    expect(mensagemErro(erro)).toBe('Confira os campos preenchidos e tente de novo.');
+  });
+  it.each([['corpo vazio', new Response('', { status: 400 })], ['não é JSON', new Response('<html>', { status: 400 })], ['erro não é texto', new Response('{"erro": 3}', { status: 400 })]])('erroServidor fica vazio quando %s', async (_nome, resposta) => {
+    vi.mocked(fetch).mockResolvedValueOnce(resposta);
+    const erro = await enviarDenuncia(new FormData()).catch(e => e);
+    expect(erro.erroServidor).toBe('');
+  });
   it('tipa falhas de rede com status 0', async () => {
     vi.mocked(fetch).mockRejectedValueOnce(new TypeError('Failed to fetch'));
     await expect(enviarDenuncia(new FormData())).rejects.toMatchObject({ status: 0 });

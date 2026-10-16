@@ -2,10 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import type { ResultadoDenuncia } from '../shared/api';
 import Inicio from './Inicio';
 import Denuncia from './Denuncia';
+import type { ExtrasEnvio } from './Denuncia';
 import Confirmacao from './Confirmacao';
 import Acompanhar from './Acompanhar';
 
-type Tela = { nome: 'inicio' } | { nome: 'denuncia' } | { nome: 'confirmacao'; resultado: ResultadoDenuncia } | { nome: 'acompanhar'; codigo: string; consulta: number };
+type Tela = { nome: 'inicio' } | { nome: 'denuncia' } | { nome: 'confirmacao'; resultado: ResultadoDenuncia; extras?: ExtrasEnvio } | { nome: 'acompanhar'; codigo: string; consulta: number };
 
 export default function App() {
   const [tela, setTela] = useState<Tela>({ nome: 'inicio' });
@@ -44,8 +45,8 @@ export default function App() {
     <main id="conteudo" ref={main} tabIndex={-1} className="portal">
       {tela.nome !== 'inicio' && <button type="button" className="botao-texto" disabled={enviandoDenuncia} onClick={inicio}>Voltar ao início</button>}
       {tela.nome === 'inicio' && <Inicio onAjuda={() => ir({ nome: 'denuncia' })} onAcompanhar={consultar} />}
-      {tela.nome === 'denuncia' && <Denuncia onEnviando={setEnviandoDenuncia} onEnviado={resultado => setTela({ nome: 'confirmacao', resultado })} />}
-      {tela.nome === 'confirmacao' && <Confirmacao resultado={tela.resultado} onAcompanhar={() => consultar(tela.resultado.codigo)} />}
+      {tela.nome === 'denuncia' && <Denuncia onEnviando={setEnviandoDenuncia} onEnviado={(resultado, extras) => setTela({ nome: 'confirmacao', resultado, extras })} />}
+      {tela.nome === 'confirmacao' && <Confirmacao resultado={tela.resultado} orientacao={tela.extras?.orientacao} respostasNaoEnviadas={tela.extras?.respostasNaoEnviadas} onAcompanhar={() => consultar(tela.resultado.codigo)} />}
       {tela.nome === 'acompanhar' && <Acompanhar key={tela.consulta} codigoInicial={tela.codigo} />}
     </main>
     <footer className="rodape">Um canal da escola para ouvir e cuidar.</footer>

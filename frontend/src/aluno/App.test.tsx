@@ -1,11 +1,13 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { chamadasDeEnvio, simularQuestionario } from '../test/questionario';
 import App from './App';
 
 const navegacao = () => within(screen.getByRole('navigation', { name: 'Principal' }));
 
 describe('Casca do portal do aluno', () => {
+  beforeEach(() => { simularQuestionario(); });
   it('tem a raiz aluno-app, o cabeçalho com a marca e o rodapé', () => {
     const { container } = render(<App />);
     expect(container.firstElementChild).toHaveClass('aluno-app');
@@ -33,7 +35,7 @@ describe('Casca do portal do aluno', () => {
     expect(screen.getByRole('heading', { name: 'Acompanhar meu caso' })).toBeInTheDocument();
     expect(screen.getByLabelText('Código de acompanhamento')).toBeInTheDocument();
     expect(navegacao().getByRole('button', { name: 'Acompanhar' })).toHaveAttribute('aria-current', 'page');
-    expect(fetch).not.toHaveBeenCalled();
+    expect(chamadasDeEnvio()).toHaveLength(0);
     await user.click(navegacao().getByRole('button', { name: 'Início' }));
     expect(screen.getByRole('heading', { name: 'Você não precisa lidar com isso sozinho.' })).toBeInTheDocument();
   });
@@ -50,8 +52,9 @@ describe('Casca do portal do aluno', () => {
     await user.click(navegacao().getByRole('button', { name: 'Pedir ajuda' }));
     await user.click(screen.getByRole('radio', { name: /^Ameaças\./ }));
     await user.click(screen.getByRole('button', { name: 'Continuar' }));
-    await user.click(screen.getByRole('checkbox', { name: 'Disseram que vão me machucar.' }));
+    await user.click(await screen.findByRole('checkbox', { name: 'Disseram que vão me machucar.' }));
     await user.click(screen.getByRole('button', { name: 'Continuar' }));
+    while (screen.queryByText(/^Pergunta \d+ de \d+$/)) await user.click(screen.getByRole('button', { name: 'Continuar' }));
     await user.type(screen.getByLabelText('O que aconteceu?'), 'Estão me ameaçando no aplicativo da turma.');
     await user.click(screen.getByRole('button', { name: 'Continuar' }));
     let concluir!: (resposta: Response) => void;
