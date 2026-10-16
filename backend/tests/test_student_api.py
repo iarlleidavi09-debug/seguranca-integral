@@ -804,3 +804,27 @@ def test_denuncia_tipo_diferente_da_situacao_400(student_client, config):
     r = _enviar(student_client, tipo="golpe", respostas=json.dumps(RESPOSTAS))
     assert r.status_code == 400
     assert _contar(config, "casos") == antes
+
+
+def test_denuncia_respostas_aninhamento_profundo_400(student_client, config):
+    antes = _contar(config, "casos")
+    r = _enviar(student_client, tipo="ameaca", respostas="[" * 3000 + "]" * 3000)
+    assert r.status_code == 400
+    assert r.get_json() == {"erro": "respostas invalidas"}
+    assert _contar(config, "casos") == antes
+
+
+def test_denuncia_com_definicao_quebrada_descarta_respostas(student_client, config):
+    config.data_dir.mkdir(parents=True, exist_ok=True)
+    (config.data_dir / "questionario.json").write_text("{quebrado", encoding="utf-8")
+    r = _enviar(student_client, tipo="ameaca", respostas=json.dumps(RESPOSTAS))
+    assert r.status_code == 201
+    assert _linha_caso(config)["respostas_json"] is None
+
+
+def test_denuncia_respostas_invalidas_com_definicao_boa_continua_400(student_client, config):
+    antes = _contar(config, "casos")
+    r = _enviar(student_client, tipo="ameaca",
+                respostas=json.dumps(dict(RESPOSTAS, marcadas=["c1"])))
+    assert r.status_code == 400
+    assert _contar(config, "casos") == antes

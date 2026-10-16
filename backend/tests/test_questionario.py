@@ -313,3 +313,16 @@ def test_respostas_normaliza_e_ignora_chaves_extras(real):
                         "respostas": {"q3": []}})
     assert real.validar_respostas(bruto, "ameaca") == {
         "situacao": "ameaca", "marcadas": [], "respostas": {"q3": []}}
+
+
+def test_respostas_aninhamento_profundo_levanta(real):
+    bruto = "[" * 3000 + "]" * 3000
+    assert len(bruto) < 8192
+    with pytest.raises(RespostasInvalidas):
+        real.validar_respostas(bruto, "ameaca")
+
+
+@pytest.mark.parametrize("situacao", [5, None, ["ameaca"]])
+def test_respostas_situacao_nao_texto_levanta(real, situacao):
+    with pytest.raises(RespostasInvalidas):
+        real.validar_respostas(_mod(situacao=situacao), "ameaca")

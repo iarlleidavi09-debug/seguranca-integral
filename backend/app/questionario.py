@@ -55,7 +55,7 @@ class Questionario:
             raise RespostasInvalidas("texto grande demais")
         try:
             dado = json.loads(bruto)
-        except ValueError:
+        except (ValueError, RecursionError):
             raise RespostasInvalidas("JSON invalido") from None
         if not isinstance(dado, dict):
             raise RespostasInvalidas("precisa ser um objeto")

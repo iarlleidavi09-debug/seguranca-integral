@@ -98,15 +98,19 @@ def criar_denuncia():
 
     config = current_app.config["SI_CONFIG"]
     respostas = None
-    if (form.get("respostas") or "").strip():
+    if form.get("respostas"):
         # antes de salvar anexos: resposta inválida não deixa arquivo órfão
         try:
-            respostas = carregar(config.questionario_path).validar_respostas(
-                form.get("respostas"), tipo)
-        except RespostasInvalidas:
-            return _erro("respostas invalidas")
+            definicao = carregar(config.questionario_path)
         except QuestionarioInvalido:
-            return _erro("questionario indisponivel", 503)
+            # o questionário nunca bloqueia o pedido de ajuda: sem definição
+            # confiável, as respostas são descartadas e o caso é criado
+            definicao = None
+        if definicao is not None:
+            try:
+                respostas = definicao.validar_respostas(form.get("respostas"), tipo)
+            except RespostasInvalidas:
+                return _erro("respostas invalidas")
     salvos, recusados = [], []
     for arq in arquivos:
         # le no maximo MAX_BYTES + 1: arquivo grande nunca e carregado inteiro
