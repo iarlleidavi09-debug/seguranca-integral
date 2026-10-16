@@ -527,3 +527,21 @@ def test_traceback_no_arquivo_passa_pelo_filtro(tmp_path):
     texto = (tmp_path / "logs" / "servidor.log").read_text(encoding="utf-8")
     assert "falhou" in texto and "OSError" in texto
     assert "192.0.2.44" not in texto
+
+
+# --- questionário inválido ------------------------------------------------------
+
+def test_questionario_invalido_nao_bloqueia_recuperacao_de_conta(tmp_path, capsys):
+    (tmp_path / "questionario.json").write_text("{ quebrado", encoding="utf-8")
+    assert server.main(["--data-dir", str(tmp_path), "--criar-admin"]) == 0
+    assert server.main(["--data-dir", str(tmp_path), "--redefinir-senha"]) == 0
+
+
+def test_questionario_invalido_na_partida_sai_4_sem_traceback(tmp_path, monkeypatch, capsys):
+    (tmp_path / "questionario.json").write_text("{ quebrado", encoding="utf-8")
+    monkeypatch.setattr(server, "servir", lambda *a, **k: pytest.fail("nao deve subir"))
+    capsys.readouterr()
+    assert server.main(["--data-dir", str(tmp_path)]) == 4
+    err = capsys.readouterr().err
+    assert "Questionario invalido" in err and "JSON" in err
+    assert "Traceback" not in err

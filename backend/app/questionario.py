@@ -59,6 +59,12 @@ def _lista(dados: dict, campo: str) -> list:
     return valor
 
 
+def _textos_da_lista(lista, onde: str) -> None:
+    for item in lista:
+        if not isinstance(item, str):
+            raise _erro(f"{onde}: itens precisam ser texto ({item!r})")
+
+
 def _novo_id(item, vistos: set, onde: str) -> str:
     if not isinstance(item, dict) or not isinstance(item.get("id"), str) or not item["id"]:
         raise _erro(f"{onde} sem id")
@@ -107,7 +113,11 @@ def _validar(dados) -> None:
             continue
         if not isinstance(mostrar, list) or not mostrar:
             raise _erro(f"pergunta {p['id']}: mostrar_se precisa ser lista não vazia")
+        _textos_da_lista(mostrar, f"pergunta {p['id']}: mostrar_se")
+        proprias = {r["id"] for r in p["respostas"]}
         for rid in mostrar:
+            if rid in proprias:
+                raise _erro(f"pergunta {p['id']}: mostrar_se cita resposta da propria pergunta {rid}")
             if rid not in ids_resposta:
                 raise _erro(f"pergunta {p['id']}: mostrar_se cita resposta inexistente {rid}")
 
@@ -131,6 +141,7 @@ def _validar(dados) -> None:
             citadas = o.get("perguntas")
             if not isinstance(citadas, list):
                 raise _erro(f"opcao {oid}: perguntas precisa ser uma lista")
+            _textos_da_lista(citadas, f"opcao {oid}: perguntas")
             for pid in citadas:
                 if pid not in ids_pergunta:
                     raise _erro(f"opcao {oid}: cita pergunta inexistente {pid}")
@@ -156,6 +167,7 @@ def _validar(dados) -> None:
             raise _erro("alerta sem lista 'todas'")
         if not isinstance(a.get("motivo"), str) or not a["motivo"]:
             raise _erro("alerta sem motivo")
+        _textos_da_lista(todas, "alerta: todas")
         for rid in todas:
             if rid not in ids_resposta:
                 raise _erro(f"alerta cita resposta inexistente {rid}")

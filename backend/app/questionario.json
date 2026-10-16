@@ -365,6 +365,8 @@
           "id": "l1",
           "texto": "Alguém mais velho puxa conversa de um jeito estranho.",
           "perguntas": [
+            "q1",
+            "q6",
             "l1.idade",
             "l1.segredo",
             "l1.fotos",

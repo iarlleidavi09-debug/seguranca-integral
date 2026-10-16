@@ -68,10 +68,11 @@ def test_sete_situacoes_na_ordem(real):
     assert [s["tipo"] for s in real.dados["situacoes"]] == ORDEM
 
 
+# premissa: cada situação ocupa uma linha de situacoes.ts (re.S só para o miolo)
 def _opcoes_do_ts() -> dict[str, list[str]]:
     texto = SITUACOES_TS.read_text(encoding="utf-8")
     saida = {}
-    for m in re.finditer(r"id: '(\w+)'.*?opcoes: \[(.*?)\] \}", texto):
+    for m in re.finditer(r"id: '(\w+)'.*?opcoes: \[(.*?)\] \}", texto, re.S):
         saida[m.group(1)] = re.findall(r"'((?:[^'\\]|\\.)*)'", m.group(2))
     return saida
 
@@ -88,6 +89,11 @@ def test_nomes_e_descricoes_iguais_ao_frontend(real):
     for s in real.dados["situacoes"]:
         assert f"nome: '{s['nome']}'" in texto
         assert f"descricao: '{s['descricao']}'" in texto
+
+
+def test_aliciamento_abre_q1_e_q6(real):
+    l1 = real.dados["situacoes"][5]["opcoes"][0]
+    assert l1["perguntas"][:2] == ["q1", "q6"]
 
 
 def test_ids_de_opcao_estaveis(real):
@@ -170,6 +176,30 @@ def _inalcancavel(d):
                            "respostas": [{"id": "q2.a", "texto": "a"}]})
 
 
+def _mostrar_se_nao_texto(d):
+    d["perguntas"][0]["mostrar_se"] = [["lista"]]
+
+
+def _opcao_pergunta_nao_texto(d):
+    d["situacoes"][0]["opcoes"][0]["perguntas"] = [["x"]]
+
+
+def _id_nao_texto(d):
+    d["perguntas"][0]["id"] = 7
+
+
+def _autorreferencia(d):
+    d["perguntas"][0]["mostrar_se"] = ["q1.a"]
+
+
+def _peso_nao_inteiro(d):
+    d["pesos"] = {"q1.a": 1.5}
+
+
+def _faixas_ruins(d):
+    d["faixas"] = {"alta": "6", "media": 3}
+
+
 def _travessao(d):
     d["perguntas"][0]["texto"] = "a \u2014 b"
 
@@ -180,6 +210,9 @@ CASOS = [
     (_alerta_ruim, "nao.existe"), (_tipo_sit, "bobagem"),
     (_tipo_perg, "dupla"), (_sem_respostas, "q1"), (_inalcancavel, "q2"),
     (_travessao, "q1"),
+    (_mostrar_se_nao_texto, "q1"), (_opcao_pergunta_nao_texto, "o1"),
+    (_id_nao_texto, "id"), (_autorreferencia, "q1"),
+    (_peso_nao_inteiro, "q1.a"), (_faixas_ruins, "faixas"),
 ]
 
 

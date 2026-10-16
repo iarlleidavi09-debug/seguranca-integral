@@ -349,16 +349,19 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Nao foi possivel usar a pasta de dados: {_sem_endereco(str(erro))}",
               file=sys.stderr)
         return SAIDA_ERRO_INICIO
+    if args.criar_admin:
+        return _criar_admin(config)
+    if args.redefinir_senha:
+        return _redefinir_senha(config)
+
+    # só quando o servidor vai subir: um questionário quebrado não pode
+    # bloquear a recuperação de conta
     try:
         carregar_questionario(config.questionario_path)
     except QuestionarioInvalido as erro:
         # definição quebrada: para na partida, sem traceback
         print(f"Questionario invalido: {_sem_endereco(str(erro))}", file=sys.stderr)
         return SAIDA_ERRO_INICIO
-    if args.criar_admin:
-        return _criar_admin(config)
-    if args.redefinir_senha:
-        return _redefinir_senha(config)
 
     # o handler de tela criado aqui guarda o stderr original, antes da troca
     handlers = _configurar_log(config)
