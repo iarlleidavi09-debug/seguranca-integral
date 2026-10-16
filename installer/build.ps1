@@ -20,7 +20,8 @@
 [CmdletBinding()]
 param(
     [switch]$SemTestes,
-    [switch]$SemInstalador
+    [switch]$SemInstalador,
+    [switch]$Lan
 )
 
 $ErrorActionPreference = 'Stop'
@@ -33,7 +34,9 @@ $Dist = Join-Path $Raiz 'dist'
 $Trabalho = Join-Path $Raiz 'build'
 $Spec = Join-Path $PSScriptRoot 'seguranca.spec'
 $Iss = Join-Path $PSScriptRoot 'instalador.iss'
-$Setup = Join-Path $Dist 'SegurancaIntegral-Setup.exe'
+# -Lan gera o instalador SO PARA REDE LOCAL (sem tunel): outro arquivo, mesmo programa
+$NomeSetup = if ($Lan) { 'SegurancaIntegral-Setup-LAN.exe' } else { 'SegurancaIntegral-Setup.exe' }
+$Setup = Join-Path $Dist $NomeSetup
 
 # $ErrorActionPreference nao pega codigo de saida de programa nativo no
 # PowerShell 5.1: cada chamada passa por aqui e falha se o codigo nao for 0
@@ -117,7 +120,7 @@ if ($SemInstalador) {
     Write-Host '==> Inno Setup PULADO (-SemInstalador).' -ForegroundColor Yellow
     $Setup = $null
 } else {
-    Invoke-Passo -Titulo 'Inno Setup' -Pasta $PSScriptRoot -Programa $Iscc -Argumentos @($Iss)
+    Invoke-Passo -Titulo 'Inno Setup' -Pasta $PSScriptRoot -Programa $Iscc -Argumentos $(if ($Lan) { @('/DLAN=1', $Iss) } else { @($Iss) })
     if (-not (Test-Path -LiteralPath $Setup -PathType Leaf)) {
         throw "Inno Setup terminou sem gerar $Setup"
     }

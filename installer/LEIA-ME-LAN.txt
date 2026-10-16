@@ -1,0 +1,60 @@
+﻿SEGURANÇA INTEGRAL - VERSÃO SÓ PARA REDE LOCAL (LAN)
+====================================================
+
+Esta versão funciona dentro da rede da escola, sem túnel e sem endereço na
+internet. Os alunos acessam pelo endereço do computador onde o programa foi
+instalado.
+
+1. DEPOIS DE INSTALAR
+---------------------
+
+Ao final, o instalador abre o arquivo "Endereços da rede" com:
+  - o endereço do portal do ALUNO (compartilhe com os alunos, por exemplo num
+    cartaz ou no mural);
+  - o endereço do portal da COORDENAÇÃO (só para a equipe).
+O mesmo arquivo fica no Menu Iniciar, na pasta "Segurança Integral".
+
+Primeiro acesso: abra  http://127.0.0.1:4000  NESTE computador. Se ainda não
+existir nenhuma conta, a página mostra "Criar conta de administrador". Essa
+criação só é aceita no próprio computador do servidor, nunca pela rede.
+
+2. O QUE PRECISA ESTAR CERTO NA REDE
+------------------------------------
+
+  - O computador precisa ficar ligado e na mesma rede dos alunos.
+  - Peça ao responsável pela rede para RESERVAR um IP fixo para este
+    computador. Se o roteador trocar o número, o endereço dado aos alunos
+    deixa de funcionar (rode o instalador de novo ou edite o config.json, veja
+    abaixo).
+  - O Windows precisa classificar a rede como "Privada" (ou de Domínio). Em
+    rede "Pública" o firewall bloqueia o acesso. Em Configurações > Rede e
+    Internet > propriedades da conexão > Tipo de perfil de rede: Privada.
+  - Algumas redes de escola isolam os aparelhos entre si (isolamento de
+    cliente, "AP isolation"). Se os alunos não conseguem abrir o endereço
+    mesmo com tudo certo, peça para desligar esse isolamento ou usar a rede
+    cabeada.
+
+3. SEGURANÇA
+------------
+
+  - A conexão é HTTP, sem criptografia. Use só dentro da rede da escola e nunca
+    publique as portas 3000 e 4000 na internet (nem no roteador).
+  - O portal da coordenação também fica acessível pela rede para a equipe.
+    A senha é protegida e há bloqueio após tentativas erradas, mas evite
+    divulgar o endereço da coordenação aos alunos.
+  - O programa não grava o endereço de rede de quem envia o pedido. A rede da
+    escola, porém, pode registrar o horário de acesso. Avise os alunos.
+
+4. ENDEREÇO NOVO (IP MUDOU)
+---------------------------
+
+Rode este instalador de novo (as informações e contas são mantidas): ele
+atualiza a lista de endereços do computador em
+  C:\ProgramData\SegurancaIntegral\config.json
+
+5. DESINSTALAR
+--------------
+
+Painel de Controle > Programas. A regra do firewall é removida. As informações
+(casos, contas) continuam em C:\ProgramData\SegurancaIntegral, e o instalador
+pergunta se você quer apagá-las.

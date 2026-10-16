@@ -36,11 +36,16 @@ PrivilegesRequired=admin
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir=..\dist
+#ifdef LAN
+OutputBaseFilename=SegurancaIntegral-Setup-LAN
+InfoAfterFile=LEIA-ME-LAN.txt
+#else
 OutputBaseFilename=SegurancaIntegral-Setup
+InfoAfterFile=LEIA-ME.txt
+#endif
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
-InfoAfterFile=LEIA-ME.txt
 UninstallDisplayIcon={app}\{#AppExe}
 UninstallDisplayName={#AppNome}
 ; a tarefa e o processo são parados no PrepareToInstall
@@ -55,7 +60,12 @@ Type: filesandordirs; Name: "{app}\_internal"
 
 [Files]
 Source: "tarefas.ps1"; DestDir: "{app}"; Flags: ignoreversion
+#ifdef LAN
+Source: "lan.ps1"; DestDir: "{app}"; Flags: ignoreversion
+Source: "LEIA-ME-LAN.txt"; DestDir: "{app}"; Flags: ignoreversion isreadme
+#else
 Source: "LEIA-ME.txt"; DestDir: "{app}"; Flags: ignoreversion isreadme
+#endif
 Source: "..\dist\SegurancaIntegral\_internal\*"; DestDir: "{app}\_internal"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; por último: o AfterInstall precisa do programa inteiro já copiado
 Source: "..\dist\SegurancaIntegral\{#AppExe}"; DestDir: "{app}"; Flags: ignoreversion; AfterInstall: ConfigurarDados
@@ -71,11 +81,20 @@ Filename: "{autoprograms}\Segurança Integral\Portal do aluno.url"; Section: "In
 [Icons]
 ; liga a tarefa (pede administrador) e abre a coordenação quando o servidor já subiu
 Name: "{autoprograms}\Segurança Integral\Iniciar servidor"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command ""Start-Process -Verb RunAs -WindowStyle Hidden -FilePath schtasks.exe -ArgumentList '/Run','/TN','{#NomeTarefa}'; Start-Sleep -Seconds 6; Start-Process 'http://127.0.0.1:4000'"""; Comment: "Liga o servidor do Segurança Integral e abre a coordenação"
+#ifdef LAN
+Name: "{autoprograms}\Segurança Integral\Endereços da rede"; Filename: "{app}\Enderecos-da-rede.txt"; Comment: "Endereços para compartilhar com os alunos"
+
+[Run]
+Filename: "{app}\Enderecos-da-rede.txt"; Description: "Ver os endereços da rede"; Flags: postinstall shellexec skipifsilent
+#endif
 
 [UninstallDelete]
 Type: files; Name: "{autodesktop}\Segurança Integral - Coordenação.url"
 Type: files; Name: "{autodesktop}\Segurança Integral - Portal do aluno.url"
 Type: filesandordirs; Name: "{autoprograms}\Segurança Integral"
+#ifdef LAN
+Type: files; Name: "{app}\Enderecos-da-rede.txt"
+#endif
 
 [Code]
 var
@@ -140,7 +159,12 @@ end;
 function ShouldSkipPage(PageID: Integer): Boolean;
 begin
   { atualização: o config.json existente é mantido, então não pergunta }
+#ifdef LAN
+  { sem túnel: nada de nomes públicos }
+  Result := PageID = PaginaHosts.ID;
+#else
   Result := (PageID = PaginaHosts.ID) and FileExists(ArquivoConfig);
+#endif
 end;
 
 function NextButtonClick(CurPageID: Integer): Boolean;
@@ -210,6 +234,7 @@ begin
       ' (icacls, código ' + IntToStr(Codigo) + ').');
 end;
 
+#ifndef LAN
 procedure GravarConfig;
 var
   Json: String;
@@ -233,6 +258,20 @@ begin
   end;
 end;
 
+#else
+procedure GravarConfig;
+var
+  Codigo: Integer;
+begin
+  { sempre roda (também na atualização): os endereços da rede podem ter mudado }
+  if not Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
+      '-NoProfile -ExecutionPolicy Bypass -File "' + ExpandConstant('{app}\lan.ps1') + '"' +
+      ' -DataDir "' + PastaDados + '" -SaidaEnderecos "' + ExpandConstant('{app}\Enderecos-da-rede.txt') + '"',
+      '', SW_HIDE, ewWaitUntilTerminated, Codigo) or (Codigo <> 0) then
+    RaiseException('Não foi possível configurar a rede local (código ' + IntToStr(Codigo) + ').');
+end;
+
+#endif
 procedure RegistrarTarefa;
 var
   Codigo: Integer;
@@ -268,10 +307,21 @@ begin
 end;
 
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+#ifdef LAN
+var
+  Codigo: Integer;
+#endif
 begin
   { antes de apagar os arquivos: o executável não pode estar rodando }
   if CurUninstallStep = usUninstall then
+  begin
     RemoverTarefa;
+#ifdef LAN
+    Exec(ExpandConstant('{sys}''' + bs + '''WindowsPowerShell''' + bs + '''v1.0''' + bs + '''powershell.exe'),
+      '-NoProfile -ExecutionPolicy Bypass -File "' + ExpandConstant('{app}''' + bs + '''lan.ps1') + '" -Remover',
+      '', SW_HIDE, ewWaitUntilTerminated, Codigo);
+#endif
+  end;
 
   { os dados ficam por padrão; desinstalação silenciosa nunca apaga }
   if (CurUninstallStep = usPostUninstall) and not UninstallSilent and DirExists(PastaDados) then

@@ -358,3 +358,35 @@ def test_iss_cria_atalhos_dos_portais_e_iniciar_servidor():
     assert not any(ord(c) < 32 and c not in permitidos for c in texto), "caractere de controle no .iss"
     # a desinstalação remove o que o instalador criou
     assert "[UninstallDelete]" in texto
+
+
+def test_variante_lan_do_instalador():
+    texto = _ler(ISS)
+    # compilada com /DLAN=1: outro nome de saida, LEIA-ME proprio, sem pagina de enderecos publicos
+    assert "#ifdef LAN" in texto and "SegurancaIntegral-Setup-LAN" in texto
+    assert "LEIA-ME-LAN.txt" in texto and 'Source: "lan.ps1"' in texto
+    assert "-SaidaEnderecos" in texto and "-Remover" in texto  # config/firewall na instalacao e limpeza ao desinstalar
+    assert "Enderecos-da-rede.txt" in texto
+    # a versao normal continua igual: GravarConfig original dentro do #ifndef LAN
+    assert "#ifndef LAN" in texto and "allowed_hosts" in texto
+
+
+def test_script_lan_so_ascii_e_regras_de_firewall():
+    texto = _ler(INSTALLER / "lan.ps1")
+    assert all(ord(c) < 128 for c in texto), "lan.ps1 precisa ser so ASCII (PowerShell 5.1)"
+    assert "0.0.0.0" in texto and "-Profile Private, Domain" in texto
+    assert "Public" in texto  # avisa quando a rede esta como Publica
+    # nunca libera o perfil Publico nem usa Any
+    assert "-Profile Public" not in texto and "Profile Any" not in texto
+
+
+def test_build_tem_opcao_lan():
+    texto = _ler(INSTALLER / "build.ps1")
+    assert "[switch]$Lan" in texto and "SegurancaIntegral-Setup-LAN.exe" in texto and "/DLAN=1" in texto
+
+
+def test_leia_me_lan_existe_e_cita_firewall_e_ip_fixo():
+    texto = _ler(INSTALLER / "LEIA-ME-LAN.txt")
+    for chave in ("IP fixo", "Privada", "HTTP", "127.0.0.1:4000", "isolamento"):
+        assert chave in texto
+    assert not any(c in texto for c in ("—", "–"))  # sem travessao longo
