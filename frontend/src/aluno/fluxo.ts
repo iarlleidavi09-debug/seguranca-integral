@@ -30,13 +30,14 @@ export function proxima(visiveis: string[], visitadas: string[]): string | null 
   return visiveis.find(id => !visitadas.includes(id)) ?? null;
 }
 
-/** Mantém só respostas de perguntas visíveis e ids que pertencem à pergunta; chaves na ordem da definição. */
+/** Mantém só respostas de perguntas visíveis e ids que pertencem à pergunta, sem repetidos e com um só id nas únicas; chaves na ordem da definição. */
 export function limparInvisiveis(q: Questionario, situacaoId: string, marcadas: string[], respostas: Respostas): Respostas {
   const visiveis = new Set(perguntasVisiveis(q, situacaoId, marcadas, respostas));
   const limpas: Respostas = {};
   for (const p of q.perguntas) {
     if (!visiveis.has(p.id)) continue;
-    const ids = (respostas[p.id] ?? []).filter(id => p.respostas.some(r => r.id === id));
+    const validos = [...new Set((respostas[p.id] ?? []).filter(id => p.respostas.some(r => r.id === id)))];
+    const ids = p.tipo === 'unica' ? validos.slice(0, 1) : validos;
     if (ids.length) limpas[p.id] = ids;
   }
   return limpas;

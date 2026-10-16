@@ -4,13 +4,13 @@ export type DadosRascunho = { situacaoId: string; marcadas: string[]; respostas:
 
 const CHAVE = 'si-aluno-rascunho-v3';
 const CHAVES_ANTIGAS = ['si-aluno-rascunho-v1', 'si-aluno-rascunho-v2'];
-const MAX_IDS = 60;
+const MAX_IDS = 150;
 const MAX_ID = 80;
 const VALIDADE_MS = 24 * 60 * 60 * 1000;
 
 const idValido = (v: unknown): v is string => typeof v === 'string' && v.length <= MAX_ID;
 
-/** Ids de opção e de resposta: só texto curto, no máximo 60 no total (marcadas primeiro). */
+/** Ids de opção e de resposta: só texto curto, no máximo 150 no total (marcadas primeiro). */
 function limparIds(marcadasBrutas: unknown, respostasBrutas: unknown): { marcadas: string[]; respostas: Record<string, string[]> } {
   let restante = MAX_IDS;
   const marcadas = (Array.isArray(marcadasBrutas) ? marcadasBrutas : []).filter(idValido).slice(0, restante);

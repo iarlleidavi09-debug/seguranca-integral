@@ -83,3 +83,34 @@ describe('montarEnvio', () => {
     expect(JSON.parse(montarEnvio(q, 'ameaca', ['a1'], {}))).toEqual({ situacao: 'ameaca', marcadas: ['a1'], respostas: {} });
   });
 });
+
+describe('limites do envio', () => {
+  it('pior caso de cyberbullying cabe em 8192 bytes e em 150 ids', () => {
+    const situacao = q.situacoes.find(s => s.id === 'cyberbullying')!;
+    const marcadas = situacao.opcoes.map(o => o.id);
+    // responde tudo o que aparece: todas as respostas das múltiplas e a primeira das únicas; repete até estabilizar
+    let respostas: Record<string, string[]> = {};
+    for (let volta = 0; volta < 10; volta++) {
+      for (const id of perguntasVisiveis(q, 'cyberbullying', marcadas, respostas)) {
+        const p = q.perguntas.find(x => x.id === id)!;
+        respostas[id] = p.tipo === 'multipla' ? p.respostas.map(r => r.id) : [p.respostas[0].id];
+      }
+    }
+    const texto = montarEnvio(q, 'cyberbullying', marcadas, respostas);
+    const obj = JSON.parse(texto);
+    const ids = obj.marcadas.length + (Object.values(obj.respostas) as string[][]).flat().length;
+    expect(ids).toBeLessThanOrEqual(150);
+    expect(new TextEncoder().encode(texto).length).toBeLessThanOrEqual(8192);
+    expect(ids).toBeGreaterThan(60);
+  });
+});
+
+describe('dedupe e pergunta única', () => {
+  it('limparInvisiveis tira ids repetidos e fica com o primeiro de pergunta única', () => {
+    expect(limparInvisiveis(q, 'ameaca', ['a1'], { q1: ['q1.agora', 'q1.parou'], 'a1.como': ['a1.como.audio', 'a1.como.audio', 'a1.como.pessoa'] }))
+      .toEqual({ q1: ['q1.agora'], 'a1.como': ['a1.como.audio', 'a1.como.pessoa'] });
+  });
+  it('montarEnvio deduplica marcadas', () => {
+    expect(JSON.parse(montarEnvio(q, 'ameaca', ['a1', 'a1'], {})).marcadas).toEqual(['a1']);
+  });
+});

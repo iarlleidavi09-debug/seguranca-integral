@@ -147,7 +147,7 @@ O front ainda usa rótulos e `api.ts` da v1: a adaptação das telas (status em 
 ### Campo `respostas` do `POST /api/denuncias`
 
 - Campo de formulário (multipart) com texto JSON: `{"situacao": "<id>", "marcadas": ["<id da opção>"], "respostas": {"<id da pergunta>": ["<id da resposta>"]}}`. Ausente ou vazio significa "sem respostas".
-- Limites: até 8192 bytes; até 60 ids no total (`marcadas` mais todas as respostas); só texto nos ids; sem ids repetidos; pergunta `unica` aceita no máximo um id.
+- Limites: até 8192 bytes; até 150 ids no total (`marcadas` mais todas as respostas); só texto nos ids; sem ids repetidos; pergunta `unica` aceita no máximo um id.
 - Conferências: a situação existe e o `tipo` do pedido é o dela; cada opção pertence à situação; cada pergunta existe e cada resposta pertence a ela. O servidor não confere se a pergunta estava visível (`mostrar_se`).
 - Qualquer falha responde 400 `{"erro": "respostas invalidas"}`, sem criar o caso e sem deixar anexo no disco (inclui JSON malformado e aninhamento profundo).
 - Exceção: se a definição do servidor estiver quebrada, as respostas são descartadas e o caso é criado normalmente (201). O pedido de ajuda nunca é bloqueado pelo questionário.

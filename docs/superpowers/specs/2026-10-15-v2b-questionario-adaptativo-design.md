@@ -33,7 +33,7 @@ Coluna `casos.respostas_json` (texto, anulável) com `{"situacao": id, "marcadas
 ### API do aluno
 
 - `GET /api/questionario`: a definição **sem** `pesos`, `alertas` e `faixas`; limitador `consultas`.
-- `POST /api/denuncias` ganha o campo opcional `respostas` (JSON de até 8 KB). O servidor valida só isto: situação existente e coerente com `tipo`; opções pertencentes à situação; cada pergunta e resposta existe; `unica` com no máximo um valor; no máximo 60 ids. Violação responde 400 com mensagem fixa e não grava nada. Sem o campo, o pedido segue como hoje. O front deixa de gerar o bloco "Situações marcadas:".
+- `POST /api/denuncias` ganha o campo opcional `respostas` (JSON de até 8 KB). O servidor valida só isto: situação existente e coerente com `tipo`; opções pertencentes à situação; cada pergunta e resposta existe; `unica` com no máximo um valor; no máximo 150 ids. Violação responde 400 com mensagem fixa e não grava nada. Sem o campo, o pedido segue como hoje. O front deixa de gerar o bloco "Situações marcadas:".
 
 ### Triagem
 

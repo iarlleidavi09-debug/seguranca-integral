@@ -27,7 +27,7 @@ class RespostasInvalidas(ValueError):
 
 
 MAX_BYTES_RESPOSTAS = 8192
-MAX_IDS_RESPOSTAS = 60
+MAX_IDS_RESPOSTAS = 150
 
 
 @dataclass(frozen=True)

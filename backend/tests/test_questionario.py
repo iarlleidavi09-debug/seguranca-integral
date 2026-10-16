@@ -291,12 +291,20 @@ def test_respostas_invalidas_levantam(real, bruto, tipo):
         real.validar_respostas(bruto, tipo)
 
 
-def test_respostas_mais_de_60_ids_levantam(real):
-    ids = [f"q{i}.x" for i in range(61)]
-    with pytest.raises(RespostasInvalidas):
-        real.validar_respostas(
-            json.dumps({"situacao": "ameaca", "marcadas": [],
-                        "respostas": {"q1": ids}}), "ameaca")
+def _bruto_com_ids(n):
+    return json.dumps({"situacao": "ameaca", "marcadas": [f"m{i}" for i in range(n)], "respostas": {}})
+
+
+def test_respostas_mais_de_150_ids_levantam(real):
+    with pytest.raises(RespostasInvalidas, match="ids demais"):
+        real.validar_respostas(_bruto_com_ids(151), "ameaca")
+
+
+def test_respostas_150_ids_passam_do_limite_de_quantidade(real):
+    # 150 ids inexistentes falham por outro motivo, nunca por quantidade
+    with pytest.raises(RespostasInvalidas) as exc:
+        real.validar_respostas(_bruto_com_ids(150), "ameaca")
+    assert "ids demais" not in str(exc.value)
 
 
 def test_respostas_texto_maior_que_8192_bytes_levanta(real):

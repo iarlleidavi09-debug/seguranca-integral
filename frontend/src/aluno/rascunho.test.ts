@@ -81,13 +81,13 @@ describe('rascunho de 24 horas', () => {
     localStorage.setItem(CHAVE, JSON.stringify({ ...semRespostas, salvoEm: 1 }));
     expect(lerRascunho(2)!.respostas).toEqual({});
   });
-  it('limita a 60 ids no total (marcadas mais respostas)', () => {
-    const marcadas = Array.from({ length: 30 }, (_, i) => 'm' + i);
-    const respostas = { q1: Array.from({ length: 40 }, (_, i) => 'r' + i) };
+  it('limita a 150 ids no total (marcadas mais respostas)', () => {
+    const marcadas = Array.from({ length: 80 }, (_, i) => 'm' + i);
+    const respostas = { q1: Array.from({ length: 100 }, (_, i) => 'r' + i) };
     localStorage.setItem(CHAVE, JSON.stringify({ ...base, marcadas, respostas, salvoEm: 1 }));
     const lido = lerRascunho(2)!;
-    expect(lido.marcadas).toHaveLength(30);
-    expect(lido.respostas.q1).toHaveLength(30);
+    expect(lido.marcadas).toHaveLength(80);
+    expect(lido.respostas.q1).toHaveLength(70);
   });
   it('descarta id com mais de 80 caracteres', () => {
     localStorage.setItem(CHAVE, JSON.stringify({ ...base, marcadas: ['a'.repeat(81), 'b'.repeat(80)], respostas: { q1: ['c'.repeat(81), 'ok'] }, salvoEm: 1 }));
