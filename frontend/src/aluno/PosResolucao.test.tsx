@@ -90,4 +90,20 @@ describe('PosResolucao', () => {
     rerender(<PosResolucao caso={caso({ resolucao: null })} aoInformar={vi.fn()} ocupado={false} />);
     expect(screen.queryByText('Seu caso foi resolvido')).toBeNull();
   });
+  it('depois de um 409 que remove o bloco, falha e agradecimento não voltam quando o caso é resolvido de novo', async () => {
+    const user = userEvent.setup();
+    const aoInformar = vi.fn().mockRejectedValue(new ErroApi(409));
+    const { rerender } = render(<PosResolucao caso={caso()} aoInformar={aoInformar} ocupado={false} />);
+    await user.click(screen.getByRole('button', { name: 'Melhorou' }));
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    rerender(<PosResolucao caso={caso({ pos_resolucao: false, resolucao: null, status: 'em_investigacao' })} aoInformar={aoInformar} ocupado={false} />);
+    rerender(<PosResolucao caso={caso()} aoInformar={aoInformar} ocupado={false} />);
+    expect(screen.queryByRole('alert')).toBeNull();
+    aoInformar.mockResolvedValueOnce(undefined);
+    await user.click(screen.getByRole('button', { name: 'Melhorou' }));
+    expect(await screen.findByText('Obrigado por contar. A equipe vai ver.')).toBeInTheDocument();
+    rerender(<PosResolucao caso={caso({ pos_resolucao: false, resolucao: null })} aoInformar={aoInformar} ocupado={false} />);
+    rerender(<PosResolucao caso={caso()} aoInformar={aoInformar} ocupado={false} />);
+    expect(screen.queryByText('Obrigado por contar. A equipe vai ver.')).toBeNull();
+  });
 });

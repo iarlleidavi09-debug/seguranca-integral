@@ -18,6 +18,10 @@ export default function PosResolucao({ caso, aoInformar, ocupado }: { caso: Caso
   const titulo = useRef<HTMLHeadingElement>(null);
   useEffect(() => { if (focar) titulo.current?.focus(); }, [focar]);
   const { resolucao } = caso;
+  const visivel = caso.pos_resolucao && !!resolucao;
+  const marcaResolucao = resolucao?.criado_em;
+  // se o bloco some (caso reaberto) ou a resolução muda, avisos de antes não podem voltar
+  useEffect(() => { setFalha(''); setObrigado(''); }, [visivel, marcaResolucao]);
   if (!caso.pos_resolucao || !resolucao) return null;
 
   async function informar(situacao: Situacao) {

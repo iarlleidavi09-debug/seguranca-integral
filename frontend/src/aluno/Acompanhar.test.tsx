@@ -142,4 +142,46 @@ describe('Acompanhar', () => {
     expect(await screen.findByText(/Não foi possível conectar/)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Seu caso foi resolvido' })).toBeInTheDocument();
   });
+  it('uma atualização lenta não sobrescreve a recarga posterior ao informar a situação', async () => {
+    const user = userEvent.setup();
+    const adiada = () => { let fim!: (r: Response) => void; const promessa = new Promise<Response>(r => { fim = r; }); return { promessa, fim }; };
+    const resposta = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
+    responder(resolvido);
+    render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+    await screen.findByRole('heading', { name: 'Seu caso foi resolvido' });
+    const envio = adiada(); const antiga = adiada(); const nova = adiada();
+    vi.mocked(fetch).mockImplementationOnce(() => envio.promessa);
+    vi.mocked(fetch).mockImplementationOnce(() => antiga.promessa);
+    vi.mocked(fetch).mockImplementationOnce(() => nova.promessa);
+    await user.click(screen.getByRole('button', { name: 'Melhorou' }));
+    await user.click(screen.getByRole('button', { name: 'Atualizar conversa' }));
+    envio.fim(resposta({ ok: true }, 201));
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(4));
+    nova.fim(resposta({ ...resolvido, ultima_situacao: 'melhorou' }));
+    expect(await screen.findByText('Você informou: Melhorou')).toBeInTheDocument();
+    antiga.fim(resposta({ ...resolvido, ultima_situacao: null }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Atualizar conversa' })).toBeEnabled());
+    expect(screen.getByText('Você informou: Melhorou')).toBeInTheDocument();
+  });
+  it('desabilita as respostas da situação enquanto a conversa recarrega', async () => {
+    const user = userEvent.setup();
+    responder(resolvido);
+    render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+    await screen.findByRole('heading', { name: 'Seu caso foi resolvido' });
+    vi.mocked(fetch).mockImplementationOnce(() => new Promise<Response>(() => {}));
+    await user.click(screen.getByRole('button', { name: 'Atualizar conversa' }));
+    expect(screen.getByRole('button', { name: 'Melhorou' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Voltou a acontecer' })).toBeDisabled();
+  });
+  it('agradece mesmo quando a recarga depois de informar falha', async () => {
+    const user = userEvent.setup();
+    responder(resolvido);
+    render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+    await screen.findByRole('heading', { name: 'Seu caso foi resolvido' });
+    responder({ ok: true }, 201);
+    vi.mocked(fetch).mockRejectedValueOnce(new TypeError('rede'));
+    await user.click(screen.getByRole('button', { name: 'Melhorou' }));
+    expect(await screen.findByText('Obrigado por contar. A equipe vai ver.')).toBeInTheDocument();
+    expect(screen.getByText('Não foi possível atualizar agora. Use Atualizar conversa.')).toBeInTheDocument();
+  });
 });

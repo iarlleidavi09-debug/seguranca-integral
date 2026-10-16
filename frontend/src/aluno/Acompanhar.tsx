@@ -54,10 +54,18 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
     finally { setEnviando(false); responder.current = false; }
   }
   async function atualizar() {
+    const atual = ++consulta.current;
     setCarregando(true); setErro('');
-    try { setCaso(await acompanhar(codigoAtivo)); setAviso('Conversa atualizada.'); }
-    catch (falha) { setErro(mensagemErro(falha)); }
-    finally { setCarregando(false); }
+    try { const dados = await acompanhar(codigoAtivo); if (atual === consulta.current) { setCaso(dados); setAviso('Conversa atualizada.'); } }
+    catch (falha) { if (atual === consulta.current) setErro(mensagemErro(falha)); }
+    finally { if (atual === consulta.current) setCarregando(false); }
+  }
+  // recarrega o caso; uma resposta mais antiga que outra consulta é descartada
+  async function recarregar(): Promise<boolean> {
+    const atual = ++consulta.current;
+    try { const dados = await acompanhar(codigoAtivo); if (atual === consulta.current) setCaso(dados); return true; }
+    catch { return false; }
+    finally { if (atual === consulta.current) setCarregando(false); }
   }
   async function informarSituacao(situacao: Situacao) {
     setInformando(true); setErroSituacao('');
@@ -66,12 +74,12 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
     } catch (falha) {
       if (falha instanceof ErroApi && falha.status === 409) {
         setErroSituacao(mensagemErro(falha, 'situacao'));
-        try { setCaso(await acompanhar(codigoAtivo)); } catch { /* a mensagem de 409 já explica; Atualizar conversa tenta de novo */ }
+        await recarregar(); // a mensagem de 409 já explica; Atualizar conversa tenta de novo se falhar
       }
       throw falha;
     } finally { setInformando(false); }
     // o agradecimento não depende de a recarga dar certo
-    try { setCaso(await acompanhar(codigoAtivo)); } catch { setAviso('Não foi possível atualizar agora. Use Atualizar conversa.'); }
+    if (!(await recarregar())) setAviso('Não foi possível atualizar agora. Use Atualizar conversa.');
   }
   const atual = caso ? etapas.indexOf(rotuloStatus(caso.status)) : -1;
   const blocoVisivel = !!caso && caso.pos_resolucao && !!caso.resolucao;
@@ -95,7 +103,7 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
       </ol>
       {atual < 0 && <p className="texto-pequeno">Status indisponível no momento.</p>}
       {erroSituacao && !blocoVisivel && <p role="alert" className="erro">{erroSituacao}</p>}
-      <PosResolucao caso={caso} aoInformar={informarSituacao} ocupado={informando} />
+      <PosResolucao caso={caso} aoInformar={informarSituacao} ocupado={informando || carregando || enviando} />
       <h2>Conversa com a coordenação</h2>
       <div role="log" aria-live="polite" aria-label="Mensagens do caso" className="mensagens">
         {!caso.mensagens.length && <p className="vazio">Ainda não há mensagens. Você pode escrever para a coordenação por aqui.</p>}

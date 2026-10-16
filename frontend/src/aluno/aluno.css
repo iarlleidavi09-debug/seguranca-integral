@@ -85,7 +85,6 @@
 .aluno-app .bilhete p, .aluno-app .consentimento p { color: var(--texto-secundario); }
 .aluno-app .opcao { border-radius: var(--raio-md); }
 .aluno-app .opcao:has(input:checked) { font-weight: 700; }
-.aluno-app .status-caso { border-radius: var(--raio-pill); padding-inline: var(--espaco-4); }
 .aluno-app .erro { border: var(--linha-fina) solid var(--perigo-base); }
 
 /* Rodapé */
