@@ -29,7 +29,8 @@ CREATE TABLE IF NOT EXISTS casos (
     prioridade_original TEXT NOT NULL DEFAULT '',
     ultimo_acesso_por INTEGER REFERENCES usuarios(id),
     ultimo_acesso_em TEXT,
-    recorrencia_pendente INTEGER NOT NULL DEFAULT 0
+    recorrencia_pendente INTEGER NOT NULL DEFAULT 0,
+    respostas_json TEXT
 );
 
 CREATE TABLE IF NOT EXISTS anexos (
@@ -145,6 +146,8 @@ def init_db(config: Config) -> None:
         _migrar_situacao_resolucao(conn)
         conn.commit()
         _migrar_v2(conn, config)
+        _migrar_respostas(conn)
+        conn.commit()
     finally:
         conn.close()
 
@@ -249,6 +252,12 @@ def _migrar_situacao_resolucao(conn: sqlite3.Connection) -> None:
             "ALTER TABLE situacoes_aluno ADD COLUMN resolucao_id "
             "INTEGER REFERENCES resolucoes(id)"
         )
+
+
+def _migrar_respostas(conn: sqlite3.Connection) -> None:
+    """Bancos anteriores ao questionário v2 B não têm `casos.respostas_json`."""
+    if "respostas_json" not in _colunas(conn, "casos"):
+        conn.execute("ALTER TABLE casos ADD COLUMN respostas_json TEXT")
 
 
 def _migrar_papel(conn: sqlite3.Connection) -> None:

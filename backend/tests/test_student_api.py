@@ -724,3 +724,83 @@ def test_acompanhar_nao_vaza_textos_nem_nomes_internos(student_client, config):
     texto = student_client.post("/api/acompanhar", json={"codigo": codigo}).get_data(as_text=True)
     for proibido in ("Fulana", "Revisora", "JUSTIF-SECRETA-123", "NOTA-SECRETA-456"):
         assert proibido not in texto
+
+
+# --- questionário adaptativo (v2 B) -------------------------------------------
+
+def _chaves(no):
+    if isinstance(no, dict):
+        for k, v in no.items():
+            yield k
+            yield from _chaves(v)
+    elif isinstance(no, list):
+        for v in no:
+            yield from _chaves(v)
+
+
+def test_questionario_publico_sem_pesos_alertas_faixas(student_client):
+    r = student_client.get("/api/questionario")
+    assert r.status_code == 200
+    assert r.headers["Cache-Control"] == "no-store"
+    corpo = r.get_json()
+    assert {"situacoes", "dimensoes", "perguntas"} <= set(corpo)
+    assert not {"pesos", "alertas", "faixas"} & set(_chaves(corpo))
+
+
+def test_questionario_aplica_limitador_consultas(config):
+    app = create_student_app(
+        config, limites={"denuncias": (100, 600), "consultas": (2, 600)}
+    )
+    client = app.test_client()
+    assert client.get("/api/questionario").status_code == 200
+    assert client.get("/api/questionario").status_code == 200
+    assert client.get("/api/questionario").status_code == 429
+
+
+def test_questionario_quebrado_responde_503(student_client, config):
+    config.data_dir.mkdir(parents=True, exist_ok=True)
+    (config.data_dir / "questionario.json").write_text("{quebrado", encoding="utf-8")
+    r = student_client.get("/api/questionario")
+    assert r.status_code == 503
+    assert r.get_json() == {"erro": "questionario indisponivel"}
+
+
+RESPOSTAS = {"situacao": "ameaca", "marcadas": ["a1"],
+             "respostas": {"q1": ["q1.agora"], "q3": ["q3.conhecida"]}}
+
+
+def test_denuncia_com_respostas_validas_grava(student_client, config):
+    r = _enviar(student_client, tipo="ameaca", respostas=json.dumps(RESPOSTAS))
+    assert r.status_code == 201
+    assert json.loads(_linha_caso(config)["respostas_json"]) == RESPOSTAS
+
+
+def test_denuncia_com_respostas_invalidas_400_sem_caso(student_client, config):
+    antes = _contar(config, "casos")
+    ruim = dict(RESPOSTAS, marcadas=["c1"])
+    r = _enviar(student_client, tipo="ameaca", respostas=json.dumps(ruim))
+    assert r.status_code == 400
+    assert r.get_json() == {"erro": "respostas invalidas"}
+    assert _contar(config, "casos") == antes
+
+
+def test_respostas_invalidas_nao_deixam_anexo_em_disco(student_client, config):
+    ruim = dict(RESPOSTAS, marcadas=["c1"])
+    r = _enviar(student_client, anexos=[(io.BytesIO(PNG), "a.png")],
+                tipo="ameaca", respostas=json.dumps(ruim))
+    assert r.status_code == 400
+    assert not config.uploads_dir.exists() or not any(config.uploads_dir.iterdir())
+
+
+def test_denuncia_sem_respostas_grava_nulo(student_client, config):
+    assert _enviar(student_client).status_code == 201
+    assert _linha_caso(config)["respostas_json"] is None
+    assert _enviar(student_client, respostas="").status_code == 201
+    assert _linha_caso(config)["respostas_json"] is None
+
+
+def test_denuncia_tipo_diferente_da_situacao_400(student_client, config):
+    antes = _contar(config, "casos")
+    r = _enviar(student_client, tipo="golpe", respostas=json.dumps(RESPOSTAS))
+    assert r.status_code == 400
+    assert _contar(config, "casos") == antes

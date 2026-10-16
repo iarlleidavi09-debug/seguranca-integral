@@ -233,3 +233,83 @@ def test_json_invalido(tmp_path):
 def test_arquivo_ausente(tmp_path):
     with pytest.raises(QuestionarioInvalido, match="ausente"):
         carregar(tmp_path / "nada.json")
+
+
+# --- validação das respostas do aluno -----------------------------------------
+
+from app.questionario import RespostasInvalidas  # noqa: E402
+
+
+@pytest.fixture(scope="module")
+def real():
+    return carregar(REAL)
+
+
+def _ok():
+    return {"situacao": "ameaca", "marcadas": ["a1"],
+            "respostas": {"q1": ["q1.agora"], "q3": ["q3.conhecida"]}}
+
+
+def test_respostas_validas_devolvem_dicionario(real):
+    assert real.validar_respostas(json.dumps(_ok()), "ameaca") == _ok()
+
+
+@pytest.mark.parametrize("bruto", [None, "", "   "])
+def test_respostas_vazias_devolvem_none(real, bruto):
+    assert real.validar_respostas(bruto, "ameaca") is None
+
+
+def _mod(**campos):
+    d = _ok()
+    d.update(campos)
+    return json.dumps(d)
+
+
+@pytest.mark.parametrize("bruto,tipo", [
+    ("{nao e json", "ameaca"),
+    ("[1, 2]", "ameaca"),
+    ('"texto"', "ameaca"),
+    (_mod(situacao="nao_existe"), "ameaca"),
+    (_mod(), "golpe"),  # tipo do formulário diferente do da situação
+    (_mod(marcadas=["c1"]), "ameaca"),  # opção de outra situação
+    (_mod(marcadas=["zzz"]), "ameaca"),
+    (_mod(respostas={"zzz": ["q1.agora"]}), "ameaca"),
+    (_mod(respostas={"q1": ["q3.conhecida"]}), "ameaca"),  # resposta de outra pergunta
+    (_mod(respostas={"q1": ["q1.agora", "q1.parou"]}), "ameaca"),  # unica com dois
+    (_mod(marcadas=[1]), "ameaca"),
+    (_mod(respostas={"q1": [5]}), "ameaca"),
+    (_mod(respostas={"q1": "q1.agora"}), "ameaca"),
+    (_mod(marcadas=["a1", "a1"]), "ameaca"),  # duplicado
+    (_mod(respostas={"q3": ["q3.grupo", "q3.grupo"]}), "ameaca"),
+    (_mod(marcadas="a1"), "ameaca"),
+    (_mod(respostas=[]), "ameaca"),
+    (json.dumps({"marcadas": [], "respostas": {}}), "ameaca"),  # sem situação
+    ("x" * 8193, "ameaca"),
+])
+def test_respostas_invalidas_levantam(real, bruto, tipo):
+    with pytest.raises(RespostasInvalidas):
+        real.validar_respostas(bruto, tipo)
+
+
+def test_respostas_mais_de_60_ids_levantam(real):
+    ids = [f"q{i}.x" for i in range(61)]
+    with pytest.raises(RespostasInvalidas):
+        real.validar_respostas(
+            json.dumps({"situacao": "ameaca", "marcadas": [],
+                        "respostas": {"q1": ids}}), "ameaca")
+
+
+def test_respostas_texto_maior_que_8192_bytes_levanta(real):
+    # 4500 caracteres com 2 bytes cada passam de 8192 bytes
+    bruto = json.dumps({"situacao": "ameaca", "marcadas": [], "respostas": {}, "x": "é" * 4500},
+                       ensure_ascii=False)
+    assert len(bruto) < 8192 < len(bruto.encode("utf-8"))
+    with pytest.raises(RespostasInvalidas):
+        real.validar_respostas(bruto, "ameaca")
+
+
+def test_respostas_normaliza_e_ignora_chaves_extras(real):
+    bruto = json.dumps({"situacao": "ameaca", "extra": 1, "marcadas": [],
+                        "respostas": {"q3": []}})
+    assert real.validar_respostas(bruto, "ameaca") == {
+        "situacao": "ameaca", "marcadas": [], "respostas": {"q3": []}}

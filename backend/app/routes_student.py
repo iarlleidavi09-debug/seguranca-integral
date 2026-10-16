@@ -9,6 +9,7 @@ from flask import Blueprint, current_app, jsonify, request
 from . import casos
 from ._comum import registrar_rotas_finais
 from .db import connect
+from .questionario import QuestionarioInvalido, RespostasInvalidas, carregar
 from .security import chave_limitador
 from .uploads import MAX_BYTES, MAX_POR_CASO, AnexoInvalido, salvar_anexo
 
@@ -58,6 +59,21 @@ def saude():
     return jsonify({"ok": True})
 
 
+@bp.get("/api/questionario")
+def questionario():
+    if _limite_estourado("consultas"):
+        return _erro("muitas consultas, tente mais tarde", 429)
+    config = current_app.config["SI_CONFIG"]
+    try:
+        # lê a cada chamada: ajustar a cópia em data_dir vale sem reiniciar
+        definicao = carregar(config.questionario_path)
+    except QuestionarioInvalido:
+        return _erro("questionario indisponivel", 503)
+    resposta = jsonify(definicao.para_aluno())
+    resposta.headers["Cache-Control"] = "no-store"
+    return resposta
+
+
 @bp.post("/api/denuncias")
 def criar_denuncia():
     if _limite_estourado("denuncias"):
@@ -81,6 +97,16 @@ def criar_denuncia():
         return _erro("no maximo 5 anexos")
 
     config = current_app.config["SI_CONFIG"]
+    respostas = None
+    if (form.get("respostas") or "").strip():
+        # antes de salvar anexos: resposta inválida não deixa arquivo órfão
+        try:
+            respostas = carregar(config.questionario_path).validar_respostas(
+                form.get("respostas"), tipo)
+        except RespostasInvalidas:
+            return _erro("respostas invalidas")
+        except QuestionarioInvalido:
+            return _erro("questionario indisponivel", 503)
     salvos, recusados = [], []
     for arq in arquivos:
         # le no maximo MAX_BYTES + 1: arquivo grande nunca e carregado inteiro
@@ -102,7 +128,7 @@ def criar_denuncia():
                     "anonimo": anonimo, "nome": nome,
                     "turma": _limpo(form.get("turma"), 50),
                 },
-                salvos,
+                salvos, respostas=respostas,
             )
     except Exception:
         # sem caso gravado, os arquivos ficariam órfãos em disco

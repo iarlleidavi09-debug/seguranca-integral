@@ -22,6 +22,14 @@ class QuestionarioInvalido(ValueError):
     """A definição do questionário não passa na validação."""
 
 
+class RespostasInvalidas(ValueError):
+    """As respostas enviadas pelo aluno não conferem com a definição."""
+
+
+MAX_BYTES_RESPOSTAS = 8192
+MAX_IDS_RESPOSTAS = 60
+
+
 @dataclass(frozen=True)
 class Questionario:
     dados: dict
@@ -32,6 +40,68 @@ class Questionario:
             "situacoes": self.dados["situacoes"],
             "dimensoes": self.dados["dimensoes"],
             "perguntas": self.dados["perguntas"],
+        }
+
+    def validar_respostas(self, bruto: str | None, tipo: str) -> dict | None:
+        """Confere o JSON enviado pelo aluno e devolve o dicionário normalizado.
+
+        `None` ou texto vazio significam "sem respostas". Duplicados são
+        rejeitados (não deduplicados). Não confere alcance por `mostrar_se`:
+        decisão de protótipo.
+        """
+        if bruto is None or not bruto.strip():
+            return None
+        if len(bruto.encode("utf-8")) > MAX_BYTES_RESPOSTAS:
+            raise RespostasInvalidas("texto grande demais")
+        try:
+            dado = json.loads(bruto)
+        except ValueError:
+            raise RespostasInvalidas("JSON invalido") from None
+        if not isinstance(dado, dict):
+            raise RespostasInvalidas("precisa ser um objeto")
+
+        situacao_id, marcadas, respostas = (
+            dado.get("situacao"), dado.get("marcadas"), dado.get("respostas"))
+        if not isinstance(situacao_id, str):
+            raise RespostasInvalidas("situacao ausente")
+        if not isinstance(marcadas, list) or not isinstance(respostas, dict):
+            raise RespostasInvalidas("formato errado")
+        if any(not isinstance(v, list) for v in respostas.values()):
+            raise RespostasInvalidas("respostas de cada pergunta precisam ser lista")
+        total = len(marcadas) + sum(len(v) for v in respostas.values())
+        if total > MAX_IDS_RESPOSTAS:
+            raise RespostasInvalidas("ids demais")
+        if any(not isinstance(i, str) for i in marcadas) or any(
+                not isinstance(i, str) for v in respostas.values() for i in v):
+            raise RespostasInvalidas("ids precisam ser texto")
+
+        situacao = next((s for s in self.dados["situacoes"] if s["id"] == situacao_id), None)
+        if situacao is None:
+            raise RespostasInvalidas("situacao inexistente")
+        if situacao["tipo"] != tipo:
+            raise RespostasInvalidas("tipo diferente do da situacao")
+        opcoes = {o["id"] for o in situacao["opcoes"]}
+        if len(set(marcadas)) != len(marcadas):
+            raise RespostasInvalidas("opcao repetida")
+        if any(i not in opcoes for i in marcadas):
+            raise RespostasInvalidas("opcao fora da situacao")
+
+        perguntas = {p["id"]: p for p in self.dados["perguntas"]}
+        for pid, ids in respostas.items():
+            pergunta = perguntas.get(pid)
+            if pergunta is None:
+                raise RespostasInvalidas("pergunta inexistente")
+            validos = {r["id"] for r in pergunta["respostas"]}
+            if len(set(ids)) != len(ids):
+                raise RespostasInvalidas("resposta repetida")
+            if any(i not in validos for i in ids):
+                raise RespostasInvalidas("resposta nao pertence a pergunta")
+            if pergunta["tipo"] == "unica" and len(ids) > 1:
+                raise RespostasInvalidas("pergunta de resposta unica")
+        return {
+            "situacao": situacao_id,
+            "marcadas": list(marcadas),
+            "respostas": {pid: list(ids) for pid, ids in respostas.items()},
         }
 
 

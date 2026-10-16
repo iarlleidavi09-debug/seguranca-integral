@@ -35,12 +35,14 @@ def registrar_evento(conn: sqlite3.Connection, caso_id: int, tipo: str,
 
 def criar_caso(conn: sqlite3.Connection, config: Config, dados: dict,
                anexos: list[AnexoSalvo], *, simulacao: bool = False,
-               criado_em: str | None = None) -> str:
+               criado_em: str | None = None,
+               respostas: dict | None = None) -> str:
     """Grava o caso, a triagem, os anexos e o evento `criado` numa transação.
 
     Devolve o código em claro; só o hash fica no banco. Denúncia anônima
     nunca guarda nome nem turma. `simulacao` e `criado_em` só são usados
     pelo modo de ensaio; o caso já nasce marcado, no mesmo INSERT.
+    `respostas` é o dicionário já validado do questionário (ou None).
     """
     termos = carregar_termos(config.risk_terms_path)
     em_andamento = bool(dados.get("em_andamento"))
@@ -59,13 +61,14 @@ def criar_caso(conn: sqlite3.Connection, config: Config, dados: dict,
                 cur = conn.execute(
                     "INSERT INTO casos (codigo_hash, tipo, relato, quando, onde, "
                     "em_andamento, anonimo, nome, turma, prioridade, prioridade_original, pontos, "
-                    "motivos_json, status, simulacao, criado_em, atualizado_em) "
-                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,'novo',?,?,?)",
+                    "motivos_json, status, simulacao, criado_em, atualizado_em, respostas_json) "
+                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,'novo',?,?,?,?)",
                     (codigo_hash, dados["tipo"], dados["relato"],
                      dados.get("quando"), dados.get("onde"), int(em_andamento),
                      int(anonimo), nome, turma, triagem.prioridade,
                      triagem.prioridade, triagem.pontos, json.dumps(list(triagem.motivos)),
-                     int(simulacao), agora, agora),
+                     int(simulacao), agora, agora,
+                     json.dumps(respostas) if respostas else None),
                 )
                 caso_id = cur.lastrowid
                 for a in anexos:

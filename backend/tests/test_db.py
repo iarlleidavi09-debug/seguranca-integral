@@ -364,3 +364,41 @@ def test_situacoes_aluno_ganha_resolucao_id_em_banco_existente(config):
         assert "resolucao_id" in _colunas(c, "situacoes_aluno")
     finally:
         c.close()
+
+
+# --- coluna respostas_json (v2 B) --------------------------------------------
+
+def test_banco_novo_tem_respostas_json(config):
+    init_db(config)
+    c = connect(config)
+    try:
+        assert "respostas_json" in {r[1] for r in c.execute("PRAGMA table_info(casos)")}
+    finally:
+        c.close()
+
+
+def test_migracao_acrescenta_respostas_json_sem_perder_linhas(config):
+    c = sqlite3.connect(config.db_path)
+    c.executescript(
+        "CREATE TABLE casos (id INTEGER PRIMARY KEY AUTOINCREMENT, codigo_hash TEXT NOT NULL UNIQUE, "
+        "tipo TEXT NOT NULL, relato TEXT NOT NULL, quando TEXT, onde TEXT, "
+        "em_andamento INTEGER NOT NULL DEFAULT 0, anonimo INTEGER NOT NULL DEFAULT 1, "
+        "nome TEXT, turma TEXT, prioridade TEXT NOT NULL, pontos INTEGER NOT NULL DEFAULT 0, "
+        "motivos_json TEXT NOT NULL DEFAULT '[]', status TEXT NOT NULL DEFAULT 'novo', "
+        "simulacao INTEGER NOT NULL DEFAULT 0, criado_em TEXT NOT NULL, atualizado_em TEXT NOT NULL, "
+        "prioridade_original TEXT NOT NULL DEFAULT '', ultimo_acesso_por INTEGER, "
+        "ultimo_acesso_em TEXT, recorrencia_pendente INTEGER NOT NULL DEFAULT 0);"
+        "INSERT INTO casos (codigo_hash, tipo, relato, prioridade, criado_em, atualizado_em) "
+        "VALUES ('h', 'outro', 'relato antigo', 'baixa', 'x', 'x');"
+    )
+    c.commit()
+    c.close()
+    init_db(config)
+    init_db(config)  # idempotente
+    c = connect(config)
+    try:
+        assert "respostas_json" in {r[1] for r in c.execute("PRAGMA table_info(casos)")}
+        linhas = c.execute("SELECT relato, respostas_json FROM casos").fetchall()
+        assert [tuple(r) for r in linhas] == [("relato antigo", None)]
+    finally:
+        c.close()
