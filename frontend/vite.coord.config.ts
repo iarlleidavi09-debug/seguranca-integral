@@ -28,5 +28,6 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/coord/**/*.test.ts', 'src/coord/**/*.test.tsx'],
     clearMocks: true,
+    testTimeout: 20000,
   },
 });

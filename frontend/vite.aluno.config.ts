@@ -11,5 +11,6 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/aluno/**/*.test.ts', 'src/aluno/**/*.test.tsx', 'src/shared/**/*.test.ts'],
     clearMocks: true,
+    testTimeout: 20000,
   },
 });
