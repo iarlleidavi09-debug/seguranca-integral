@@ -42,6 +42,37 @@ class Questionario:
             "perguntas": self.dados["perguntas"],
         }
 
+    def pontuar(self, respostas: dict | None) -> tuple[int, list[str], list[str]]:
+        """(pontos extras, motivos de peso, motivos de alerta) das respostas.
+
+        Só os ids em `respostas["respostas"]` contam; os de `marcadas` não
+        pontuam. Um motivo de peso por resposta com peso diferente de zero,
+        na ordem das respostas. O alerta dispara com todas as respostas da
+        sua lista presentes.
+        """
+        if not respostas:
+            return 0, [], []
+        ids = [i for lista in (respostas.get("respostas") or {}).values() for i in lista]
+        pesos = self.dados.get("pesos") or {}
+        textos = {r["id"]: r["texto"] for p in self.dados.get("perguntas", [])
+                  for r in p["respostas"]}
+        pontos = 0
+        motivos: list[str] = []
+        for rid in ids:
+            peso = pesos.get(rid, 0)
+            if peso:
+                pontos += peso
+                motivos.append(f"resposta: {textos.get(rid, rid)} ({peso:+d})")
+        presentes = set(ids)
+        alertas = [a["motivo"] for a in self.dados.get("alertas") or []
+                   if set(a["todas"]) <= presentes]
+        return pontos, motivos, alertas
+
+    def limiares(self) -> tuple[int, int]:
+        """(alta, média) das faixas da definição; padrão 6 e 3."""
+        faixas = self.dados.get("faixas") or {}
+        return faixas.get("alta", 6), faixas.get("media", 3)
+
     def validar_respostas(self, bruto: str | None, tipo: str) -> dict | None:
         """Confere o JSON enviado pelo aluno e devolve o dicionário normalizado.
 

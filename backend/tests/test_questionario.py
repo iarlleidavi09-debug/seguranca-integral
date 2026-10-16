@@ -326,3 +326,63 @@ def test_respostas_aninhamento_profundo_levanta(real):
 def test_respostas_situacao_nao_texto_levanta(real, situacao):
     with pytest.raises(RespostasInvalidas):
         real.validar_respostas(_mod(situacao=situacao), "ameaca")
+
+
+# --- pontuar e limiares (Task 3) ---
+
+def _com_regras(pesos, alertas, faixas=None) -> Questionario:
+    d = _def_valida()
+    d["perguntas"][0]["respostas"].append({"id": "q1.c", "texto": "c"})
+    d["pesos"], d["alertas"] = pesos, alertas
+    if faixas is not None:
+        d["faixas"] = faixas
+    return Questionario(dados=d)
+
+
+def _resp(*ids):
+    return {"situacao": "s", "marcadas": ["o1"], "respostas": {"q1": list(ids)}}
+
+
+def test_pontuar_peso_positivo_com_motivo():
+    q = _com_regras({"q1.a": 3}, [])
+    assert q.pontuar(_resp("q1.a")) == (3, ["resposta: a (+3)"], [])
+
+
+def test_pontuar_peso_negativo_aparece_com_sinal():
+    q = _com_regras({"q1.a": -2}, [])
+    assert q.pontuar(_resp("q1.a")) == (-2, ["resposta: a (-2)"], [])
+
+
+def test_pontuar_soma_na_ordem_e_ignora_peso_zero_e_nao_marcadas():
+    q = _com_regras({"q1.a": 3, "q1.b": 0, "q1.c": 1}, [])
+    pontos, motivos, _ = q.pontuar(_resp("q1.c", "q1.a", "q1.b"))
+    assert pontos == 4
+    assert motivos == ["resposta: c (+1)", "resposta: a (+3)"]
+
+
+def test_pontuar_alerta_dispara_com_todas_presentes():
+    q = _com_regras({}, [{"todas": ["q1.a", "q1.c"], "motivo": "alerta: junto"}])
+    assert q.pontuar(_resp("q1.a", "q1.c")) == (0, [], ["alerta: junto"])
+
+
+def test_pontuar_alerta_com_resposta_faltando_nao_dispara():
+    q = _com_regras({}, [{"todas": ["q1.a", "q1.c"], "motivo": "alerta: junto"}])
+    assert q.pontuar(_resp("q1.a")) == (0, [], [])
+
+
+@pytest.mark.parametrize("vazio", [None, {}, {"respostas": {}}])
+def test_pontuar_sem_respostas_devolve_zero(vazio):
+    q = _com_regras({"q1.a": 3}, [{"todas": ["q1.a"], "motivo": "m"}])
+    assert q.pontuar(vazio) == (0, [], [])
+
+
+def test_pontuar_definicao_real_nao_pontua_nada(real):
+    resp = {"situacao": "ameaca", "marcadas": ["a1"],
+            "respostas": {"q1": ["q1.agora"], "q3": ["q3.conhecida"]}}
+    assert real.pontuar(resp) == (0, [], [])
+
+
+def test_limiares_vem_das_faixas_e_padrao_6_3(real):
+    assert _com_regras({}, [], {"alta": 8, "media": 4}).limiares() == (8, 4)
+    assert real.limiares() == (6, 3)
+    assert Questionario(dados={}).limiares() == (6, 3)

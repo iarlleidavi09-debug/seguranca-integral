@@ -169,3 +169,48 @@ def test_nudes_sozinho_nao_e_critica(termos):
 
 def test_outro_sem_termos_e_baixa(termos):
     assert classificar("outro", "", False, termos).prioridade == "baixa"
+
+
+# --- parâmetros novos (questionário v2 B): extras, alertas e limiares ---
+
+def test_parametros_novos_nos_padroes_nao_mudam_nada(termos):
+    base = classificar("aliciamento", "ele ameaca me matar", True, termos)
+    igual = classificar("aliciamento", "ele ameaca me matar", True, termos,
+                        extra_pontos=0, extra_motivos=(), alertas=(),
+                        limiares=(6, 3))
+    assert igual == base
+
+
+def test_extra_pontos_somam_e_sobem_a_faixa(termos):
+    r = classificar("outro", "", False, termos)
+    assert (r.pontos, r.prioridade) == (1, "baixa")
+    r = classificar("outro", "", False, termos, extra_pontos=3)
+    assert (r.pontos, r.prioridade) == (4, "media")
+    r = classificar("outro", "", False, termos, extra_pontos=5)
+    assert (r.pontos, r.prioridade) == (6, "alta")
+
+
+def test_extra_pontos_negativos_descem_a_faixa(termos):
+    r = classificar("aliciamento", "", False, termos, extra_pontos=-2)
+    assert (r.pontos, r.prioridade) == (2, "baixa")
+
+
+def test_extra_motivos_entram_em_motivos(termos):
+    r = classificar("outro", "", False, termos, extra_pontos=1,
+                    extra_motivos=("resposta: x (+1)",))
+    assert "resposta: x (+1)" in r.motivos
+
+
+def test_alerta_eleva_a_critica_e_entra_nos_motivos(termos):
+    r = classificar("outro", "", False, termos, alertas=("x",))
+    assert r.prioridade == "critica"
+    assert "x" in r.motivos
+    assert r.pontos == 1
+
+
+def test_limiares_mudam_as_faixas(termos):
+    assert classificar("aliciamento", "", False, termos).prioridade == "media"
+    assert classificar("aliciamento", "", False, termos,
+                       limiares=(4, 2)).prioridade == "alta"
+    assert classificar("aliciamento", "", False, termos,
+                       limiares=(10, 5)).prioridade == "baixa"

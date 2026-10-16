@@ -65,7 +65,9 @@ def _alertas(tipo: str, categorias: list[str], em_andamento: bool) -> list[str]:
 
 
 def classificar(
-    tipo: str, relato: str, em_andamento: bool, termos: dict[str, list[str]]
+    tipo: str, relato: str, em_andamento: bool, termos: dict[str, list[str]],
+    extra_pontos: int = 0, extra_motivos: tuple[str, ...] = (),
+    alertas: tuple[str, ...] = (), limiares: tuple[int, int] = (LIMIAR_ALTA, LIMIAR_MEDIA),
 ) -> Triagem:
     pontos = PESO_TIPO.get(tipo, PESO_TIPO["outro"])
     motivos = [f"tipo: {tipo}"]
@@ -82,15 +84,20 @@ def classificar(
             categorias.append(categoria)
             motivos.append(f"termos de risco: {categoria}")
 
-    if pontos >= LIMIAR_ALTA:
+    # pesos do questionário somam antes das faixas
+    pontos += extra_pontos
+    motivos.extend(extra_motivos)
+
+    limiar_alta, limiar_media = limiares
+    if pontos >= limiar_alta:
         prioridade = "alta"
-    elif pontos >= LIMIAR_MEDIA:
+    elif pontos >= limiar_media:
         prioridade = "media"
     else:
         prioridade = "baixa"
     # os alertas elevam depois da soma; os pontos não mudam
-    alertas = _alertas(tipo, categorias, em_andamento)
-    if alertas:
+    todos_alertas = _alertas(tipo, categorias, em_andamento) + list(alertas)
+    if todos_alertas:
         prioridade = "critica"
-        motivos.extend(alertas)
+        motivos.extend(todos_alertas)
     return Triagem(prioridade, pontos, tuple(motivos))

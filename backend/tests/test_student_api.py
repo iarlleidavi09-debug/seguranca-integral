@@ -828,3 +828,75 @@ def test_denuncia_respostas_invalidas_com_definicao_boa_continua_400(student_cli
                 respostas=json.dumps(dict(RESPOSTAS, marcadas=["c1"])))
     assert r.status_code == 400
     assert _contar(config, "casos") == antes
+
+
+# --- triagem com pesos e alertas (Task 3) ---
+
+def _definicao_temporaria(config, **mudancas):
+    """Copia a definição entregue para data_dir com pesos/alertas de teste."""
+    base = json.loads(
+        (config.questionario_path).read_text(encoding="utf-8-sig"))
+    base.update(mudancas)
+    config.data_dir.mkdir(parents=True, exist_ok=True)
+    (config.data_dir / "questionario.json").write_text(
+        json.dumps(base), encoding="utf-8")
+
+
+def _caso_via_api(client, config, **extra):
+    assert _enviar(client, **extra).status_code == 201
+    linha = _linha_caso(config)
+    return linha["prioridade"], linha["pontos"], json.loads(linha["motivos_json"])
+
+
+def test_respostas_com_definicao_real_triagem_identica(student_client, config):
+    sem = _caso_via_api(student_client, config, tipo="ameaca")
+    com = _caso_via_api(student_client, config, tipo="ameaca",
+                        respostas=json.dumps(RESPOSTAS))
+    assert com == sem
+
+
+def test_peso_na_definicao_temporaria_sobe_faixa_e_aparece_no_caso(
+        student_client, config):
+    sem = _caso_via_api(student_client, config, tipo="ameaca")
+    assert sem[0] == "media"
+    _definicao_temporaria(config, pesos={"q1.agora": 2})
+    prioridade, pontos, motivos = _caso_via_api(
+        student_client, config, tipo="ameaca", respostas=json.dumps(RESPOSTAS))
+    assert (prioridade, pontos) == ("alta", sem[1] + 2)
+    assert "resposta: Sim, agora (+2)" in motivos
+
+
+def test_alerta_na_definicao_temporaria_da_critica(student_client, config):
+    _definicao_temporaria(config, alertas=[
+        {"todas": ["q1.agora", "q3.conhecida"], "motivo": "alerta: teste"}])
+    prioridade, _, motivos = _caso_via_api(
+        student_client, config, tipo="ameaca", respostas=json.dumps(RESPOSTAS))
+    assert prioridade == "critica"
+    assert "alerta: teste" in motivos
+
+
+def test_faixas_da_definicao_temporaria_valem(student_client, config):
+    _definicao_temporaria(config, faixas={"alta": 20, "media": 10})
+    prioridade, _, _ = _caso_via_api(
+        student_client, config, tipo="ameaca", respostas=json.dumps(RESPOSTAS))
+    assert prioridade == "baixa"
+
+
+def test_pesos_so_valem_com_respostas(student_client, config):
+    _definicao_temporaria(config, pesos={"q1.agora": 2})
+    sem = _caso_via_api(student_client, config, tipo="ameaca")
+    assert sem[0] == "media" and not any("resposta:" in m for m in sem[2])
+
+
+def test_get_caso_traz_motivo_de_peso(student_client, config):
+    _definicao_temporaria(config, pesos={"q1.agora": 2})
+    assert _enviar(student_client, tipo="ameaca",
+                   respostas=json.dumps(RESPOSTAS)).status_code == 201
+    caso_id = _linha_caso(config)["id"]
+    c = connect(config)
+    try:
+        bruto = c.execute("SELECT motivos_json FROM casos WHERE id=?",
+                          (caso_id,)).fetchone()[0]
+    finally:
+        c.close()
+    assert "resposta: Sim, agora (+2)" in json.loads(bruto)

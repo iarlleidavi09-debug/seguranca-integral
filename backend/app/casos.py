@@ -33,6 +33,25 @@ def registrar_evento(conn: sqlite3.Connection, caso_id: int, tipo: str,
         conn.commit()
 
 
+def _extras_do_questionario(config: Config, respostas: dict | None) -> dict:
+    """Pesos, alertas e faixas do questionário; vazio sem respostas.
+
+    Sem respostas a definição nem é lida. Definição que não carrega não
+    impede a denúncia: o caso nasce sem os extras.
+    """
+    if not respostas:
+        return {}
+    # import tardio: questionario importa TIPOS deste módulo
+    from .questionario import QuestionarioInvalido, carregar
+    try:
+        definicao = carregar(config.questionario_path)
+    except QuestionarioInvalido:
+        return {}
+    pontos, motivos, alertas = definicao.pontuar(respostas)
+    return {"extra_pontos": pontos, "extra_motivos": tuple(motivos),
+            "alertas": tuple(alertas), "limiares": definicao.limiares()}
+
+
 def criar_caso(conn: sqlite3.Connection, config: Config, dados: dict,
                anexos: list[AnexoSalvo], *, simulacao: bool = False,
                criado_em: str | None = None,
@@ -46,7 +65,9 @@ def criar_caso(conn: sqlite3.Connection, config: Config, dados: dict,
     """
     termos = carregar_termos(config.risk_terms_path)
     em_andamento = bool(dados.get("em_andamento"))
-    triagem = classificar(dados["tipo"], dados["relato"], em_andamento, termos)
+    extras = _extras_do_questionario(config, respostas)
+    triagem = classificar(dados["tipo"], dados["relato"], em_andamento, termos,
+                          **extras)
     anonimo = bool(dados.get("anonimo", True))
     nome = None if anonimo else dados.get("nome")
     turma = None if anonimo else dados.get("turma")
