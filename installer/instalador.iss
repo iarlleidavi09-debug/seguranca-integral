@@ -60,6 +60,23 @@ Source: "..\dist\SegurancaIntegral\_internal\*"; DestDir: "{app}\_internal"; Fla
 ; por último: o AfterInstall precisa do programa inteiro já copiado
 Source: "..\dist\SegurancaIntegral\{#AppExe}"; DestDir: "{app}"; Flags: ignoreversion; AfterInstall: ConfigurarDados
 
+[INI]
+; atalhos que abrem os portais no navegador padrão (o servidor roda em segundo
+; plano, como tarefa agendada, e não tem janela própria)
+Filename: "{autodesktop}\Segurança Integral - Coordenação.url"; Section: "InternetShortcut"; Key: "URL"; String: "http://127.0.0.1:4000"
+Filename: "{autodesktop}\Segurança Integral - Portal do aluno.url"; Section: "InternetShortcut"; Key: "URL"; String: "http://127.0.0.1:3000"
+Filename: "{autoprograms}\Segurança Integral\Coordenação.url"; Section: "InternetShortcut"; Key: "URL"; String: "http://127.0.0.1:4000"
+Filename: "{autoprograms}\Segurança Integral\Portal do aluno.url"; Section: "InternetShortcut"; Key: "URL"; String: "http://127.0.0.1:3000"
+
+[Icons]
+; liga a tarefa (pede administrador) e abre a coordenação quando o servidor já subiu
+Name: "{autoprograms}\Segurança Integral\Iniciar servidor"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command ""Start-Process -Verb RunAs -WindowStyle Hidden -FilePath schtasks.exe -ArgumentList '/Run','/TN','{#NomeTarefa}'; Start-Sleep -Seconds 6; Start-Process 'http://127.0.0.1:4000'"""; Comment: "Liga o servidor do Segurança Integral e abre a coordenação"
+
+[UninstallDelete]
+Type: files; Name: "{autodesktop}\Segurança Integral - Coordenação.url"
+Type: files; Name: "{autodesktop}\Segurança Integral - Portal do aluno.url"
+Type: filesandordirs; Name: "{autoprograms}\Segurança Integral"
+
 [Code]
 var
   PaginaHosts: TInputQueryWizardPage;

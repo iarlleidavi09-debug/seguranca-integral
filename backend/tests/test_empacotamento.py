@@ -344,3 +344,17 @@ def test_leia_me_cobre_parada_segura_cloudflare_chaves_e_log():
     assert "/VERYSILENT" in texto
     assert "--criar-admin" in texto
     assert "\u2014" not in texto and "\u2013" not in texto  # sem travessões
+
+
+def test_iss_cria_atalhos_dos_portais_e_iniciar_servidor():
+    texto = _ler(ISS)
+    # sem atalho o programa (tarefa em segundo plano, sem janela) parece nunca abrir
+    assert "http://127.0.0.1:4000" in texto and "http://127.0.0.1:3000" in texto
+    assert "{autodesktop}" in texto and "{autoprograms}" in texto
+    assert "[INI]" in texto and "InternetShortcut" in texto
+    assert "Iniciar servidor" in texto and "schtasks.exe" in texto and "-Verb RunAs" in texto
+    assert "WindowsPowerShell" + chr(92) + "v1.0" + chr(92) + "powershell.exe" in texto
+    permitidos = chr(10) + chr(13) + chr(9)
+    assert not any(ord(c) < 32 and c not in permitidos for c in texto), "caractere de controle no .iss"
+    # a desinstalação remove o que o instalador criou
+    assert "[UninstallDelete]" in texto
