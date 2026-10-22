@@ -1,0 +1,14 @@
+.autoria-interna { min-width: 0; margin-block: 1.5rem; padding: 1rem; border: 1px solid var(--borda-suave); }
+.autoria-interna > legend, .autor-formulario > legend { font-weight: 700; }
+.autoria-interna .opcao-desfecho { display: flex; align-items: center; gap: .65rem; margin-block: .75rem; }
+.autor-formulario { min-width: 0; overflow-wrap: anywhere; margin-block: 1rem; padding: 1rem; border: 1px solid var(--borda-suave); }
+.autor-campos { display: grid; grid-template-columns: minmax(0, 2fr) repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.autor-campos > div { min-width: 0; }
+.autor-campos input { width: 100%; box-sizing: border-box; }
+.autor-formulario input[type=file] { width: 100%; max-width: 100%; }
+.autor-formulario .botao-texto { margin-block-start: .75rem; margin-inline-end: 1rem; }
+.autoria-registro { overflow-wrap: anywhere; margin-block: 1.5rem; padding: 1rem; border: 1px solid var(--borda-suave); }
+.autoria-lista { list-style: none; padding: 0; }
+.autoria-lista > li { padding-block: .75rem; }
+.autoria-foto { display: block; width: 96px; height: 96px; object-fit: contain; margin-block: .5rem; }
+@media (max-width: 640px) { .autor-campos { grid-template-columns: minmax(0, 1fr); } }

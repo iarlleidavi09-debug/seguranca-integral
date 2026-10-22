@@ -2,14 +2,13 @@ import { useRef, useState } from 'react';
 import { ErroApi, listarCasos, mensagemErroCoord, obterResumo } from '../shared/api';
 import type { CasoFila, FiltrosFila, Resumo } from '../shared/api';
 import { usePolling } from './polling';
-import { Prioridade, PRIORIDADES, Status, acessoLegivel, tipo as rotuloDoTipo } from './rotulos';
+import { Prioridade, PRIORIDADES, Status, acessoLegivel, assuntos, rotuloPrioridade } from './rotulos';
 
 const SEM_FILTROS: FiltrosFila = { status: '', prioridade: '', tipo: '', q: '' };
 const LIMITE_ATENCAO = 5;
 const CARTOES = [
-  { status: 'novo', nome: 'Aguardando o primeiro olhar', apoio: 'Pedidos novos' },
-  { status: 'em_investigacao', nome: 'Investigação em andamento', apoio: 'Em cuidado pela equipe' },
-  { status: 'resolvido', nome: 'Resolvidos', apoio: 'Atendimentos concluídos' },
+  { status: 'novo', nome: 'Aguardando o primeiro olhar' },
+  { status: 'em_investigacao', nome: 'Investigação em andamento' },
 ] as const;
 
 type Panorama = { resumo: Resumo; casos: CasoFila[] };
@@ -27,7 +26,7 @@ export default function Geral({ aoVerCasos, aoAbrirCaso, aoResumo }: {
 
   usePolling(async (sinal, ativo) => {
     try {
-      const [resumo, casos] = await Promise.all([obterResumo(sinal), listarCasos(SEM_FILTROS, sinal)]);
+      const [resumo, casos] = await Promise.all([obterResumo(sinal, true), listarCasos(SEM_FILTROS, sinal)]);
       if (!ativo()) return;
       setDados({ resumo, casos }); setErro('');
       aoResumo?.(resumo.recorrencia_pendente);
@@ -42,13 +41,12 @@ export default function Geral({ aoVerCasos, aoAbrirCaso, aoResumo }: {
   }, []);
 
   const resumo = dados?.resumo;
-  const pendente = resumo && resumo.recorrencia_pendente > 0 ? dados.casos.find(c => c.recorrencia_pendente) : undefined;
+  const pendente = resumo && resumo.recorrencia_pendente > 0 ? dados.casos.find(c => c.recorrencia_pendente && c.status !== 'resolvido') : undefined;
   const atencao = dados ? dados.casos.filter(c => c.status !== 'resolvido').slice(0, LIMITE_ATENCAO) : [];
-  const vazia = Boolean(dados) && dados!.casos.length === 0 && Object.values(dados!.resumo.status).every(n => n === 0);
+  const vazia = Boolean(dados) && dados!.casos.every(c => c.status === 'resolvido') && dados!.resumo.status.novo === 0 && dados!.resumo.status.em_investigacao === 0;
 
   return <section aria-labelledby="titulo-geral" className="geral">
     <h1 id="titulo-geral" tabIndex={-1}>Cada pedido merece atenção.</h1>
-    <p className="geral-intro">Organize os próximos cuidados, junto com a sua equipe.</p>
     {erro && <p className="erro" role="alert">{erro} A visão geral tenta de novo sozinha.</p>}
     {!dados && !erro && <p className="vazio">Carregando o panorama.</p>}
     {dados && resumo && <>
@@ -70,7 +68,6 @@ export default function Geral({ aoVerCasos, aoAbrirCaso, aoResumo }: {
         {CARTOES.map(c => <button key={c.status} type="button" className="geral-cartao" onClick={() => aoVerCasos({ status: c.status })}>
           <span className="geral-cartao-nome">{c.nome}</span>
           <strong>{resumo.status[c.status]}</strong>
-          <span className="geral-cartao-apoio">{c.apoio}</span>
         </button>)}
       </div>
 
@@ -80,19 +77,21 @@ export default function Geral({ aoVerCasos, aoAbrirCaso, aoResumo }: {
           const n = resumo.prioridade[p];
           const destaque = (p === 'critica' || p === 'alta') && n > 0;
           return <li key={p} data-gravidade={p} data-destaque={destaque ? 'sim' : 'nao'}>
-            <Prioridade valor={p} /><strong>{n}</strong>
+            <button type="button" className="geral-prioridade-botao" aria-label={`${rotuloPrioridade[p]}: ${n} casos em aberto. Ver casos.`} onClick={() => aoVerCasos({ prioridade: p, status: 'abertos' })}>
+              <Prioridade valor={p} /><strong>{n}</strong>
+            </button>
           </li>;
         })}
       </ul>
 
       <h2 id="titulo-atencao" className="geral-subtitulo">Onde concentrar a atenção</h2>
-      {vazia && <p className="vazio">Nenhum pedido por enquanto.</p>}
+      {vazia && <p className="vazio">Nenhum pedido em aberto.</p>}
       {!vazia && atencao.length === 0 && <p className="vazio">Nenhum pedido aguardando atenção agora.</p>}
       {atencao.length > 0 && <ul className="fila" aria-labelledby="titulo-atencao">
         {atencao.map(c => <li key={c.id} className="fila-item" data-gravidade={c.prioridade}>
           <button type="button" className="fila-linha geral-linha" onClick={() => aoAbrirCaso(c.id)}>
             <span className="fila-gravidade"><Prioridade valor={c.prioridade} /></span>
-            <span className="fila-tipo"><strong>{rotuloDoTipo(c.tipo)}</strong></span>
+            <span className="fila-tipo"><strong>{assuntos(c)}</strong></span>
             <span className="fila-resumo">{c.resumo}</span>
             <span className="fila-status"><Status valor={c.status} /></span>
             <span className="fila-data">{acessoLegivel(c.ultimo_acesso_por, c.ultimo_acesso_em)}</span>

@@ -1,17 +1,27 @@
 import { useEffect, useRef, useState } from 'react';
-import { listarCasos, mensagemErroCoord, ErroApi } from '../shared/api';
+import { listarCasos, mensagemErroCoord, ErroApi, obterQuestionarioV3 } from '../shared/api';
 import type { CasoFila, FiltrosFila } from '../shared/api';
+import type { GrupoV3 } from '../shared/v3';
 import { usePolling } from './polling';
+import { categoriaAgenda, demoraPrimeiroAcesso } from './agenda';
+import { MOTIVOS_ATENCAO, prazoLegivel } from './Atendimento';
 import {
-  Prioridade, PRIORIDADES, Simulacao, STATUS, Status, TIPOS, acessoLegivel, motivo, rotuloPrioridade, rotuloStatus, tipo as rotuloDoTipo,
+  Prioridade, PRIORIDADES, Simulacao, STATUS, Status, TIPOS, assuntos, acessoLegivel, dataLegivel, motivo, rotuloPrioridade, rotuloStatus,
 } from './rotulos';
 
 const ATRASO_BUSCA_MS = 300;
 const TAMANHO_BUSCA = 100;
 const ordem = (p: string) => { const i = PRIORIDADES.indexOf(p as never); return i < 0 ? PRIORIDADES.length : i; };
+const motivoRelevante = (c: CasoFila) => c.motivos?.find(m => !/^tipo:/i.test(m));
+const CONVERSAS = { sem_mensagem: 'Sem mensagem', mensagem_nova: 'Mensagem nova', aguardando_equipe: 'Aguardando resposta da equipe', aguardando_aluno: 'Aguardando resposta do aluno' };
+export function filtrarConversa(caso: CasoFila, filtro: string): boolean {
+  const estado = caso.conversa_estado ?? 'sem_mensagem';
+  return !filtro || (filtro === 'com_mensagem' ? estado !== 'sem_mensagem' : estado === filtro);
+}
 
 type Props = {
   modo: 'casos' | 'pos';
+  meuId?: number;
   filtros: FiltrosFila;
   aoFiltrar: (filtros: FiltrosFila) => void;
   aoAbrir: (id: number) => void;
@@ -33,16 +43,28 @@ function Retorno() {
   </span>;
 }
 
-export default function Fila({ modo, filtros, aoFiltrar, aoAbrir }: Props) {
+export default function Fila({ modo, meuId, filtros, aoFiltrar, aoAbrir }: Props) {
   const pos = modo === 'pos';
   // a Pós-resolução não filtra por status na API: traz resolvidos e reabertos com recorrência pendente, e o filtro é feito aqui
   const status = pos ? '' : filtros.status;
   const { prioridade, tipo } = filtros;
+  const grupo = filtros.grupo ?? '';
+  const opcao = filtros.opcao ?? '';
   const q = filtros.q.trim();
 
   const [casos, setCasos] = useState<CasoFila[] | null>(null);
+  const [atualizando, setAtualizando] = useState(false);
   const [erro, setErro] = useState('');
   const [anuncio, setAnuncio] = useState('');
+  const [grupos, setGrupos] = useState<GrupoV3[]>([]);
+  const [erroCatalogo, setErroCatalogo] = useState('');
+  useEffect(() => {
+    let ativo = true;
+    obterQuestionarioV3().then(def => { if (ativo) setGrupos(def.grupos); }).catch(() => {
+      if (ativo) setErroCatalogo('Os filtros de situações estão indisponíveis agora. Os demais filtros continuam funcionando.');
+    });
+    return () => { ativo = false; };
+  }, []);
   const vistos = useRef<Set<number> | null>(null);
   const chaveAnterior = useRef('');
 
@@ -60,11 +82,12 @@ export default function Fila({ modo, filtros, aoFiltrar, aoAbrir }: Props) {
   }, [busca]);
 
   usePolling(async (sinal, ativo) => {
-    const chave = `${status}|${prioridade}|${tipo}|${q}`;
+    setAtualizando(true);
+    const chave = `${status}|${prioridade}|${tipo}|${q}|${grupo}|${opcao}`;
     if (chaveAnterior.current !== chave) vistos.current = null;
     chaveAnterior.current = chave;
     try {
-      const recebidos = await listarCasos({ status, prioridade, tipo, q }, sinal);
+      const recebidos = await listarCasos({ status, prioridade, tipo, q, ...(grupo ? { grupo } : {}), ...(opcao ? { opcao } : {}) }, sinal);
       if (!ativo()) return;
       const ordenados = ordenar(pos ? recebidos.filter(c => c.status === 'resolvido' || c.recorrencia_pendente) : recebidos, modo);
       const anteriores = vistos.current;
@@ -79,24 +102,57 @@ export default function Fila({ modo, filtros, aoFiltrar, aoAbrir }: Props) {
       if (!ativo()) return;
       if (falha instanceof ErroApi && falha.status === 401) return;
       setErro(mensagemErroCoord(falha));
-    }
-  }, [status, prioridade, tipo, q, modo, pos]);
+    } finally { if (ativo()) setAtualizando(false); }
+  }, [status, prioridade, tipo, q, grupo, opcao, modo, pos]);
 
-  const filtrando = Boolean((pos ? '' : filtros.status) || prioridade || tipo || filtros.q || busca);
+  const conversa = filtros.conversa ?? '';
+  const filtrando = Boolean((pos ? '' : filtros.status) || prioridade || tipo || filtros.q || busca || grupo || opcao || conversa);
   const mudar = (parcial: Partial<FiltrosFila>) => aoFiltrar({ ...filtros, ...parcial });
   const limpar = () => { setBusca(''); aoFiltrar({ status: pos ? filtros.status : '', prioridade: '', tipo: '', q: '' }); };
+  const visao = pos ? '' : filtros.visao ?? '';
+  const motivoAtencao = pos ? '' : filtros.atencao ?? '';
+  const filtrosAtivos = [pos ? '' : filtros.status, prioridade, tipo, grupo, opcao, motivoAtencao, conversa].filter(Boolean).length;
+  const naoAberto = (c: CasoFila) => c.nao_aberto ?? !c.ultimo_acesso_em;
+  const precisaAtencao = (c: CasoFila) => (c.atencao?.length ?? 0) > 0;
+  const visoes = meuId ? [
+    { id: '', nome: 'Meus casos', aceita: (c: CasoFila) => c.responsavel?.id === meuId },
+    ...([{ id: 'vencidas', nome: 'Ações vencidas' }, { id: 'hoje', nome: 'Para hoje' }, { id: 'proximas', nome: 'Próximas ações' }, { id: 'sem_acao', nome: 'Sem ação planejada' }] as const).map(v => ({ ...v, aceita: (c: CasoFila) => categoriaAgenda(c, meuId) === v.id })),
+  ] : [
+    { id: '', nome: 'Todos', aceita: (_c: CasoFila) => true },
+    { id: 'nao_abertos', nome: 'Ainda não abertos', aceita: naoAberto },
+    { id: 'atencao', nome: 'Precisam de atenção', aceita: precisaAtencao },
+    { id: 'resolvidos', nome: 'Resolvidos', aceita: (c: CasoFila) => c.status === 'resolvido' },
+  ];
+  const casosDaVisao = meuId ? casos?.filter(c => c.responsavel?.id === meuId) ?? null : casos;
+  const exibidos = casosDaVisao?.filter(c => (visoes.find(v => v.id === visao)?.aceita(c) ?? true)
+    && (!motivoAtencao || c.atencao?.includes(motivoAtencao)) && filtrarConversa(c, conversa)) ?? null;
 
-  return <section aria-labelledby="titulo-fila" className="casos">
-    <h1 id="titulo-fila" tabIndex={-1}>{pos ? 'O cuidado continua.' : 'Casos'}</h1>
-    <p className="casos-intro">{pos
-      ? 'Acompanhe os casos resolvidos e os que tiveram recorrência. Os casos em que a situação voltou a acontecer aparecem primeiro.'
-      : 'Todos os pedidos da equipe, dos mais urgentes aos menos urgentes.'}</p>
-    <form className="filtros" role="search" aria-label="Buscar e filtrar casos" onSubmit={e => e.preventDefault()}>
+  return <section aria-labelledby="titulo-fila" className="casos" aria-busy={atualizando}>
+    <h1 id="titulo-fila" tabIndex={-1}>{meuId ? 'Meu atendimento' : pos ? 'O cuidado continua.' : 'Casos'}</h1>
+    {meuId && <p className="casos-intro">Casos atribuídos a você. Prazos seguem o horário de Brasília.</p>}
+    {pos && <p className="casos-intro">Resolvidos e recorrências, com as pendências primeiro.</p>}
+    {!pos && <div className="fila-visoes" role="group" aria-label="Organização dos casos">
+      {visoes.map(v => <button key={v.id} type="button" className="botao secundario" aria-pressed={visao === v.id}
+        onClick={() => mudar({ visao: v.id, status: '' })}>{v.nome} ({casos === null ? '…' : casos.filter(c => v.aceita(c) && (!motivoAtencao || c.atencao?.includes(motivoAtencao)) && filtrarConversa(c, conversa)).length})</button>)}
+    </div>}
+    <form className="busca-casos" role="search" aria-label="Buscar e filtrar casos" onSubmit={e => e.preventDefault()}>
       <div className="filtro-busca"><label htmlFor="filtro-busca">Buscar por assunto ou número do caso</label>
         <input id="filtro-busca" type="search" maxLength={TAMANHO_BUSCA} autoComplete="off" value={busca} onChange={e => setBusca(e.target.value)} /></div>
+      <div><label htmlFor="filtro-conversa">Conversa</label>
+        <select id="filtro-conversa" value={conversa} onChange={e => mudar({ conversa: e.target.value })}>
+          <option value="">Todas as conversas</option><option value="com_mensagem">Com mensagem</option>
+          {Object.entries(CONVERSAS).map(([valor, nome]) => <option key={valor} value={valor}>{nome}</option>)}
+        </select></div>
+      <details className="filtros-detalhados"><summary>Filtros detalhados{filtrosAtivos > 0 ? ` (${filtrosAtivos} ativos)` : ''}</summary>
+      <div className="filtros">
+      {!pos && <p className="filtros-ajuda texto-pequeno">Resolvidos também aparecem em atenção quando há mensagem sem resposta, recorrência ou ação vencida. As contagens consideram os filtros selecionados.</p>}
+      {!pos && <div><label htmlFor="filtro-atencao">Motivo de atenção</label>
+        <select id="filtro-atencao" value={motivoAtencao} onChange={e => mudar({ atencao: e.target.value })}>
+          <option value="">Todos os motivos</option>{Object.entries(MOTIVOS_ATENCAO).map(([id, nome]) => <option value={id} key={id}>{nome}</option>)}
+        </select></div>}
       {!pos && <div><label htmlFor="filtro-status">Status</label>
         <select id="filtro-status" value={filtros.status} onChange={e => mudar({ status: e.target.value })}>
-          <option value="">Todos</option>{STATUS.map(s => <option key={s} value={s}>{rotuloStatus[s]}</option>)}
+          <option value="">Todos</option><option value="abertos">Em aberto (novos e em investigação)</option>{STATUS.map(s => <option key={s} value={s}>{rotuloStatus[s]}</option>)}
         </select></div>}
       <div><label htmlFor="filtro-prioridade">Prioridade</label>
         <select id="filtro-prioridade" value={prioridade} onChange={e => mudar({ prioridade: e.target.value })}>
@@ -106,27 +162,49 @@ export default function Fila({ modo, filtros, aoFiltrar, aoAbrir }: Props) {
         <select id="filtro-tipo" value={tipo} onChange={e => mudar({ tipo: e.target.value })}>
           <option value="">Todos</option>{TIPOS.map(([valor, rotulo]) => <option key={valor} value={valor}>{rotulo}</option>)}
         </select></div>
-      {filtrando && <button type="button" className="botao-texto" onClick={limpar}>Limpar filtros</button>}
+      <div><label htmlFor="filtro-grupo">Grupo de situações</label>
+        <select id="filtro-grupo" disabled={!grupos.length} value={grupo} onChange={e => mudar({ grupo: e.target.value, opcao: '' })}>
+          <option value="">Todos os grupos</option>{grupos.map(g => <option key={g.id} value={g.id}>{g.nome}</option>)}
+        </select></div>
+      <div><label htmlFor="filtro-opcao">Situação relatada</label>
+        <select id="filtro-opcao" disabled={!grupos.length} value={opcao} onChange={e => mudar({ opcao: e.target.value })}>
+          <option value="">Todas as situações</option>{grupos.filter(g => !grupo || g.id === grupo).flatMap(g => g.opcoes).map(o => <option key={o.id} value={o.id}>{o.texto}</option>)}
+        </select></div>
+      </div></details>
+      {(filtrando || visao || motivoAtencao) && <button type="button" className="botao-texto" onClick={limpar}>Limpar filtros</button>}
     </form>
-    <p className="texto-pequeno" role="status" aria-live="polite">{anuncio}</p>
+    {erroCatalogo && <p className="aviso" role="status">{erroCatalogo}</p>}
+    <p className="so-leitor" role="status" aria-live="polite">{anuncio}</p>
+    {atualizando && casos !== null && <p role="status">Atualizando casos…</p>}
+    {atualizando && casos !== null && <p className="so-leitor">Os resultados anteriores permanecem visíveis até a atualização terminar.</p>}
     {erro && <p className="erro" role="alert">{erro} A fila tenta de novo sozinha.</p>}
     {casos === null && !erro && <p className="vazio">Carregando a fila.</p>}
-    {casos !== null && casos.length === 0 && <p className="vazio">{filtrando ? 'Nenhum caso com esses filtros.' : pos ? 'Nenhum caso resolvido ou com recorrência ainda.' : 'Nenhum caso na fila.'}</p>}
-    {casos !== null && casos.length > 0 && <table className="casos-tabela" role="table" aria-labelledby="titulo-fila">
+    {exibidos !== null && <p className="texto-pequeno" role="status">{exibidos.length} {exibidos.length === 1 ? 'caso exibido' : 'casos exibidos'}.</p>}
+    {exibidos !== null && exibidos.length === 0 && <p className="vazio">{filtrando || visao || motivoAtencao ? 'Nenhum caso com esses filtros.' : pos ? 'Nenhum caso resolvido ou com recorrência ainda.' : 'Nenhum caso na fila.'}</p>}
+    {exibidos !== null && exibidos.length > 0 && <table className="casos-tabela" role="table" aria-labelledby="titulo-fila">
       <thead role="rowgroup"><tr role="row">
         <th role="columnheader" scope="col">Caso e situação</th><th role="columnheader" scope="col">Prioridade</th>
         <th role="columnheader" scope="col">Status</th><th role="columnheader" scope="col">Último acesso</th>
         <th role="columnheader" scope="col"><span className="so-leitor">Abrir</span></th>
       </tr></thead>
       <tbody role="rowgroup">
-        {casos.map(c => <tr key={c.id} role="row" className="casos-linha" data-gravidade={c.prioridade}>
+        {exibidos.map(c => <tr key={c.id} role="row" className="casos-linha" data-gravidade={c.prioridade}>
           <td role="cell" className="casos-caso">
-            <span className="casos-tipo"><strong>{rotuloDoTipo(c.tipo)}</strong>
+            <span className="casos-tipo"><strong>{assuntos(c)}</strong>
+              {c.canal === 'acolhimento' && <span className="selo-neutro">Acolhimento anônimo</span>}
               {c.recorrencia_pendente && <Retorno />}
+              {c.status === 'resolvido' && c.atencao?.includes('mensagem_pendente') && <span className="selo-recorrencia">Aluno voltou a pedir ajuda</span>}
+              {!c.simulacao && demoraPrimeiroAcesso(c) && <span className="selo-recorrencia">Sem primeiro acesso há mais de 24 horas</span>}
               {c.em_andamento && <span className="selo-neutro">Ocorrendo agora</span>}
               {c.simulacao && <Simulacao />}</span>
             <span className="casos-resumo">{c.resumo}</span>
-            {c.motivos?.length > 0 && <span className="casos-porque">Por que: {motivo(c.motivos[0])}</span>}
+            <span className="casos-atendimento"><strong>{(c.mensagens_novas ?? 0) > 0 ? `${c.mensagens_novas} ${c.mensagens_novas === 1 ? 'mensagem nova' : 'mensagens novas'}` : CONVERSAS[c.conversa_estado ?? 'sem_mensagem']}</strong></span>
+            {c.ultima_mensagem && <><span className="casos-resumo">{c.ultima_mensagem.texto.slice(0, 180)}</span>
+              <time className="casos-atendimento" dateTime={c.ultima_mensagem.criado_em}>{c.ultima_mensagem.autor === 'aluno' ? 'Aluno' : 'Equipe'} · {dataLegivel(c.ultima_mensagem.criado_em)}</time></>}
+            <span className="casos-atendimento">Responsável: {c.responsavel?.nome ?? 'Não atribuído'}{c.responsavel && !c.responsavel.ativo ? ' (conta desativada)' : ''}
+              {c.proxima_acao && <> · {c.proxima_acao}{c.prazo_acao && ` · até ${prazoLegivel(c.prazo_acao)}`}</>}</span>
+            {!!c.atencao?.length && <span className="casos-pendencias">{c.atencao.map(m => MOTIVOS_ATENCAO[m] ?? m).join(' · ')}</span>}
+            {motivoRelevante(c) && <span className="casos-porque">Por que: {motivo(motivoRelevante(c)!)}</span>}
           </td>
           <td role="cell" data-rotulo="Prioridade"><Prioridade valor={c.prioridade} /></td>
           <td role="cell" data-rotulo="Status"><Status valor={c.status} /></td>

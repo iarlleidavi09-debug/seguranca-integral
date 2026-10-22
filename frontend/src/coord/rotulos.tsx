@@ -1,4 +1,8 @@
 import type { Evento } from '../shared/api';
+export function assuntos(caso: { tipo: string; assuntos?: string[] }): string {
+  if (caso.assuntos?.length) return caso.assuntos.join('; ');
+  return tipo(caso.tipo);
+}
 
 export const STATUS = ['novo', 'em_investigacao', 'resolvido'] as const;
 export const PRIORIDADES = ['critica', 'alta', 'media', 'baixa'] as const;
@@ -69,6 +73,8 @@ export function descricaoEvento(evento: Evento): string {
     case 'mensagem_coordenacao': return `Mensagem enviada ao aluno${quem}`;
     case 'mensagem_aluno': return 'O aluno enviou uma mensagem';
     case 'nota_interna': return `Nota interna registrada${quem}`;
+    case 'atendimento': return `Atendimento atualizado${quem}: ${evento.detalhe}`;
+    case 'acao_concluida': return `${evento.detalhe}${quem}`;
     default: return `${evento.tipo}${quem}`;
   }
 }

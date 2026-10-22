@@ -28,6 +28,16 @@ const montar = (corpoResumo = resumo(), casos: unknown[] = fila) => {
 afterEach(() => { vi.useRealTimers(); });
 
 describe('Visão geral', () => {
+  it('abre somente casos em aberto da prioridade clicada', async () => {
+    const { aoVerCasos } = montar();
+    const grupo = await screen.findByRole('list', { name: 'Por prioridade' });
+    await userEvent.setup().click(within(grupo).getByRole('button', { name: /Crítica/ }));
+    expect(aoVerCasos).toHaveBeenCalledWith({ prioridade: 'critica', status: 'abertos' });
+  });
+  it('mostra assuntos históricos dos pedidos v3', async () => {
+    montar(resumo(), [caso(9, { assuntos: ['Relato histórico sem classificação jurídica'] })]);
+    expect(await screen.findByText('Relato histórico sem classificação jurídica')).toBeInTheDocument();
+  });
   it('mostra o título com foco gerenciável e o estado de carregamento', async () => {
     montar();
     const titulo = screen.getByRole('heading', { level: 1, name: 'Cada pedido merece atenção.' });
@@ -43,13 +53,12 @@ describe('Visão geral', () => {
     const novos = await screen.findByRole('button', { name: /Aguardando o primeiro olhar/ });
     expect(novos).toHaveTextContent('4');
     expect(screen.getByRole('button', { name: /Investigação em andamento/ })).toHaveTextContent('2');
-    expect(screen.getByRole('button', { name: /Resolvidos/ })).toHaveTextContent('7');
+    expect(screen.queryByRole('button', { name: /Resolvidos/ })).toBeNull();
     await user.click(novos);
     expect(aoVerCasos).toHaveBeenLastCalledWith({ status: 'novo' });
     await user.click(screen.getByRole('button', { name: /Investigação em andamento/ }));
     expect(aoVerCasos).toHaveBeenLastCalledWith({ status: 'em_investigacao' });
-    await user.click(screen.getByRole('button', { name: /Resolvidos/ }));
-    expect(aoVerCasos).toHaveBeenLastCalledWith({ status: 'resolvido' });
+    expect(chamadasA('GET', '/api/resumo')[0].url).toContain('abertos=1');
   });
 
   it('contadores por prioridade têm texto e forma, com destaque para Crítica e Alta quando há casos', async () => {
@@ -83,7 +92,7 @@ describe('Visão geral', () => {
 
   it('sem pendência o bloco não existe', async () => {
     montar();
-    await screen.findByRole('button', { name: /Resolvidos/ });
+    await screen.findByRole('button', { name: /Aguardando o primeiro olhar/ });
     expect(screen.queryByRole('heading', { name: 'Um cuidado precisa ser retomado' })).toBeNull();
   });
 
@@ -104,7 +113,7 @@ describe('Visão geral', () => {
 
   it('fila vazia mostra a mensagem acolhedora', async () => {
     montar(resumo({ status: { novo: 0, em_investigacao: 0, resolvido: 0 } }), []);
-    expect(await screen.findByText('Nenhum pedido por enquanto.')).toBeInTheDocument();
+    expect(await screen.findByText('Nenhum pedido em aberto.')).toBeInTheDocument();
   });
 
   it('erro mostra alerta e tenta de novo sozinha a cada 8 s', async () => {
@@ -119,7 +128,7 @@ describe('Visão geral', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('tenta de novo sozinha');
     await act(async () => { await vi.advanceTimersByTimeAsync(INTERVALO_MS); });
     expect(screen.queryByRole('alert')).toBeNull();
-    expect(screen.getByRole('button', { name: /Resolvidos/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Aguardando o primeiro olhar/ })).toBeInTheDocument();
   });
 
   it('atualiza a cada 8 s, ao voltar à aba (só visível) e ignora tick durante requisição lenta', async () => {
@@ -147,3 +156,4 @@ describe('Visão geral', () => {
     oculto.mockRestore();
   });
 });
+

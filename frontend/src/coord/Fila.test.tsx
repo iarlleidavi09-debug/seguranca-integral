@@ -7,6 +7,7 @@ import { INTERVALO_MS } from './polling';
 import { chamadasA, servidor } from './testes/servidor';
 import type { Resposta, Rota } from './testes/servidor';
 import type { FiltrosFila } from '../shared/api';
+import { questionarioV3 } from '../test/questionarioV3';
 
 const VAZIOS: FiltrosFila = { status: '', prioridade: '', tipo: '', q: '' };
 const caso = (id: number, extra: Record<string, unknown> = {}) => ({
@@ -22,11 +23,11 @@ const filaMista = [
   caso(5, { prioridade: 'critica', resumo: 'Caso critico' }),
 ];
 
-type PropsHarness = { modo?: 'casos' | 'pos'; inicial?: FiltrosFila; aoAbrir?: (id: number) => void };
+type PropsHarness = { modo?: 'casos' | 'pos'; inicial?: FiltrosFila; aoAbrir?: (id: number) => void; meuId?: number };
 /** Guarda os filtros como o App faz, para os testes poderem digitar e escolher. */
-function Harness({ modo = 'casos', inicial = VAZIOS, aoAbrir = () => {} }: PropsHarness) {
+function Harness({ modo = 'casos', inicial = VAZIOS, aoAbrir = () => {}, meuId }: PropsHarness) {
   const [filtros, setFiltros] = useState(inicial);
-  return <Fila modo={modo} filtros={filtros} aoFiltrar={setFiltros} aoAbrir={aoAbrir} />;
+  return <Fila modo={modo} meuId={meuId} filtros={filtros} aoFiltrar={setFiltros} aoAbrir={aoAbrir} />;
 }
 const consultas = () => chamadasA('GET', '/api/casos').map(c => c.url);
 const montar = async (rotas: Record<string, Rota> = {}, props: PropsHarness = {}) => {
@@ -38,9 +39,80 @@ const montar = async (rotas: Record<string, Rota> = {}, props: PropsHarness = {}
 const digitar = (campo: HTMLElement, texto: string) => { fireEvent.change(campo, { target: { value: texto } }); };
 const linhas = () => screen.getAllByRole('row').slice(1);
 
+it('filtra conversas com mensagem nova, mostra prévia e limpa o filtro', async () => {
+  servidor({ 'GET /api/casos': () => ({ corpo: { casos: [
+    caso(1, { conversa_estado: 'sem_mensagem' }),
+    caso(2, { canal: 'acolhimento', conversa_estado: 'mensagem_nova', mensagens_novas: 2, ultima_mensagem: { id: 8, autor: 'aluno', texto: 'Preciso conversar hoje', criado_em: '2026-10-14T12:00:00+00:00' } }),
+    caso(3, { conversa_estado: 'aguardando_aluno' }),
+  ] } }) });
+  render(<Harness />);
+  await screen.findByText('Preciso conversar hoje');
+  expect(screen.getByText('Acolhimento anônimo')).toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText('Conversa'), { target: { value: 'mensagem_nova' } });
+  expect(screen.getByText('Resumo do caso 2')).toBeInTheDocument();
+  expect(screen.queryByText('Resumo do caso 1')).not.toBeInTheDocument();
+  expect(screen.getByText('2 mensagens novas')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Limpar filtros' }));
+  expect(screen.getByText('Resumo do caso 1')).toBeInTheDocument();
+});
+
 afterEach(() => { vi.useRealTimers(); });
 
 describe('Fila de Casos', () => {
+  it('Meu atendimento mostra apenas os casos atribuídos e separa ações vencidas', async () => {
+    servidor({ 'GET /api/casos': () => ({ corpo: { casos: [
+      caso(1, { resumo: 'Minha ação vencida', responsavel: { id: 7, nome: 'Ana', ativo: true }, proxima_acao: 'Conversar', prazo_acao: '2000-01-01' }),
+      caso(2, { resumo: 'Meu caso sem ação', responsavel: { id: 7, nome: 'Ana', ativo: true } }),
+      caso(3, { resumo: 'Caso de outra pessoa', responsavel: { id: 8, nome: 'Bia', ativo: true } }),
+    ] } }) });
+    render(<Harness meuId={7} />);
+    await screen.findByText('Minha ação vencida');
+    expect(screen.queryByText('Caso de outra pessoa')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Ações vencidas (1)' }));
+    expect(screen.queryByText('Meu caso sem ação')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Sem ação planejada (1)' }));
+    expect(screen.getByText('Meu caso sem ação')).toBeInTheDocument();
+    expect(screen.queryByText('Minha ação vencida')).toBeNull();
+    expect(screen.getByText('Sem primeiro acesso há mais de 24 horas')).toBeInTheDocument();
+  });
+  it('separa não abertos, atenção e resolvidos sem esconder resolvido com pendência', async () => {
+    const user = userEvent.setup();
+    servidor({ 'GET /api/casos': () => ({ corpo: { casos: [
+      caso(1, { resumo: 'Ainda por abrir', nao_aberto: true, atencao: ['sem_resposta'] }),
+      caso(2, { resumo: 'Resolvido tranquilo', status: 'resolvido', nao_aberto: false, atencao: [] }),
+      caso(3, { resumo: 'Resolvido precisa retorno', status: 'resolvido', nao_aberto: false, atencao: ['mensagem_pendente'] }),
+    ] } }) });
+    render(<Harness />);
+    await screen.findByText('Ainda por abrir');
+    await user.click(screen.getByRole('button', { name: 'Precisam de atenção (2)' }));
+    expect(screen.queryByText('Resolvido tranquilo')).not.toBeInTheDocument();
+    expect(screen.getByText('Resolvido precisa retorno')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Ainda não abertos (1)' }));
+    expect(screen.getByText('Ainda por abrir')).toBeInTheDocument();
+    expect(screen.queryByText('Resolvido precisa retorno')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Resolvidos (2)' }));
+    expect(screen.getByText('Resolvido tranquilo')).toBeInTheDocument();
+    expect(screen.getByText('Resolvido precisa retorno')).toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText('Motivo de atenção'), 'mensagem_pendente');
+    expect(screen.getByRole('button', { name: 'Todos (1)' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Precisam de atenção (1)' })).toBeInTheDocument();
+  });
+  it('mostra assuntos v3 e filtra por grupo e opção com IDs canônicos', async () => {
+    const user = userEvent.setup();
+    servidor({
+      'GET /api/v3/questionario': () => ({ corpo: { ...questionarioV3, perguntas: questionarioV3.perguntas.filter(p => questionarioV3.comuns.includes(p.id)), grupos: [{ id: 'customizado', nome: 'Grupo customizado', opcoes: [{ id: 'nova-opcao', texto: 'Situação customizada', perguntas: [] }] }] } }),
+      'GET /api/casos': () => ({ corpo: { casos: [caso(9, { categorias: ['customizado'], opcoes: ['nova-opcao'], assuntos: ['Texto histórico do pedido'] })] } }),
+    });
+    render(<Harness />);
+    expect(await screen.findByText('Texto histórico do pedido', { selector: 'strong' })).toBeInTheDocument();
+    await screen.findByRole('option', { name: 'Grupo customizado' });
+    await user.selectOptions(screen.getByLabelText('Grupo de situações'), 'customizado');
+    await user.selectOptions(screen.getByLabelText('Situação relatada'), 'nova-opcao');
+    await waitFor(() => expect(consultas().at(-1)).toContain('grupo=customizado'));
+    expect(consultas().at(-1)).toContain('opcao=nova-opcao');
+    await user.click(screen.getByRole('button', { name: 'Limpar filtros' }));
+    await waitFor(() => expect(consultas().at(-1)).toBe('/api/casos'));
+  });
   it('mostra o título Casos e a tabela com as cinco colunas', async () => {
     await montar();
     expect(screen.getByRole('heading', { level: 1, name: 'Casos' })).toHaveAttribute('tabindex', '-1');
@@ -69,7 +141,7 @@ describe('Fila de Casos', () => {
     expect(within(alto).getByText(/Marina, /)).toBeInTheDocument();
     expect(within(alto).getByText('Ocorrendo agora')).toBeInTheDocument();
     const medio = linhas()[2];
-    expect(within(medio).getByText('Por que: Tipo: Ameaça')).toBeInTheDocument();
+    expect(within(medio).getByText(/Por que:.*(agora|andamento)/i)).toBeInTheDocument();
     expect(within(medio).getByText('Ainda não acessado')).toBeInTheDocument();
   });
 

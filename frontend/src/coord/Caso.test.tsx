@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
 import App from './App';
@@ -6,7 +6,7 @@ import { chamadasA, servidor } from './testes/servidor';
 import type { Rota } from './testes/servidor';
 
 const base = {
-  id: 5, tipo: 'ameaca', prioridade: 'alta', prioridade_original: 'alta', pontos: 3, status: 'novo', em_andamento: false, anonimo: true,
+  id: 5, revisao_estado: 0, tipo: 'ameaca', prioridade: 'alta', prioridade_original: 'alta', pontos: 3, status: 'novo', em_andamento: false, anonimo: true,
   simulacao: false, criado_em: '2026-10-14T10:00:00+00:00', atualizado_em: '2026-10-14T10:00:00+00:00',
 };
 const detalhe = (extra: Record<string, unknown> = {}) => ({
@@ -30,11 +30,11 @@ const abrirCaso = async (inicial: Record<string, unknown> = {}, rotas: Record<st
   servidor({
     'GET /api/eu': logado, 'GET /api/casos': () => ({ corpo: { casos: [] } }),
     'GET /api/casos/5': () => ({ corpo: estado }),
-    'POST /api/casos/5/status': c => {
+    'POST /api/v3/casos/5/status': c => {
       estado = { ...estado, status: c.status, eventos: [...estado.eventos, { id: 10, tipo: 'status', usuario_id: 1, usuario: 'Marina', detalhe: `status: ${estado.status} -> ${c.status}`, criado_em: '2026-10-14T12:00:00+00:00' }] };
       return { corpo: { ok: true } };
     },
-    'POST /api/casos/5/prioridade': c => {
+    'POST /api/v3/casos/5/prioridade': c => {
       estado = { ...estado, prioridade: c.prioridade, eventos: [...estado.eventos, { id: 11, tipo: 'prioridade', usuario_id: 1, usuario: 'Marina', detalhe: `${estado.prioridade} -> ${c.prioridade}: ${c.justificativa}`, criado_em: '2026-10-14T12:05:00+00:00' }] };
       return { corpo: { ok: true } };
     },
@@ -48,7 +48,66 @@ const abrirCaso = async (inicial: Record<string, unknown> = {}, rotas: Record<st
 
 beforeEach(() => { window.history.replaceState(null, '', '/'); });
 
+it('registra leitura somente na conversa e oferece exportação autenticada', async () => {
+  const user = await abrirCaso({ mensagens: [{ id: 12, autor: 'aluno', texto: 'Olá equipe', criado_em: base.criado_em, usuario: null, usuario_id: null }] }, {
+    'POST /api/casos/5/conversa/lida': () => ({ corpo: { ok: true } }),
+  });
+  await screen.findByRole('heading', { name: /Caso 5/ });
+  expect(chamadasA('POST', '/api/casos/5/conversa/lida')).toHaveLength(0);
+  const link = screen.getByRole('link', { name: 'Exportar para preenchimento do ROE' });
+  expect(link).toHaveAttribute('href', '/api/casos/5/exportacao');
+  expect(link).toHaveAttribute('rel', 'noopener');
+  await user.click(screen.getByRole('tab', { name: 'Conversa' }));
+  await waitFor(() => expect(chamadasA('POST', '/api/casos/5/conversa/lida')).toHaveLength(1));
+  expect(chamadasA('POST', '/api/casos/5/conversa/lida')[0].corpo).toEqual({ ultimo_id: 12 });
+  await user.click(screen.getByRole('tab', { name: 'Relato e investigação' }));
+  await user.click(screen.getByRole('tab', { name: 'Conversa' }));
+  expect(chamadasA('POST', '/api/casos/5/conversa/lida')).toHaveLength(1);
+});
+
+it('não registra leitura enquanto o documento está oculto', async () => {
+  const propriedade = Object.getOwnPropertyDescriptor(document, 'visibilityState');
+  Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
+  try {
+    const user = await abrirCaso({ mensagens: [{ id: 20, autor: 'aluno', texto: 'Mensagem nova', criado_em: base.criado_em, usuario: null, usuario_id: null }] }, {
+      'POST /api/casos/5/conversa/lida': () => ({ corpo: { ok: true } }),
+    });
+    await screen.findByRole('heading', { name: /Caso 5/ });
+    await user.click(screen.getByRole('tab', { name: 'Conversa' }));
+    expect(chamadasA('POST', '/api/casos/5/conversa/lida')).toHaveLength(0);
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
+    fireEvent(document, new Event('visibilitychange'));
+    await waitFor(() => expect(chamadasA('POST', '/api/casos/5/conversa/lida')).toHaveLength(1));
+    expect(chamadasA('POST', '/api/casos/5/conversa/lida')[0].corpo).toEqual({ ultimo_id: 20 });
+  } finally {
+    if (propriedade) Object.defineProperty(document, 'visibilityState', propriedade);
+    else Reflect.deleteProperty(document, 'visibilityState');
+  }
+});
+
 describe('Caso: cabeçalho e metadados', () => {
+  it('mostra turma do relator anônimo e o nome histórico do local', async () => {
+    await abrirCaso({ ano_relator: '7º ano', sala_relator: 'B', local_id: 'patio', local_nome: 'Pátio antigo' });
+    expect(await screen.findByText('7º ano')).toBeInTheDocument();
+    expect(screen.getByText('B')).toBeInTheDocument();
+    expect(screen.getByText('Pátio antigo')).toBeInTheDocument();
+    expect(screen.getByText(/Denúncia anônima/)).toBeInTheDocument();
+  });
+
+  it('exibe autores apurados e fotos na seção interna autenticada', async () => {
+    await abrirCaso({ status: 'resolvido', resolucoes: [resolucaoFalsa({ autoria: 'identificada', autores: [{ id: 4, nome: 'Ana', ano: '8º', sala: 'C', tem_foto: true }] })] });
+    const secao = await screen.findByRole('region', { name: 'Autoria apurada (uso interno)' });
+    for (const texto of ['Ana', '8º', 'C']) expect(within(secao).getByText(texto)).toBeInTheDocument();
+    expect(within(secao).getByAltText('Foto de Ana')).toHaveAttribute('src', '/api/casos/5/autores/4/foto');
+  });
+
+  it('exibe justificativa de autoria não identificada separada das providências', async () => {
+    await abrirCaso({ status: 'resolvido', resolucoes: [resolucaoFalsa({ autoria: 'nao_identificada', justificativa_autoria: 'Sem elementos suficientes', autores: [] })] });
+    const secao = await screen.findByRole('region', { name: 'Autoria apurada (uso interno)' });
+    expect(within(secao).getByText('Autoria não identificada')).toBeInTheDocument();
+    expect(within(secao).getByText('Sem elementos suficientes')).toBeInTheDocument();
+    expect(secao).not.toHaveTextContent('Conversa com a turma');
+  });
   it('mostra relato, motivos e anexos e foca o título', async () => {
     await abrirCaso();
     const titulo = await screen.findByRole('heading', { name: /Caso 5/ });
@@ -112,7 +171,7 @@ describe('Caso: status', () => {
     expect(seletor).toHaveValue('em_investigacao');
     expect(within(seletor.closest('div')!).getByRole('option', { name: 'Em investigação' })).toBeInTheDocument();
     expect(screen.getByText('Em investigação', { selector: '.selo-status' })).toBeInTheDocument();
-    expect(chamadasA('POST', '/api/casos/5/status')).toHaveLength(0);
+    expect(chamadasA('POST', '/api/v3/casos/5/status')).toHaveLength(0);
   });
 
   it('muda o status pela API e atualiza a linha do tempo', async () => {
@@ -120,8 +179,8 @@ describe('Caso: status', () => {
     await user.selectOptions(await screen.findByLabelText('Status'), 'em_investigacao');
     await user.click(screen.getByRole('tab', { name: 'Histórico' }));
     expect(await screen.findByText('Status mudou de Novo para Em investigação por Marina')).toBeInTheDocument();
-    const envio = chamadasA('POST', '/api/casos/5/status')[0];
-    expect(envio.corpo).toEqual({ status: 'em_investigacao' });
+    const envio = chamadasA('POST', '/api/v3/casos/5/status')[0];
+    expect(envio.corpo).toEqual({ status: 'em_investigacao', revisao_estado: 0 });
     expect(envio.init?.headers).toEqual({ 'Content-Type': 'application/json' });
     expect(screen.getByText('Status alterado para Em investigação.', { selector: '[role=status]' })).toBeInTheDocument();
   });
@@ -133,19 +192,19 @@ describe('Caso: status', () => {
     expect(screen.queryByLabelText('Status')).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Reabrir para investigação' }));
     await screen.findByText('Status alterado para Em investigação.', { selector: '[role=status]' });
-    expect(chamadasA('POST', '/api/casos/5/status')[0].corpo).toEqual({ status: 'em_investigacao' });
+    expect(chamadasA('POST', '/api/v3/casos/5/status')[0].corpo).toEqual({ status: 'em_investigacao', revisao_estado: 0 });
     expect(await screen.findByLabelText('Status')).toHaveValue('em_investigacao');
   });
 
   it('401 ao agir devolve ao Login', async () => {
-    const user = await abrirCaso({}, { 'POST /api/casos/5/status': () => ({ status: 401 }) });
+    const user = await abrirCaso({}, { 'POST /api/v3/casos/5/status': () => ({ status: 401 }) });
     await user.selectOptions(await screen.findByLabelText('Status'), 'em_investigacao');
     expect(await screen.findByLabelText('Senha')).toBeInTheDocument();
     expect(screen.queryByText('Relato completo do aluno.')).not.toBeInTheDocument();
   });
 
   it('erro ao mudar o status mostra a mensagem amigável', async () => {
-    const user = await abrirCaso({}, { 'POST /api/casos/5/status': () => ({ status: 409 }) });
+    const user = await abrirCaso({}, { 'POST /api/v3/casos/5/status': () => ({ status: 409 }) });
     await user.selectOptions(await screen.findByLabelText('Status'), 'em_investigacao');
     expect(await screen.findByRole('alert')).toHaveTextContent('O caso mudou enquanto você trabalhava');
   });
@@ -166,8 +225,8 @@ describe('Caso: reavaliar prioridade', () => {
     const antes = chamadasA('GET', '/api/casos/5').length;
     await user.click(screen.getByRole('button', { name: 'Confirmar' }));
     expect(await screen.findByText('Prioridade alterada para Crítica.', { selector: '[role=status]' })).toBeInTheDocument();
-    const envio = chamadasA('POST', '/api/casos/5/prioridade')[0];
-    expect(envio.corpo).toEqual({ prioridade: 'critica', justificativa: 'Nova ameaça' });
+    const envio = chamadasA('POST', '/api/v3/casos/5/prioridade')[0];
+    expect(envio.corpo).toEqual({ prioridade: 'critica', justificativa: 'Nova ameaça', revisao_estado: 0 });
     expect(envio.init?.headers).toEqual({ 'Content-Type': 'application/json' });
     expect(chamadasA('GET', '/api/casos/5').length).toBeGreaterThan(antes);
     await waitFor(() => expect(screen.getByRole('button', { name: 'Reavaliar prioridade' })).toHaveFocus());
@@ -177,7 +236,7 @@ describe('Caso: reavaliar prioridade', () => {
   });
 
   it('erro 400 mostra mensagem amigável e mantém o texto digitado', async () => {
-    const user = await abrirCaso({}, { 'POST /api/casos/5/prioridade': () => ({ status: 400 }) });
+    const user = await abrirCaso({}, { 'POST /api/v3/casos/5/prioridade': () => ({ status: 400 }) });
     await user.click(await screen.findByRole('button', { name: 'Reavaliar prioridade' }));
     await user.selectOptions(screen.getByLabelText('Nova prioridade'), 'baixa');
     await user.type(screen.getByLabelText('Justificativa'), 'meu motivo');
@@ -188,7 +247,7 @@ describe('Caso: reavaliar prioridade', () => {
   });
 
   it('erro 404 mostra mensagem amigável', async () => {
-    const user = await abrirCaso({}, { 'POST /api/casos/5/prioridade': () => ({ status: 404 }) });
+    const user = await abrirCaso({}, { 'POST /api/v3/casos/5/prioridade': () => ({ status: 404 }) });
     await user.click(await screen.findByRole('button', { name: 'Reavaliar prioridade' }));
     await user.selectOptions(screen.getByLabelText('Nova prioridade'), 'baixa');
     await user.type(screen.getByLabelText('Justificativa'), 'x');
@@ -197,7 +256,7 @@ describe('Caso: reavaliar prioridade', () => {
   });
 
   it('401 ao reavaliar devolve ao Login', async () => {
-    const user = await abrirCaso({}, { 'POST /api/casos/5/prioridade': () => ({ status: 401 }) });
+    const user = await abrirCaso({}, { 'POST /api/v3/casos/5/prioridade': () => ({ status: 401 }) });
     await user.click(await screen.findByRole('button', { name: 'Reavaliar prioridade' }));
     await user.selectOptions(screen.getByLabelText('Nova prioridade'), 'baixa');
     await user.type(screen.getByLabelText('Justificativa'), 'x');
@@ -343,7 +402,7 @@ describe('Caso: abas', () => {
 
 describe('Caso: resolução', () => {
   const resolver: Record<string, Rota> = {
-    'POST /api/casos/5/resolucao': c => {
+    'POST /api/v4/casos/5/resolucao': c => {
       estado = { ...estado, status: 'resolvido', resolucoes: [resolucaoFalsa(c)] };
       return { status: 201, corpo: { ok: true } };
     },
@@ -359,32 +418,40 @@ describe('Caso: resolução', () => {
     const user = await abrirCaso({}, resolver);
     await user.click(await screen.findByLabelText('Intervenção realizada'));
     await user.type(screen.getByLabelText('Providências'), '  Conversa com a turma  ');
+    await user.click(screen.getByLabelText('Autoria não identificada'));
+    await user.type(screen.getByLabelText('Justificativa interna'), 'Apuração sem identificação');
     await user.click(screen.getByRole('button', { name: 'Registrar resolução' }));
     expect(await screen.findByText('Caso resolvido.', { selector: '[role=status]' })).toBeInTheDocument();
-    expect(chamadasA('POST', '/api/casos/5/resolucao')[0].corpo).toEqual({ desfecho: 'intervencao_realizada', providencias: 'Conversa com a turma', resultado: '' });
+    expect(chamadasA('POST', '/api/v4/casos/5/resolucao')[0].corpo).toEqual({ desfecho: 'intervencao_realizada', providencias: 'Conversa com a turma', resultado: '', revisao_estado: 0, autoria: 'nao_identificada', justificativa_autoria: 'Apuração sem identificação', autores: [] });
     expect(screen.queryByRole('heading', { name: 'Registrar resolução' })).not.toBeInTheDocument();
     expect(await screen.findByRole('heading', { name: 'Acompanhamento após a resolução' })).toBeInTheDocument();
     await waitFor(() => expect(screen.getByRole('heading', { name: /Caso 5/ })).toHaveFocus());
     expect(screen.getByRole('button', { name: 'Reabrir para investigação' })).toBeInTheDocument();
   });
 
-  it('409 mostra a mensagem de caso já resolvido e recarrega o caso', async () => {
-    const user = await abrirCaso({}, { 'POST /api/casos/5/resolucao': () => {
+  it('409 recarrega o caso e preserva o formulário de resolução', async () => {
+    const user = await abrirCaso({}, { 'POST /api/v4/casos/5/resolucao': () => {
       estado = { ...estado, status: 'resolvido', resolucoes: [resolucaoFalsa()] };
       return { status: 409 };
     } });
     await user.click(await screen.findByLabelText('Situação solucionada'));
     await user.type(screen.getByLabelText('Providências'), 'x');
+    await user.click(screen.getByLabelText('Autoria não identificada'));
+    await user.type(screen.getByLabelText('Justificativa interna'), 'Apuração sem identificação');
     await user.click(screen.getByRole('button', { name: 'Registrar resolução' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('Este caso já foi resolvido. Recarregue para ver o registro.');
+    expect(await screen.findByRole('alert')).toHaveTextContent('O caso mudou enquanto você trabalhava.');
     expect(await screen.findByRole('heading', { name: 'Acompanhamento após a resolução' })).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByRole('heading', { name: /Caso 5/ })).toHaveFocus());
+    expect(screen.getByLabelText('Providências')).toHaveValue('x');
+    expect(screen.getByLabelText('Justificativa interna')).toHaveValue('Apuração sem identificação');
+    await waitFor(() => expect(screen.getByLabelText('Providências')).toHaveFocus());
   });
 
   it('erro 400 mostra a mensagem e mantém o texto digitado', async () => {
-    const user = await abrirCaso({}, { 'POST /api/casos/5/resolucao': () => ({ status: 400 }) });
+    const user = await abrirCaso({}, { 'POST /api/v4/casos/5/resolucao': () => ({ status: 400 }) });
     await user.click(await screen.findByLabelText('Situação solucionada'));
     await user.type(screen.getByLabelText('Providências'), 'meu texto');
+    await user.click(screen.getByLabelText('Autoria não identificada'));
+    await user.type(screen.getByLabelText('Justificativa interna'), 'Apuração sem identificação');
     await user.click(screen.getByRole('button', { name: 'Registrar resolução' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Confira os dados e tente de novo.');
     expect(screen.getByLabelText('Providências')).toHaveValue('meu texto');
@@ -392,9 +459,11 @@ describe('Caso: resolução', () => {
   });
 
   it('401 ao resolver devolve ao Login', async () => {
-    const user = await abrirCaso({}, { 'POST /api/casos/5/resolucao': () => ({ status: 401 }) });
+    const user = await abrirCaso({}, { 'POST /api/v4/casos/5/resolucao': () => ({ status: 401 }) });
     await user.click(await screen.findByLabelText('Situação solucionada'));
     await user.type(screen.getByLabelText('Providências'), 'x');
+    await user.click(screen.getByLabelText('Autoria não identificada'));
+    await user.type(screen.getByLabelText('Justificativa interna'), 'Apuração sem identificação');
     await user.click(screen.getByRole('button', { name: 'Registrar resolução' }));
     expect(await screen.findByLabelText('Senha')).toBeInTheDocument();
   });
@@ -403,7 +472,7 @@ describe('Caso: resolução', () => {
 describe('Caso: pós-resolução e recorrência', () => {
   const pendente = { status: 'resolvido', recorrencia_pendente: true, resolucoes: [resolucaoFalsa()], situacoes: [{ situacao: 'voltou', criado_em: '2026-10-15T09:00:00+00:00' }] };
   const revisar: Record<string, Rota> = {
-    'POST /api/casos/5/revisao-recorrencia': () => {
+    'POST /api/v3/casos/5/revisao-recorrencia': () => {
       estado = { ...estado, recorrencia_pendente: false, revisoes_recorrencia: [{ usuario: 'Marina', criado_em: '2026-10-15T10:00:00+00:00' }] };
       return { status: 201, corpo: { ok: true } };
     },
@@ -420,23 +489,23 @@ describe('Caso: pós-resolução e recorrência', () => {
     expect(screen.queryByRole('heading', { name: 'Acompanhamento após a resolução' })).not.toBeInTheDocument();
   });
 
-  it('registra a revisão com corpo vazio, recarrega e tira o alerta', async () => {
+  it('registra a revisão com revisão esperada, recarrega e tira o alerta', async () => {
     const user = await abrirCaso(pendente, revisar);
     expect(await screen.findByRole('heading', { name: 'Situação voltou a acontecer' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Registrar revisão' }));
     expect(await screen.findByText('Revisão registrada.', { selector: '[role=status]' })).toBeInTheDocument();
-    expect(chamadasA('POST', '/api/casos/5/revisao-recorrencia')[0].corpo).toEqual({});
+    expect(chamadasA('POST', '/api/v3/casos/5/revisao-recorrencia')[0].corpo).toEqual({ revisao_estado: 0 });
     expect(screen.queryByRole('heading', { name: 'Situação voltou a acontecer' })).not.toBeInTheDocument();
     expect(screen.getByText(/Revisado por Marina/)).toBeInTheDocument();
   });
 
-  it('409 vira "Esta recorrência já foi revisada." e recarrega', async () => {
-    const user = await abrirCaso(pendente, { 'POST /api/casos/5/revisao-recorrencia': () => {
+  it('409 explica a mudança de estado e recarrega', async () => {
+    const user = await abrirCaso(pendente, { 'POST /api/v3/casos/5/revisao-recorrencia': () => {
       estado = { ...estado, recorrencia_pendente: false };
       return { status: 409 };
     } });
     await user.click(await screen.findByRole('button', { name: 'Registrar revisão' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('Esta recorrência já foi revisada.');
+    expect(await screen.findByRole('alert')).toHaveTextContent('O caso mudou enquanto você trabalhava.');
     expect(screen.queryByRole('button', { name: 'Registrar revisão' })).not.toBeInTheDocument();
   });
 

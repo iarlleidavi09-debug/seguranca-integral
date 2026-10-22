@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { coordenacaoGerenciada, ouvirAtualizacoes } from '../shared/tempoReal';
 
 export const INTERVALO_MS = 8000;
 
@@ -13,19 +14,33 @@ export function usePolling(tarefa: (sinal: AbortSignal, ativo: () => boolean) =>
   useEffect(() => {
     let ativo = true;
     let emCurso = false;
+    let pendente = false;
+    const diaBrasilia = () => new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    let ultimoDia = diaBrasilia();
     const controle = new AbortController();
     async function carregar() {
-      if (emCurso) return;
+      if (!ativo || document.hidden) return;
+      if (emCurso) { pendente = true; return; }
       emCurso = true;
-      try { await ultima.current(controle.signal, () => ativo); } finally { emCurso = false; }
+      try { await ultima.current(controle.signal, () => ativo); } finally {
+        emCurso = false;
+        if (pendente && ativo) { pendente = false; void carregar(); }
+      }
     }
     void carregar();
-    const relogio = setInterval(() => { if (!document.hidden) void carregar(); }, INTERVALO_MS);
-    const aoMudarVisibilidade = () => { if (!document.hidden) void carregar(); };
+    const relogio = setInterval(() => {
+      if (document.hidden) return;
+      const hoje = diaBrasilia(), mudouDia = hoje !== ultimoDia;
+      ultimoDia = hoje;
+      if (mudouDia || (!coordenacaoGerenciada() && !emCurso)) void carregar();
+    }, INTERVALO_MS);
+    const remover = ouvirAtualizacoes(() => void carregar());
+    const aoMudarVisibilidade = () => { if (!document.hidden && !coordenacaoGerenciada()) void carregar(); };
     document.addEventListener('visibilitychange', aoMudarVisibilidade);
     return () => {
       ativo = false;
       clearInterval(relogio);
+      remover();
       document.removeEventListener('visibilitychange', aoMudarVisibilidade);
       controle.abort();
     };

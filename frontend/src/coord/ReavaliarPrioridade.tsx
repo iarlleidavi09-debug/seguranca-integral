@@ -6,10 +6,11 @@ import type { Prioridade as ValorPrioridade } from '../shared/api';
 const JUSTIFICATIVA_MAX = 2000;
 
 /** Reavaliação de prioridade: exige nova prioridade e justificativa; quem chama grava e recarrega. */
-export default function ReavaliarPrioridade({ atual, aoConfirmar, ocupado }: {
+export default function ReavaliarPrioridade({ atual, aoConfirmar, ocupado, aoAbrir }: {
   atual: ValorPrioridade;
   aoConfirmar: (nova: ValorPrioridade, justificativa: string) => Promise<void>;
   ocupado: boolean;
+  aoAbrir?: () => void;
 }) {
   const [aberto, setAberto] = useState(false);
   const [nova, setNova] = useState<ValorPrioridade>(atual);
@@ -24,7 +25,7 @@ export default function ReavaliarPrioridade({ atual, aoConfirmar, ocupado }: {
   useEffect(() => { if (aberto) seletor.current?.focus(); }, [aberto]);
   const travado = ocupado || enviando;
 
-  function abrir() { setNova(atual); setJustificativa(''); setErro(''); setAberto(true); }
+  function abrir() { aoAbrir?.(); setNova(atual); setJustificativa(''); setErro(''); setAberto(true); }
   function fechar() { setAberto(false); setErro(''); setTimeout(() => gatilho.current?.focus(), 0); }
   async function enviar() {
     const limpa = justificativa.trim();

@@ -46,7 +46,7 @@ describe('Casca da coordenação', () => {
     expect(screen.getByText('Marina')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Sair' })).toBeInTheDocument();
     expect(container.firstElementChild).toHaveClass('coord-app');
-    expect(screen.getByText('Responsabilidade compartilhada')).toBeInTheDocument();
+    expect(screen.queryByText('Responsabilidade compartilhada')).not.toBeInTheDocument();
   });
 
   it('coordenador não vê Usuários', async () => {
@@ -112,7 +112,7 @@ describe('Casca: contador e acesso', () => {
     abrir(admin, '/#caso-12', {
       'GET /api/resumo': () => resumo(pendente)(null, new URL('http://x')),
       'GET /api/casos/12': () => ({ corpo: { ...detalhe(), status: 'resolvido', recorrencia_pendente: pendente > 0, resolucoes: [], situacoes: [], revisoes_recorrencia: [] } }),
-      'POST /api/casos/12/revisao-recorrencia': () => { pendente = 0; return { status: 201, corpo: { ok: true } }; },
+      'POST /api/v3/casos/12/revisao-recorrencia': () => { pendente = 0; return { status: 201, corpo: { ok: true } }; },
     });
     expect(await screen.findByText('1 pendente')).toBeInTheDocument();
     await user.click(await screen.findByRole('button', { name: 'Registrar revisão' }));
