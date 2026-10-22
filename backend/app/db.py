@@ -170,6 +170,7 @@ def init_db(config: Config) -> None:
         conn.commit()
         _migrar_v2(conn, config)
         _migrar_respostas(conn)
+        _migrar_edicao_mensagens(conn)
         _migrar_v3(conn)
         conn.commit()
         _migrar_v4(conn)
@@ -387,6 +388,29 @@ def _migrar_respostas(conn: sqlite3.Connection) -> None:
     """Bancos anteriores ao questionário v2 B não têm `casos.respostas_json`."""
     if "respostas_json" not in _colunas(conn, "casos"):
         conn.execute("ALTER TABLE casos ADD COLUMN respostas_json TEXT")
+
+
+def _migrar_edicao_mensagens(conn: sqlite3.Connection) -> None:
+    """Edição e exclusão de mensagens: colunas novas e histórico de versões."""
+    colunas = _colunas(conn, "mensagens")
+    if "editada_em" not in colunas:
+        conn.execute("ALTER TABLE mensagens ADD COLUMN editada_em TEXT")
+    if "apagada_em" not in colunas:
+        conn.execute("ALTER TABLE mensagens ADD COLUMN apagada_em TEXT")
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS mensagens_versoes ("
+        "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+        "mensagem_id INTEGER NOT NULL REFERENCES mensagens(id) ON DELETE CASCADE, "
+        "caso_id INTEGER NOT NULL REFERENCES casos(id) ON DELETE CASCADE, "
+        "texto TEXT NOT NULL, "
+        "acao TEXT NOT NULL CHECK (acao IN ('edicao','exclusao')), "
+        "usuario_id INTEGER REFERENCES usuarios(id), "
+        "criado_em TEXT NOT NULL)"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_mensagens_versoes_mensagem "
+        "ON mensagens_versoes(mensagem_id)"
+    )
 
 
 def _migrar_papel(conn: sqlite3.Connection) -> None:

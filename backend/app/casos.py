@@ -129,8 +129,8 @@ def caso_por_codigo(conn: sqlite3.Connection, config: Config,
 def listar_mensagens(conn: sqlite3.Connection, caso_id: int) -> list[sqlite3.Row]:
     """Mensagens do caso. Notas internas ficam em outra tabela e nunca entram."""
     return conn.execute(
-        "SELECT id, autor, texto, criado_em FROM mensagens WHERE caso_id = ? "
-        "ORDER BY id",
+        "SELECT id, autor, texto, criado_em, editada_em, apagada_em "
+        "FROM mensagens WHERE caso_id = ? ORDER BY id",
         (caso_id,),
     ).fetchall()
 
@@ -150,12 +150,107 @@ def adicionar_mensagem(conn: sqlite3.Connection, caso_id: int, autor: str,
         conn.commit()
 
 
+def pode_alterar_mensagem(mensagem, usuario_id: int, papel: str) -> bool:
+    """Só mensagens da coordenação: o autor ou o admin. Sem autor, só o admin."""
+    if mensagem["autor"] != "coordenacao":
+        return False
+    if papel == "admin":
+        return True
+    return mensagem["usuario_id"] is not None and mensagem["usuario_id"] == usuario_id
+
+
+def _mensagem_do_caso(conn: sqlite3.Connection, caso_id: int, mensagem_id: int):
+    return conn.execute(
+        "SELECT id, autor, texto, usuario_id, apagada_em FROM mensagens "
+        "WHERE id = ? AND caso_id = ?",
+        (mensagem_id, caso_id),
+    ).fetchone()
+
+
+def _guardar_versao(conn: sqlite3.Connection, caso_id: int, mensagem_id: int,
+                    texto: str, acao: str, usuario_id: int, agora: str) -> None:
+    conn.execute(
+        "INSERT INTO mensagens_versoes (mensagem_id, caso_id, texto, acao, "
+        "usuario_id, criado_em) VALUES (?,?,?,?,?,?)",
+        (mensagem_id, caso_id, texto, acao, usuario_id, agora),
+    )
+
+
+def alterar_mensagem(conn: sqlite3.Connection, caso_id: int, mensagem_id: int,
+                     usuario_id: int, papel: str, texto: str) -> str:
+    """Edita o texto; a versão anterior fica guardada. Não mexe em `atualizado_em`."""
+    msg = _mensagem_do_caso(conn, caso_id, mensagem_id)
+    if msg is None:
+        return "inexistente"
+    if not pode_alterar_mensagem(msg, usuario_id, papel):
+        return "proibido"
+    if msg["apagada_em"] is not None:
+        return "apagada"
+    if texto == msg["texto"]:
+        return "sem_mudanca"
+    agora = _agora()
+    try:
+        _guardar_versao(conn, caso_id, mensagem_id, msg["texto"], "edicao",
+                        usuario_id, agora)
+        conn.execute("UPDATE mensagens SET texto = ?, editada_em = ? WHERE id = ?",
+                     (texto, agora, mensagem_id))
+        # o detalhe nunca leva o texto da mensagem
+        registrar_evento(conn, caso_id, "mensagem_editada", usuario_id,
+                         f"mensagem {mensagem_id}", commit=False)
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    return "ok"
+
+
+def apagar_mensagem(conn: sqlite3.Connection, caso_id: int, mensagem_id: int,
+                    usuario_id: int, papel: str) -> str:
+    """Limpa o texto e marca `apagada_em`; o texto original fica na versão."""
+    msg = _mensagem_do_caso(conn, caso_id, mensagem_id)
+    if msg is None:
+        return "inexistente"
+    if not pode_alterar_mensagem(msg, usuario_id, papel):
+        return "proibido"
+    if msg["apagada_em"] is not None:
+        return "ja_apagada"
+    agora = _agora()
+    try:
+        _guardar_versao(conn, caso_id, mensagem_id, msg["texto"], "exclusao",
+                        usuario_id, agora)
+        conn.execute("UPDATE mensagens SET texto = '', apagada_em = ? WHERE id = ?",
+                     (agora, mensagem_id))
+        registrar_evento(conn, caso_id, "mensagem_apagada", usuario_id,
+                         f"mensagem {mensagem_id}", commit=False)
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    return "ok"
+
+
+def versoes_mensagem(conn: sqlite3.Connection, caso_id: int,
+                     mensagem_id: int) -> list[dict] | None:
+    """Histórico da mensagem, mais antigo primeiro; None se não é deste caso."""
+    if _mensagem_do_caso(conn, caso_id, mensagem_id) is None:
+        return None
+    return [
+        dict(v) for v in conn.execute(
+            "SELECT v.id, v.texto, v.acao, u.nome AS usuario, v.criado_em "
+            "FROM mensagens_versoes v LEFT JOIN usuarios u ON u.id = v.usuario_id "
+            "WHERE v.mensagem_id = ? ORDER BY v.id",
+            (mensagem_id,),
+        )
+    ]
+
+
 # --- consultas e ações da coordenação ------------------------------------
 
 def estado_conversa(conn: sqlite3.Connection, caso_id: int,
                     usuario_id: int | None) -> dict:
     ultima = conn.execute(
-        'SELECT id, autor, texto, criado_em FROM mensagens WHERE caso_id=? ORDER BY id DESC LIMIT 1',
+        'SELECT id, autor, texto, criado_em, apagada_em FROM mensagens '
+        'WHERE caso_id=? ORDER BY id DESC LIMIT 1',
         (caso_id,),
     ).fetchone()
     novas = conn.execute(
@@ -367,7 +462,8 @@ def detalhe_caso(conn: sqlite3.Connection, caso_id: int,
     ]
     caso["mensagens"] = [
         dict(m) for m in conn.execute(
-            "SELECT m.id, m.autor, m.texto, m.criado_em, m.usuario_id, u.nome AS usuario "
+            "SELECT m.id, m.autor, m.texto, m.criado_em, m.editada_em, m.apagada_em, "
+            "m.usuario_id, u.nome AS usuario "
             "FROM mensagens m LEFT JOIN usuarios u ON u.id = m.usuario_id "
             "WHERE m.caso_id = ? ORDER BY m.id",
             (caso_id,),
