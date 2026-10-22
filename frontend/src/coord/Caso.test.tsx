@@ -524,3 +524,56 @@ describe('Caso: pós-resolução e recorrência', () => {
     expect(alerta.compareDocumentPosition(aba) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });
+
+describe('editar, excluir e ver versões de mensagens', () => {
+  const msg = (extra: Record<string, unknown> = {}) => ({ id: 12, autor: 'coordenacao', texto: 'Texto original', criado_em: base.criado_em, usuario: 'Marina', usuario_id: 1, editada_em: null, apagada_em: null, pode_alterar: true, ...extra });
+
+  it('editar atualiza a conversa e avisa', async () => {
+    const user = await abrirCaso({ mensagens: [msg()] }, {
+      'PATCH /api/casos/5/mensagens/12': c => { estado = { ...estado, mensagens: [msg({ texto: c.texto, editada_em: '2026-10-14T12:00:00+00:00' })] }; return { corpo: { ok: true } }; },
+    });
+    await screen.findByRole('heading', { name: /Caso 5/ });
+    await user.click(screen.getByRole('tab', { name: 'Conversa' }));
+    await user.click(screen.getByRole('button', { name: 'Editar' }));
+    const campo = screen.getByRole('textbox', { name: 'Editar mensagem' });
+    await user.clear(campo); await user.type(campo, 'Texto corrigido');
+    await user.click(screen.getByRole('button', { name: 'Salvar' }));
+    expect(await screen.findByText('Texto corrigido')).toBeInTheDocument();
+    expect(chamadasA('PATCH', '/api/casos/5/mensagens/12')[0].corpo).toEqual({ texto: 'Texto corrigido' });
+    expect(screen.getByText('editada')).toBeInTheDocument();
+    expect(screen.getByText('Mensagem editada.')).toBeInTheDocument();
+  });
+
+  it('excluir mostra "Mensagem apagada"', async () => {
+    const user = await abrirCaso({ mensagens: [msg()] }, {
+      'DELETE /api/casos/5/mensagens/12': () => { estado = { ...estado, mensagens: [msg({ texto: '', apagada_em: '2026-10-14T12:00:00+00:00', pode_alterar: false })] }; return { corpo: { ok: true } }; },
+    });
+    await screen.findByRole('heading', { name: /Caso 5/ });
+    await user.click(screen.getByRole('tab', { name: 'Conversa' }));
+    await user.click(screen.getByRole('button', { name: 'Excluir' }));
+    await user.click(screen.getByRole('button', { name: 'Confirmar exclusão' }));
+    expect(await screen.findByText('Mensagem apagada')).toBeInTheDocument();
+    expect(screen.queryByText('Texto original')).toBeNull();
+    expect(screen.getByText('Mensagem excluída.')).toBeInTheDocument();
+  });
+
+  it('ver versões lista o que o servidor devolve', async () => {
+    const user = await abrirCaso({ mensagens: [msg({ editada_em: '2026-10-14T11:00:00+00:00' })] }, {
+      'GET /api/casos/5/mensagens/12/versoes': () => ({ corpo: { versoes: [{ id: 1, texto: 'Redação antiga', acao: 'edicao', usuario: 'Marina', criado_em: '2026-10-14T11:00:00+00:00' }] } }),
+    });
+    await screen.findByRole('heading', { name: /Caso 5/ });
+    await user.click(screen.getByRole('tab', { name: 'Conversa' }));
+    await user.click(screen.getByRole('button', { name: 'Ver versões' }));
+    expect(await screen.findByText('Redação antiga')).toBeInTheDocument();
+  });
+
+  it('o histórico descreve mensagem editada e apagada', async () => {
+    const user = await abrirCaso({ eventos: [
+      { id: 20, tipo: 'mensagem_editada', usuario_id: 1, usuario: 'Marina', detalhe: '12', criado_em: base.criado_em },
+      { id: 21, tipo: 'mensagem_apagada', usuario_id: 1, usuario: 'Marina', detalhe: '12', criado_em: base.criado_em },
+    ] });
+    await user.click(await screen.findByRole('tab', { name: 'Histórico' }));
+    expect(screen.getByText(/Mensagem editada por Marina/)).toBeInTheDocument();
+    expect(screen.getByText(/Mensagem apagada por Marina/)).toBeInTheDocument();
+  });
+});

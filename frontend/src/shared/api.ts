@@ -1,5 +1,5 @@
 import type { QuestionarioV3 } from './v3';
-export type Mensagem = { id?: number; autor: 'aluno' | 'coordenacao'; texto: string; criado_em: string };
+export type Mensagem = { id?: number; autor: 'aluno' | 'coordenacao'; texto: string; criado_em: string; editada?: boolean; apagada?: boolean };
 export type ResultadoDenuncia = { codigo: string; anexos_recusados?: { nome: string; motivo: string }[] };
 export type StatusAluno = 'novo' | 'em_investigacao' | 'resolvido';
 export type ResolucaoAluno = { desfecho: 'solucionada' | 'intervencao_realizada'; providencias: string; resultado: string; criado_em: string };
@@ -146,7 +146,8 @@ export type FiltrosFila = { status: string; prioridade: string; tipo: string; q:
 export type Evento = { id: number; tipo: string; usuario_id: number | null; usuario: string | null; detalhe: string; criado_em: string };
 export type Nota = { id: number; usuario_id: number; usuario: string | null; texto: string; criado_em: string };
 export type AnexoCaso = { id: number; tipo: string; tamanho: number };
-export type MensagemCoord = Mensagem & { usuario_id: number | null; usuario: string | null };
+export type MensagemCoord = Mensagem & { usuario_id: number | null; usuario: string | null; editada_em: string | null; apagada_em: string | null; pode_alterar: boolean };
+export type VersaoMensagem = { id: number; texto: string; acao: 'edicao' | 'exclusao'; usuario: string | null; criado_em: string };
 export type AutorResolucaoInput = { nome: string; ano: string; sala: string; foto?: File };
 export type DadosResolucao = { desfecho: Desfecho; providencias: string; resultado: string; autoria: 'identificada' | 'nao_identificada'; justificativa_autoria: string; autores: AutorResolucaoInput[] };
 export type AutorResolucao = { id: number; nome: string; ano: string; sala: string; tem_foto: boolean };
@@ -193,7 +194,7 @@ export function mensagemErroCoord(erro: unknown): string {
   }
 }
 
-async function coord<T>(metodo: 'GET' | 'POST' | 'DELETE', caminho: string, corpo?: unknown, sinal?: AbortSignal): Promise<T> {
+async function coord<T>(metodo: 'GET' | 'POST' | 'PATCH' | 'DELETE', caminho: string, corpo?: unknown, sinal?: AbortSignal): Promise<T> {
   let resposta: Response;
   try {
     resposta = await fetch(caminho, {
@@ -280,6 +281,11 @@ export const obterPresenca = (casoId: number) => coord<{ pessoas: PessoaPresente
 export const pulsarPresenca = (casoId: number, aba: string, atividade: Atividade) => coord<{ pessoas: PessoaPresente[] }>('POST', `/api/casos/${id(casoId)}/presenca`, { aba, atividade });
 export const removerPresenca = (casoId: number, aba: string) => coord<{ pessoas: PessoaPresente[] }>('DELETE', `/api/casos/${id(casoId)}/presenca`, { aba });
 export const enviarMensagemAoAluno = (casoId: number, texto: string) => coord<{ ok: boolean }>('POST', `/api/casos/${id(casoId)}/mensagens`, { texto });
+export const editarMensagemAoAluno = (casoId: number, mensagemId: number, texto: string) => coord<{ ok: boolean }>('PATCH', `/api/casos/${id(casoId)}/mensagens/${id(mensagemId)}`, { texto });
+export const excluirMensagemAoAluno = (casoId: number, mensagemId: number) => coord<{ ok: boolean }>('DELETE', `/api/casos/${id(casoId)}/mensagens/${id(mensagemId)}`);
+export async function versoesDaMensagem(casoId: number, mensagemId: number): Promise<VersaoMensagem[]> {
+  return (await coord<{ versoes: VersaoMensagem[] }>('GET', `/api/casos/${id(casoId)}/mensagens/${id(mensagemId)}/versoes`)).versoes;
+}
 export const criarNota = (casoId: number, texto: string) => coord<{ ok: boolean }>('POST', `/api/casos/${id(casoId)}/notas`, { texto });
 export async function listarUsuarios(sinal?: AbortSignal): Promise<UsuarioLista[]> {
   return (await coord<{ usuarios: UsuarioLista[] }>('GET', '/api/usuarios', undefined, sinal)).usuarios;

@@ -71,6 +71,8 @@ export function descricaoEvento(evento: Evento): string {
     case 'recorrencia': return 'O aluno informou que a situação voltou a acontecer';
     case 'revisao_recorrencia': return `Recorrência revisada${quem}`;
     case 'mensagem_coordenacao': return `Mensagem enviada ao aluno${quem}`;
+    case 'mensagem_editada': return `Mensagem editada${quem}`;
+    case 'mensagem_apagada': return `Mensagem apagada${quem}`;
     case 'mensagem_aluno': return 'O aluno enviou uma mensagem';
     case 'nota_interna': return `Nota interna registrada${quem}`;
     case 'atendimento': return `Atendimento atualizado${quem}: ${evento.detalhe}`;

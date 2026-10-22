@@ -265,6 +265,13 @@ select:disabled { background: var(--desabilitado-fundo); color: var(--desabilita
 .abas [role='tab'] { flex: 1; min-height: var(--controle-altura); padding: var(--espaco-2) var(--espaco-3); background: transparent; color: var(--texto-secundario); font-weight: 700; border: none; border-bottom: 3px solid transparent; }
 .abas [role='tab'][aria-selected='true'] { color: var(--primaria-base); border-bottom-color: var(--primaria-base); }
 .mensagens { list-style: none; margin: 0; padding: 0; }
+.mensagem-acoes { display: flex; flex-wrap: wrap; align-items: center; gap: var(--espaco-2) var(--espaco-4); }
+.mensagem-acoes .botao-texto { margin-bottom: 0; }
+.mensagem-marca { color: var(--texto-secundario); }
+.mensagem-edicao textarea { width: 100%; }
+.mensagem-confirmacao { margin-top: var(--espaco-2); }
+.mensagem-versoes { list-style: none; margin: var(--espaco-3) 0 0; padding: var(--espaco-3) 0 0; border-top: var(--linha-fina) solid var(--borda-suave); display: grid; gap: var(--espaco-3); }
+.mensagem-versoes p { margin: 0 0 var(--espaco-1); }
 .painel-aba .resposta { margin-top: var(--espaco-6); padding-top: var(--espaco-4); }
 .painel-aba .resposta .texto-pequeno { margin-top: 0; margin-bottom: var(--espaco-2); }
 .painel-aba .contador { margin-top: var(--espaco-1); }

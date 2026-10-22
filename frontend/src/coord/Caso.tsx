@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import {
   criarNota, detalheCaso, enviarMensagemAoAluno, ErroApi, mensagemErroCoord, mudarPrioridade, mudarStatus,
-  registrarResolucao, revisarRecorrencia, urlFotoAutor, salvarAtendimento, concluirAcao, registrarLeituraConversa, urlExportacao,
+  registrarResolucao, revisarRecorrencia, urlFotoAutor, salvarAtendimento, concluirAcao, registrarLeituraConversa, urlExportacao, editarMensagemAoAluno, excluirMensagemAoAluno, versoesDaMensagem,
 } from '../shared/api';
 import type { CasoDetalhe, DadosResolucao, Prioridade as ValorPrioridade } from '../shared/api';
 import Anexos from './Anexos';
@@ -120,6 +120,12 @@ export default function Caso({ id, aoVoltar, aoMudar, abaInicial = 'relato', ane
     const texto = textoValido(rascunho.mensagens); if (texto === null) return;
     void agir(() => enviarMensagemAoAluno(id, texto), 'Mensagem enviada ao aluno.', () => setRascunho(r => (r.mensagens.trim() === texto ? { ...r, mensagens: '' } : r)));
   };
+  async function editarMensagem(mensagemId: number, texto: string) {
+    if (!await agir(() => editarMensagemAoAluno(id, mensagemId, texto), 'Mensagem editada.')) throw new Error('A mensagem não foi editada.');
+  }
+  async function excluirMensagem(mensagemId: number) {
+    if (!await agir(() => excluirMensagemAoAluno(id, mensagemId), 'Mensagem excluída.')) throw new Error('A mensagem não foi excluída.');
+  }
   const enviarNota = () => {
     const texto = textoValido(rascunho.notas); if (texto === null) return;
     void agir(() => criarNota(id, texto), 'Nota interna salva.', () => setRascunho(r => (r.notas.trim() === texto ? { ...r, notas: '' } : r)));
@@ -245,7 +251,9 @@ export default function Caso({ id, aoVoltar, aoMudar, abaInicial = 'relato', ane
           {aba === 'conversa' && <Conversa titulo="Conversa com o aluno" campo="texto-mensagem" rotulo="Mensagem ao aluno" ajuda="O aluno lê esta mensagem no acompanhamento."
             botao="Enviar ao aluno" texto={rascunho.mensagens} enviando={ocupado}
             aoMudar={valor => setRascunho(r => ({ ...r, mensagens: valor }))} aoEnviar={enviarMensagem}
-            itens={caso.mensagens.map((m, i) => ({ chave: i, autor: m.autor === 'aluno' ? 'Aluno' : (m.usuario ?? 'Coordenação'), texto: m.texto, criado_em: m.criado_em, lado: m.autor }))} />}
+            aoEditar={editarMensagem} aoExcluir={excluirMensagem} aoVerVersoes={mensagemId => versoesDaMensagem(id, mensagemId)}
+            itens={caso.mensagens.map((m, i) => ({ chave: i, id: m.id, autor: m.autor === 'aluno' ? 'Aluno' : (m.usuario ?? 'Coordenação'), texto: m.texto, criado_em: m.criado_em, lado: m.autor,
+              editada: !!m.editada_em, apagada: !!m.apagada_em, podeAlterar: m.pode_alterar }))} />}
           {aba === 'notas' && <Conversa titulo="Notas da equipe" campo="texto-nota" rotulo="Nota interna" ajuda="Só a coordenação vê. O aluno nunca recebe esta nota."
             botao="Salvar nota" texto={rascunho.notas} enviando={ocupado}
             aoMudar={valor => setRascunho(r => ({ ...r, notas: valor }))} aoEnviar={enviarNota}

@@ -18,8 +18,8 @@ export const casoExemplo: CasoDetalhe = {
   motivos: ['tipo: perfil_falso'], anexos: [{ id: 1, tipo: 'image/svg+xml', tamanho: 1000 }],
   eventos: [{ id: 1, tipo: 'criado', usuario_id: null, usuario: null, detalhe: 'prioridade media', criado_em: data }],
   mensagens: [
-    { autor: 'aluno', texto: 'Esta é uma conversa fictícia para visualizar a tela.', criado_em: data, usuario_id: null, usuario: null },
-    { autor: 'coordenacao', texto: 'Estamos aqui para te ouvir. Podemos conversar sobre o que aconteceu?', criado_em: data, usuario_id: 1, usuario: 'Equipe de exemplo' },
+    { autor: 'aluno', texto: 'Esta é uma conversa fictícia para visualizar a tela.', criado_em: data, usuario_id: null, usuario: null, editada_em: null, apagada_em: null, pode_alterar: false },
+    { autor: 'coordenacao', texto: 'Estamos aqui para te ouvir. Podemos conversar sobre o que aconteceu?', criado_em: data, usuario_id: 1, usuario: 'Equipe de exemplo', editada_em: null, apagada_em: null, pode_alterar: false },
   ],
   notas: [{ id: 1, usuario_id: 1, usuario: 'Equipe de exemplo', texto: 'Nota fictícia para avaliar a organização das informações.', criado_em: data }],
 };
@@ -40,7 +40,7 @@ export function instalarDadosDePrevia() {
     if (url === '/api/denuncias') return resposta({ codigo: 'PREVIA-001' });
     if (url === '/api/acompanhar') return resposta({ status: caso.status, mensagens: caso.mensagens });
     if (url === '/api/acompanhar/mensagens') {
-      caso.mensagens.push({ autor: 'aluno', texto: corpo.texto, criado_em: new Date().toISOString(), usuario_id: null, usuario: null });
+      caso.mensagens.push({ autor: 'aluno', texto: corpo.texto, criado_em: new Date().toISOString(), usuario_id: null, usuario: null, editada_em: null, apagada_em: null, pode_alterar: false });
       return resposta({ ok: true });
     }
     if (url === '/api/resumo') {
@@ -76,7 +76,7 @@ export function instalarDadosDePrevia() {
       return resposta({ ok: true });
     }
     if (url === '/api/casos/1/mensagens') {
-      caso.mensagens.push({ autor: 'coordenacao', texto: corpo.texto, criado_em: new Date().toISOString(), usuario_id: 1, usuario: 'Equipe de exemplo' });
+      caso.mensagens.push({ autor: 'coordenacao', texto: corpo.texto, criado_em: new Date().toISOString(), usuario_id: 1, usuario: 'Equipe de exemplo', editada_em: null, apagada_em: null, pode_alterar: false });
       return resposta({ ok: true });
     }
     if (url === '/api/casos/1/notas') {
