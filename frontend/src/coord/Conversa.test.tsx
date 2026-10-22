@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
@@ -71,11 +72,12 @@ describe('Conversa: editar e excluir', () => {
     await user.click(screen.getByRole('button', { name: 'Excluir' }));
     expect(screen.getByText("Excluir esta mensagem? O aluno verá 'Mensagem apagada'.")).toBeInTheDocument();
     expect(aoExcluir).not.toHaveBeenCalled();
-    await user.click(screen.getByRole('button', { name: 'Manter' }));
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
     expect(aoExcluir).not.toHaveBeenCalled();
     expect(screen.getByRole('button', { name: 'Excluir' })).toHaveFocus();
     await user.click(screen.getByRole('button', { name: 'Excluir' }));
-    await user.click(screen.getByRole('button', { name: 'Confirmar exclusão' }));
+    expect(screen.getAllByRole('button', { name: 'Excluir' })).toHaveLength(1);
+    await user.click(screen.getByRole('button', { name: 'Excluir' }));
     expect(aoExcluir).toHaveBeenCalledExactlyOnceWith(7);
   });
 
@@ -96,7 +98,7 @@ describe('Conversa: editar e excluir', () => {
 
   it('erro rejeitado aparece em role=alert e o texto digitado permanece', async () => {
     const user = userEvent.setup();
-    const aoEditar = vi.fn().mockRejectedValue(new Error('falhou'));
+    const aoEditar = vi.fn().mockRejectedValue(new Error('Não foi possível concluir agora. Tente de novo.'));
     montar([item()], { aoEditar, aoExcluir: async () => {} });
     await user.click(screen.getByRole('button', { name: 'Editar' }));
     const campo = screen.getByRole('textbox', { name: 'Editar mensagem' });
@@ -109,9 +111,9 @@ describe('Conversa: editar e excluir', () => {
 
   it('erro ao excluir aparece em role=alert', async () => {
     const user = userEvent.setup();
-    montar([item()], { aoEditar: async () => {}, aoExcluir: vi.fn().mockRejectedValue(new Error('x')) });
+    montar([item()], { aoEditar: async () => {}, aoExcluir: vi.fn().mockRejectedValue(new Error('Não foi possível concluir agora. Tente de novo.')) });
     await user.click(screen.getByRole('button', { name: 'Excluir' }));
-    await user.click(screen.getByRole('button', { name: 'Confirmar exclusão' }));
+    await user.click(screen.getByRole('button', { name: 'Excluir' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível');
   });
 
@@ -144,5 +146,42 @@ describe('Conversa: editar e excluir', () => {
     montar([item({ editada: true })], { aoVerVersoes: vi.fn().mockRejectedValue(new Error('x')) });
     await user.click(screen.getByRole('button', { name: 'Ver versões' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível');
+  });
+
+  it('mostra a mensagem real do erro recebido, em um único alert', async () => {
+    const user = userEvent.setup();
+    montar([item()], { aoEditar: vi.fn().mockRejectedValue(new Error('O caso mudou enquanto você trabalhava.')), aoExcluir: async () => {} });
+    await user.click(screen.getByRole('button', { name: 'Editar' }));
+    await user.click(screen.getByRole('button', { name: 'Salvar' }));
+    expect(await screen.findAllByRole('alert')).toHaveLength(1);
+    expect(screen.getByRole('alert')).toHaveTextContent('O caso mudou enquanto você trabalhava.');
+  });
+
+  it('depois de excluir com sucesso o foco vai para Ver texto original', async () => {
+    const user = userEvent.setup();
+    const aoVerVersoes = vi.fn().mockResolvedValue([]);
+    let apagar: () => void = () => {};
+    const Quadro = () => {
+      const [apagada, setApagada] = useState(false);
+      apagar = () => setApagada(true);
+      return <Conversa titulo="C" campo="c" rotulo="M" ajuda="a" botao="E" texto="" enviando={false} aoMudar={() => {}} aoEnviar={() => {}}
+        itens={[item({ apagada, podeAlterar: !apagada, texto: apagada ? '' : 'Texto original' })]} aoVerVersoes={aoVerVersoes}
+        aoEditar={async () => {}} aoExcluir={async () => { apagar(); }} />;
+    };
+    render(<Quadro />);
+    await user.click(screen.getByRole('button', { name: 'Excluir' }));
+    await user.click(screen.getByRole('button', { name: 'Excluir' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Ver texto original' })).toHaveFocus());
+  });
+
+  it('mensagem apagada oferece Ver texto original e lista as versões', async () => {
+    const user = userEvent.setup();
+    const aoVerVersoes = vi.fn().mockResolvedValue([{ id: 4, texto: 'Texto que foi apagado', acao: 'exclusao', usuario: 'Marina', criado_em: '2026-10-14T12:00:00+00:00' }]);
+    montar([item({ apagada: true, texto: '', podeAlterar: false })], { aoVerVersoes });
+    expect(screen.queryByRole('button', { name: 'Ver versões' })).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Ver texto original' }));
+    const lista = await screen.findByRole('list', { name: 'Versões anteriores' });
+    expect(within(lista).getByText('Texto que foi apagado')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ocultar texto original' })).toBeInTheDocument();
   });
 });

@@ -90,7 +90,7 @@ export default function Caso({ id, aoVoltar, aoMudar, abaInicial = 'relato', ane
    * Devolve true quando a ação foi gravada (mesmo que a recarga falhe), false caso contrário.
    * Com `conflito`, um 409 mostra essa mensagem no lugar da genérica e recarrega o caso (o estado já mudou).
    */
-  async function agir(acao: () => Promise<unknown>, sucesso: string, depois?: () => void, conflito?: string): Promise<boolean> {
+  async function agir(acao: () => Promise<unknown>, sucesso: string, depois?: () => void, conflito?: string, falhar?: (mensagem: string) => void): Promise<boolean> {
     if (trabalhando.current) return false;
     trabalhando.current = true;
     setOcupado(true); setErro(''); setAviso('');
@@ -101,12 +101,14 @@ export default function Caso({ id, aoVoltar, aoMudar, abaInicial = 'relato', ane
       catch (falha) { if (!sessaoPerdida(falha)) setAviso(`${sucesso} Não foi possível atualizar a tela: ${mensagemErroCoord(falha)}`); }
       return true;
     } catch (falha) {
+      // `falhar` entrega a mensagem a quem chamou (o item da conversa mostra o próprio alert) em vez do alert da página
+      const mostrar = (mensagem: string) => { if (falhar) falhar(mensagem); else setErro(mensagem); };
       if (falha instanceof ErroApi && falha.status === 409) {
-        if (montado.current) setErro(conflito ?? 'O caso mudou enquanto você trabalhava. Confira o estado atualizado e confirme novamente. Seu texto foi preservado.');
+        if (montado.current) mostrar(conflito ?? 'O caso mudou enquanto você trabalhava. Confira o estado atualizado e confirme novamente. Seu texto foi preservado.');
         try { await recarregar(); } catch { /* a mensagem do conflito já orienta a recarregar */ }
         revisaoPrioridade.current = revisaoAtual.current;
         revisaoResolucao.current = revisaoAtual.current;
-      } else if (!sessaoPerdida(falha) && montado.current) setErro(mensagemErroCoord(falha));
+      } else if (!sessaoPerdida(falha) && montado.current) mostrar(mensagemErroCoord(falha));
       return false;
     } finally { trabalhando.current = false; if (montado.current) setOcupado(false); aoMudar?.(); }
   }
@@ -121,10 +123,12 @@ export default function Caso({ id, aoVoltar, aoMudar, abaInicial = 'relato', ane
     void agir(() => enviarMensagemAoAluno(id, texto), 'Mensagem enviada ao aluno.', () => setRascunho(r => (r.mensagens.trim() === texto ? { ...r, mensagens: '' } : r)));
   };
   async function editarMensagem(mensagemId: number, texto: string) {
-    if (!await agir(() => editarMensagemAoAluno(id, mensagemId, texto), 'Mensagem editada.')) throw new Error('A mensagem não foi editada.');
+    let motivo = '';
+    if (!await agir(() => editarMensagemAoAluno(id, mensagemId, texto), 'Mensagem editada.', undefined, undefined, m => { motivo = m; })) throw new Error(motivo);
   }
   async function excluirMensagem(mensagemId: number) {
-    if (!await agir(() => excluirMensagemAoAluno(id, mensagemId), 'Mensagem excluída.')) throw new Error('A mensagem não foi excluída.');
+    let motivo = '';
+    if (!await agir(() => excluirMensagemAoAluno(id, mensagemId), 'Mensagem excluída.', undefined, undefined, m => { motivo = m; })) throw new Error(motivo);
   }
   const enviarNota = () => {
     const texto = textoValido(rascunho.notas); if (texto === null) return;

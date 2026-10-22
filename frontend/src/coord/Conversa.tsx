@@ -26,6 +26,8 @@ function ItemMensagem({ item, aoEditar, aoExcluir, aoVerVersoes }: { item: Item 
   const campo = useRef<HTMLTextAreaElement>(null);
   const botaoEditar = useRef<HTMLButtonElement>(null);
   const botaoExcluir = useRef<HTMLButtonElement>(null);
+  const raiz = useRef<HTMLLIElement>(null);
+  const botaoVersoes = useRef<HTMLButtonElement>(null);
   const botaoManter = useRef<HTMLButtonElement>(null);
   const devolverFoco = useRef<'editar' | 'excluir' | null>(null);
   const id = item.id;
@@ -33,7 +35,11 @@ function ItemMensagem({ item, aoEditar, aoExcluir, aoVerVersoes }: { item: Item 
   useEffect(() => {
     if (modo === 'editar') campo.current?.focus();
     else if (modo === 'excluir') botaoManter.current?.focus();
-    else if (devolverFoco.current) { (devolverFoco.current === 'editar' ? botaoEditar : botaoExcluir).current?.focus(); devolverFoco.current = null; }
+    else if (devolverFoco.current) {
+      // o botão de origem pode ter sumido (mensagem apagada): cai no botão de versões ou no próprio item
+      const origem = devolverFoco.current === 'editar' ? botaoEditar : botaoExcluir;
+      (origem.current ?? botaoVersoes.current ?? raiz.current)?.focus(); devolverFoco.current = null;
+    }
   }, [modo]);
 
   const fechar = () => { devolverFoco.current = modo === 'editar' ? 'editar' : 'excluir'; setErro(''); setModo('ver'); };
@@ -44,7 +50,7 @@ function ItemMensagem({ item, aoEditar, aoExcluir, aoVerVersoes }: { item: Item 
     if (trabalhando.current) return;
     trabalhando.current = true; setOcupado(true); setErro('');
     try { await acao(); devolverFoco.current = modo === 'editar' ? 'editar' : 'excluir'; setModo('ver'); }
-    catch { setErro(ERRO_ACAO); }
+    catch (falha) { setErro(falha instanceof Error && falha.message ? falha.message : ERRO_ACAO); }
     finally { trabalhando.current = false; setOcupado(false); }
   }
   function salvar() {
@@ -69,7 +75,7 @@ function ItemMensagem({ item, aoEditar, aoExcluir, aoVerVersoes }: { item: Item 
   const podeAlterar = !!item.podeAlterar && !item.apagada && id !== undefined;
   const temVersoes = !!aoVerVersoes && id !== undefined && (!!item.editada || !!item.apagada);
 
-  return <li className="mensagem" data-autor={item.lado} onKeyDown={modo === 'ver' ? undefined : teclas}>
+  return <li ref={raiz} tabIndex={-1} className="mensagem" data-autor={item.lado} onKeyDown={modo === 'ver' ? undefined : teclas}>
     <h3>{item.autor}</h3>
     {modo === 'editar'
       ? <div className="mensagem-edicao">
@@ -87,14 +93,14 @@ function ItemMensagem({ item, aoEditar, aoExcluir, aoVerVersoes }: { item: Item 
     {modo === 'excluir' && <div className="mensagem-confirmacao">
       <p>Excluir esta mensagem? O aluno verá 'Mensagem apagada'.</p>
       <div className="mensagem-acoes">
-        <button type="button" className="botao principal" disabled={ocupado} onClick={confirmarExclusao}>Confirmar exclusão</button>
-        <button ref={botaoManter} type="button" className="botao secundario" disabled={ocupado} onClick={fechar}>Manter</button>
+        <button type="button" className="botao principal" disabled={ocupado} onClick={confirmarExclusao}>Excluir</button>
+        <button ref={botaoManter} type="button" className="botao secundario" disabled={ocupado} onClick={fechar}>Cancelar</button>
       </div>
     </div>}
     {modo === 'ver' && (podeAlterar && (aoEditar || aoExcluir) || temVersoes) && <div className="mensagem-acoes">
       {podeAlterar && aoEditar && <button ref={botaoEditar} type="button" className="botao-texto" disabled={ocupado} onClick={abrirEdicao}>Editar</button>}
       {podeAlterar && aoExcluir && <button ref={botaoExcluir} type="button" className="botao-texto" disabled={ocupado} onClick={() => { setErro(''); setModo('excluir'); }}>Excluir</button>}
-      {temVersoes && <button type="button" className="botao-texto" disabled={ocupado} onClick={() => void alternarVersoes()}>{versoes ? 'Ocultar versões' : 'Ver versões'}</button>}
+      {temVersoes && <button ref={botaoVersoes} type="button" className="botao-texto" disabled={ocupado} onClick={() => void alternarVersoes()}>{item.apagada ? (versoes ? 'Ocultar texto original' : 'Ver texto original') : (versoes ? 'Ocultar versões' : 'Ver versões')}</button>}
     </div>}
     {erro && <p className="erro" role="alert">{erro}</p>}
     {versoes && <ul className="mensagem-versoes" aria-label="Versões anteriores">
