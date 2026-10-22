@@ -171,7 +171,7 @@ def test_build_para_no_primeiro_erro():
     assert "$ErrorActionPreference = 'Stop'" in texto
     # Stop não pega código de saída de programa nativo no PowerShell 5.1
     assert "$LASTEXITCODE" in texto
-    for trecho in ("npm.cmd", "'ci'", "build:aluno", "build:coord", "pytest",
+    for trecho in ("npm.cmd", "build:aluno", "build:coord", "pytest",
                    "PyInstaller", "SemTestes", "ISCC.exe"):
         assert trecho in texto, trecho
 
@@ -185,11 +185,11 @@ def test_build_toda_chamada_nativa_passa_pelo_verificador():
     funcao = re.search(r"function Invoke-Passo \{.*?^\}", texto, re.S | re.M).group(0)
     assert re.search(r"& \$Programa @Argumentos\s+if \(\$LASTEXITCODE -ne 0\) \{\s+throw",
                      funcao)
-    # as seis etapas nativas: npm ci, 2 builds, pytest, PyInstaller e Inno Setup
+    # dependências são preparadas antes: build não instala pacotes
     passos = re.findall(r"^\s*Invoke-Passo -Titulo '([^']+)'", texto, re.M)
-    assert passos == ["npm ci", "build do portal do aluno",
+    assert passos == ["build do portal do aluno",
                       "build do portal da coordenacao", "testes do backend (pytest)",
-                      "PyInstaller", "Inno Setup"]
+                      "PyInstaller", "Inno Setup (Tunnel)", "Inno Setup"]
     # nenhum outro jeito de chamar programa externo
     assert not re.search(r"Start-Process|\bcmd(\.exe)?\s+/c|Invoke-Expression|\biex\b",
                          texto, re.I)
@@ -203,7 +203,7 @@ def test_build_sem_iscc_falha_salvo_com_sem_instalador():
         texto)
     assert falha, "falta o erro quando o ISCC.exe nao existe"
     # a checagem vem antes de qualquer etapa de build
-    assert falha.start() < texto.index("Invoke-Passo -Titulo 'npm ci'")
+    assert falha.start() < texto.index("Invoke-Passo -Titulo 'build do portal do aluno'")
     assert "PULADO: ISCC.exe nao encontrado" not in texto  # o salto silencioso acabou
 
 
@@ -213,7 +213,7 @@ def test_build_apaga_setup_antigo_antes_de_construir():
         r"Test-Path -LiteralPath \$Setup\) \{\s+Remove-Item -LiteralPath \$Setup -Force",
         texto)
     assert remocao, "falta apagar o Setup antigo"
-    assert remocao.start() < texto.index("Invoke-Passo -Titulo 'npm ci'")
+    assert remocao.start() < texto.index("Invoke-Passo -Titulo 'build do portal do aluno'")
 
 
 @pytest.mark.parametrize("arquivo", [TAREFAS, BUILD], ids=lambda p: p.name)
@@ -396,3 +396,4 @@ def test_iss_sem_residuo_de_gerador_de_texto():
     # concatenacao de aspas triplas ou variavel solta ("bs") so se forma quando o .iss e gerado por script
     texto = _ler(ISS)
     assert "''' +" not in texto and "+ bs +" not in texto
+

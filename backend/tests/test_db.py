@@ -281,6 +281,7 @@ def test_novas_tabelas_existem_em_banco_novo(config):
         assert "usuario_id" in _colunas(c, "mensagens")
         assert _colunas(c, "resolucoes") == {
             "id", "caso_id", "desfecho", "providencias", "resultado", "usuario_id", "criado_em",
+            "autoria", "justificativa_autoria",
         }
         assert _colunas(c, "situacoes_aluno") == {"id", "caso_id", "situacao", "criado_em", "resolucao_id"}
         assert _colunas(c, "revisoes_recorrencia") == {"id", "caso_id", "usuario_id", "criado_em"}

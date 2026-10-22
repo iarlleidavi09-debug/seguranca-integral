@@ -1,0 +1,3675 @@
+{
+  "versao": 3,
+  "grupos": [
+    {
+      "id": "humilhacao",
+      "nome": "Humilhação, bullying e discriminação",
+      "opcoes": [
+        {
+          "id": "bullying",
+          "texto": "Humilhações, apelidos ou exclusão repetida",
+          "peso": 2,
+          "tipo_legado": "cyberbullying",
+          "perguntas": [
+            "q-ambiente",
+            "q-impacto",
+            "q-bullying-forma"
+          ]
+        },
+        {
+          "id": "cyber",
+          "texto": "Ataques, boatos ou exposição na internet",
+          "peso": 2,
+          "tipo_legado": "cyberbullying",
+          "perguntas": [
+            "q-ambiente",
+            "q-impacto",
+            "q-cyber-forma",
+            "q-cyber-canal"
+          ]
+        },
+        {
+          "id": "discriminacao",
+          "texto": "Ofensas ou tratamento desigual por quem eu sou",
+          "peso": 3,
+          "tipo_legado": "cyberbullying",
+          "perguntas": [
+            "q-motivo-discriminacao",
+            "q-ambiente",
+            "q-discriminacao-tratamento"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ameacas",
+      "nome": "Ameaças, perseguição e pressão",
+      "opcoes": [
+        {
+          "id": "ameaca",
+          "texto": "Ameaça de machucar alguém",
+          "peso": 4,
+          "tipo_legado": "ameaca",
+          "perguntas": [
+            "q-risco-arma",
+            "q-risco-local",
+            "q-ameaca-meio"
+          ]
+        },
+        {
+          "id": "perseguicao",
+          "texto": "Alguém me segue ou insiste em me procurar",
+          "peso": 3,
+          "tipo_legado": "ameaca",
+          "perguntas": [
+            "q-perseguicao-conduta"
+          ]
+        },
+        {
+          "id": "chantagem",
+          "texto": "Pressão ou chantagem para fazer algo",
+          "peso": 4,
+          "tipo_legado": "ameaca",
+          "perguntas": [
+            "q-exigencia",
+            "q-chantagem-pressao"
+          ]
+        },
+        {
+          "id": "extorsao",
+          "texto": "Exigem dinheiro ou algo meu usando ameaças",
+          "peso": 4,
+          "tipo_legado": "ameaca",
+          "perguntas": [
+            "q-exigencia",
+            "q-extorsao-cobranca"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sexual",
+      "nome": "Contato ou exposição sexual",
+      "opcoes": [
+        {
+          "id": "assedio",
+          "texto": "Comentários, mensagens ou convites sexuais indesejados",
+          "peso": 4,
+          "tipo_legado": "aliciamento",
+          "perguntas": [
+            "q-contato-atual",
+            "q-adulto",
+            "q-assedio-conduta"
+          ]
+        },
+        {
+          "id": "contato",
+          "texto": "Contato sexual ou toque sem consentimento",
+          "peso": 5,
+          "tipo_legado": "aliciamento",
+          "perguntas": [
+            "q-contato-atual",
+            "q-adulto",
+            "q-contato-situacao"
+          ]
+        },
+        {
+          "id": "aliciamento",
+          "texto": "Pedidos de segredo, fotos íntimas ou encontros",
+          "peso": 5,
+          "tipo_legado": "aliciamento",
+          "perguntas": [
+            "q-contato-atual",
+            "q-adulto",
+            "q-aliciamento-pedido"
+          ]
+        },
+        {
+          "id": "intimidade",
+          "texto": "Gravaram ou compartilharam minha intimidade",
+          "peso": 5,
+          "tipo_legado": "vazamento",
+          "perguntas": [
+            "q-circulacao",
+            "q-exigencia",
+            "q-intimidade-exposicao"
+          ]
+        },
+        {
+          "id": "exploracao",
+          "texto": "Pressão ou troca de favores envolvendo algo sexual",
+          "peso": 5,
+          "tipo_legado": "aliciamento",
+          "perguntas": [
+            "q-contato-atual",
+            "q-adulto",
+            "q-exploracao-troca"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "agressoes",
+      "nome": "Agressão e violência",
+      "opcoes": [
+        {
+          "id": "agressao",
+          "texto": "Agressão, briga ou ferimento",
+          "peso": 4,
+          "tipo_legado": "ameaca",
+          "perguntas": [
+            "q-socorro",
+            "q-risco-arma",
+            "q-agressao-situacao"
+          ]
+        },
+        {
+          "id": "violencia",
+          "texto": "Machucaram, prenderam ou impediram alguém de sair",
+          "peso": 5,
+          "tipo_legado": "ameaca",
+          "perguntas": [
+            "q-socorro",
+            "q-risco-arma",
+            "q-violencia-restricao"
+          ]
+        },
+        {
+          "id": "ataque",
+          "texto": "Tentaram matar alguém ou houve uma morte",
+          "peso": 5,
+          "tipo_legado": "ameaca",
+          "perguntas": [
+            "q-socorro",
+            "q-risco-arma",
+            "q-ataque-informacao"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "privacidade",
+      "nome": "Privacidade, contas e golpes",
+      "opcoes": [
+        {
+          "id": "dados",
+          "texto": "Divulgaram dados, conversas ou gravações particulares",
+          "peso": 3,
+          "tipo_legado": "vazamento",
+          "perguntas": [
+            "q-circulacao",
+            "q-dados-material"
+          ]
+        },
+        {
+          "id": "conta",
+          "texto": "Invadiram uma conta ou dispositivo",
+          "peso": 3,
+          "tipo_legado": "outro",
+          "perguntas": [
+            "q-acesso",
+            "q-conta-sinal"
+          ]
+        },
+        {
+          "id": "perfil",
+          "texto": "Criaram um perfil falso ou se passaram por alguém",
+          "peso": 2,
+          "tipo_legado": "perfil_falso",
+          "perguntas": [
+            "q-perfil-identidade"
+          ]
+        },
+        {
+          "id": "golpe",
+          "texto": "Link, pagamento ou oportunidade suspeita",
+          "peso": 3,
+          "tipo_legado": "golpe",
+          "perguntas": [
+            "q-perda",
+            "q-golpe-abordagem"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "escola",
+      "nome": "Pertences e espaço da escola",
+      "opcoes": [
+        {
+          "id": "pertences",
+          "texto": "Pegaram ou levaram pertences de alguém",
+          "peso": 2,
+          "tipo_legado": "outro",
+          "perguntas": [
+            "q-forca",
+            "q-pertences-objeto"
+          ]
+        },
+        {
+          "id": "patrimonio",
+          "texto": "Danificaram o espaço ou os equipamentos da escola",
+          "peso": 2,
+          "tipo_legado": "outro",
+          "perguntas": [
+            "q-uso-risco",
+            "q-patrimonio-dano"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "coletivo",
+      "nome": "Risco coletivo e substâncias",
+      "opcoes": [
+        {
+          "id": "arma",
+          "texto": "Arma ou objeto usado para intimidar",
+          "peso": 5,
+          "tipo_legado": "ameaca",
+          "perguntas": [
+            "q-risco-local",
+            "q-socorro",
+            "q-arma-presenca"
+          ]
+        },
+        {
+          "id": "ataque-escola",
+          "texto": "Ameaça de ataque, bomba ou incêndio na escola",
+          "peso": 5,
+          "tipo_legado": "ameaca",
+          "perguntas": [
+            "q-risco-local",
+            "q-socorro",
+            "q-ataque-escola-sinal"
+          ]
+        },
+        {
+          "id": "substancias",
+          "texto": "Venda, oferta ou pressão para usar drogas ou álcool",
+          "peso": 4,
+          "tipo_legado": "outro",
+          "perguntas": [
+            "q-pressao-uso",
+            "q-substancias-situacao"
+          ]
+        },
+        {
+          "id": "adulteracao",
+          "texto": "Suspeita de algo colocado em comida ou bebida",
+          "peso": 5,
+          "tipo_legado": "outro",
+          "perguntas": [
+            "q-socorro",
+            "q-adulteracao-consumo"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cuidado",
+      "nome": "Cuidado em casa e atuação de adultos",
+      "opcoes": [
+        {
+          "id": "casa",
+          "texto": "Violência ou falta de cuidado em casa",
+          "peso": 4,
+          "tipo_legado": "outro",
+          "perguntas": [
+            "q-apoio",
+            "q-casa-cuidado"
+          ]
+        },
+        {
+          "id": "adulto",
+          "texto": "Um adulto da escola machuca, constrange ou discrimina",
+          "peso": 4,
+          "tipo_legado": "outro",
+          "perguntas": [
+            "q-apoio",
+            "q-adulto-conduta"
+          ]
+        },
+        {
+          "id": "omissao",
+          "texto": "Pedi ajuda a um adulto e continuo sem proteção",
+          "peso": 3,
+          "tipo_legado": "outro",
+          "perguntas": [
+            "q-apoio",
+            "q-omissao-ajuda"
+          ]
+        },
+        {
+          "id": "recrutamento",
+          "texto": "Pressão para participar de atividades criminosas",
+          "peso": 5,
+          "tipo_legado": "ameaca",
+          "perguntas": [
+            "q-exigencia",
+            "q-recrutamento-atividade"
+          ]
+        }
+      ]
+    }
+  ],
+  "comuns": [
+    "q-seguranca",
+    "q-quem",
+    "q-quando",
+    "q-frequencia"
+  ],
+  "dimensoes": {
+    "quando": "Quando",
+    "frequencia": "Frequência",
+    "alcance": "Alcance",
+    "consequencias": "Consequências",
+    "risco": "Risco"
+  },
+  "perguntas": [
+    {
+      "id": "q-seguranca",
+      "dimensao": "risco",
+      "texto": "Você está em segurança agora?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "q-seguranca.sim",
+          "texto": "Sim",
+          "peso": 0
+        },
+        {
+          "id": "q-seguranca.incerta",
+          "texto": "Não tenho certeza",
+          "peso": 1
+        },
+        {
+          "id": "q-seguranca.nao",
+          "texto": "Não",
+          "peso": 3
+        },
+        {
+          "id": "q-seguranca.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-quem",
+      "dimensao": "alcance",
+      "texto": "Com quem isso aconteceu?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "q-quem.comigo",
+          "texto": "Comigo",
+          "peso": 0
+        },
+        {
+          "id": "q-quem.outra",
+          "texto": "Com outra pessoa",
+          "peso": 0
+        },
+        {
+          "id": "q-quem.varias",
+          "texto": "Comigo e com outras pessoas",
+          "peso": 0
+        },
+        {
+          "id": "q-quem.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-quando",
+      "dimensao": "quando",
+      "texto": "Isso está acontecendo agora?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "q-quando.sim",
+          "texto": "Sim",
+          "peso": 2
+        },
+        {
+          "id": "q-quando.parou",
+          "texto": "Aconteceu e parou",
+          "peso": 0
+        },
+        {
+          "id": "q-quando.voltou",
+          "texto": "Parou, mas voltou a acontecer",
+          "peso": 2
+        },
+        {
+          "id": "q-quando.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-quando.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-frequencia",
+      "dimensao": "frequencia",
+      "texto": "Com que frequência isso aconteceu?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "q-frequencia.uma",
+          "texto": "Uma vez",
+          "peso": 0
+        },
+        {
+          "id": "q-frequencia.varias",
+          "texto": "Mais de uma vez",
+          "peso": 1
+        },
+        {
+          "id": "q-frequencia.diaria",
+          "texto": "Quase todos os dias",
+          "peso": 2
+        },
+        {
+          "id": "q-frequencia.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-frequencia.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-ambiente",
+      "dimensao": "alcance",
+      "texto": "Onde isso acontece?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "q-ambiente.escola",
+          "texto": "Na escola",
+          "peso": 0
+        },
+        {
+          "id": "q-ambiente.internet",
+          "texto": "Na internet",
+          "peso": 0
+        },
+        {
+          "id": "q-ambiente.ambos",
+          "texto": "Nos dois lugares",
+          "peso": 0
+        },
+        {
+          "id": "q-ambiente.outro",
+          "texto": "Em outro lugar",
+          "peso": 0
+        },
+        {
+          "id": "q-ambiente.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-impacto",
+      "dimensao": "consequencias",
+      "texto": "Isso tem atrapalhado a rotina da pessoa afetada?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "q-impacto.escola",
+          "texto": "Ela tem evitado a escola",
+          "peso": 2
+        },
+        {
+          "id": "q-impacto.medo",
+          "texto": "Ela tem medo ou dificuldade para dormir",
+          "peso": 2
+        },
+        {
+          "id": "q-impacto.outra",
+          "texto": "De outra forma",
+          "peso": 2
+        },
+        {
+          "id": "q-impacto.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-motivo-discriminacao",
+      "dimensao": "alcance",
+      "texto": "As ofensas ou o tratamento desigual estão ligados a quê?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "q-motivo-discriminacao.origem",
+          "texto": "Cor, raça ou origem",
+          "peso": 0
+        },
+        {
+          "id": "q-motivo-discriminacao.religiao",
+          "texto": "Religião",
+          "peso": 0
+        },
+        {
+          "id": "q-motivo-discriminacao.deficiencia",
+          "texto": "Deficiência",
+          "peso": 0
+        },
+        {
+          "id": "q-motivo-discriminacao.genero",
+          "texto": "Orientação sexual ou gênero",
+          "peso": 0
+        },
+        {
+          "id": "q-motivo-discriminacao.outro",
+          "texto": "Outro motivo",
+          "peso": 0
+        },
+        {
+          "id": "q-motivo-discriminacao.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-motivo-discriminacao.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-risco-arma",
+      "dimensao": "risco",
+      "texto": "Houve menção a arma ou objeto para machucar?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "q-risco-arma.sim",
+          "texto": "Sim",
+          "peso": 3
+        },
+        {
+          "id": "q-risco-arma.nao",
+          "texto": "Não",
+          "peso": 0
+        },
+        {
+          "id": "q-risco-arma.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-risco-arma.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ],
+      "mostrar_se": [
+        "q-cyber-ameacas.fisica"
+      ],
+      "para_opcoes": [
+        "ameaca",
+        "agressao",
+        "violencia",
+        "ataque",
+        "arma",
+        "ataque-escola",
+        "cyber"
+      ]
+    },
+    {
+      "id": "q-risco-local",
+      "dimensao": "risco",
+      "texto": "Houve indicação de quando ou onde alguém seria machucado?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "q-risco-local.hoje",
+          "texto": "Hoje ou na saída da escola",
+          "peso": 3
+        },
+        {
+          "id": "q-risco-local.outro",
+          "texto": "Outro momento ou lugar",
+          "peso": 0
+        },
+        {
+          "id": "q-risco-local.nao",
+          "texto": "Não houve indicação",
+          "peso": 0
+        },
+        {
+          "id": "q-risco-local.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-risco-local.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ],
+      "mostrar_se": [
+        "q-cyber-ameacas.fisica"
+      ],
+      "para_opcoes": [
+        "ameaca",
+        "agressao",
+        "violencia",
+        "ataque",
+        "arma",
+        "ataque-escola",
+        "cyber"
+      ]
+    },
+    {
+      "id": "q-exigencia",
+      "dimensao": "alcance",
+      "texto": "O que estão exigindo?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "q-exigencia.dinheiro",
+          "texto": "Dinheiro ou pertences",
+          "peso": 0
+        },
+        {
+          "id": "q-exigencia.intimidade",
+          "texto": "Fotos ou algo íntimo",
+          "peso": 0
+        },
+        {
+          "id": "q-exigencia.fazer",
+          "texto": "Fazer algo que não quero",
+          "peso": 0
+        },
+        {
+          "id": "q-exigencia.silencio",
+          "texto": "Ficar em silêncio",
+          "peso": 0
+        },
+        {
+          "id": "q-exigencia.nada",
+          "texto": "Nada",
+          "peso": 0
+        },
+        {
+          "id": "q-exigencia.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-perda",
+      "dimensao": "consequencias",
+      "texto": "A pessoa afetada chegou a enviar dinheiro ou dados?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "q-perda.dinheiro",
+          "texto": "Dinheiro",
+          "peso": 2
+        },
+        {
+          "id": "q-perda.dados",
+          "texto": "Dados ou senha",
+          "peso": 2
+        },
+        {
+          "id": "q-perda.ambos",
+          "texto": "Os dois",
+          "peso": 2
+        },
+        {
+          "id": "q-perda.nao",
+          "texto": "Não",
+          "peso": 0
+        },
+        {
+          "id": "q-perda.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ],
+      "mostrar_se": [
+        "q-exigencia.dinheiro"
+      ]
+    },
+    {
+      "id": "q-contato-atual",
+      "dimensao": "risco",
+      "texto": "Essa pessoa ainda consegue se aproximar ou falar com quem sofreu a situação?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "q-contato-atual.sim",
+          "texto": "Sim",
+          "peso": 2
+        },
+        {
+          "id": "q-contato-atual.nao",
+          "texto": "Não",
+          "peso": 0
+        },
+        {
+          "id": "q-contato-atual.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-contato-atual.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ],
+      "mostrar_se": [
+        "q-exigencia.intimidade"
+      ]
+    },
+    {
+      "id": "q-adulto",
+      "dimensao": "alcance",
+      "texto": "Essa pessoa é adulta?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "q-adulto.sim",
+          "texto": "Sim",
+          "peso": 0
+        },
+        {
+          "id": "q-adulto.nao",
+          "texto": "Não",
+          "peso": 0
+        },
+        {
+          "id": "q-adulto.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-adulto.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ],
+      "mostrar_se": [
+        "q-exigencia.intimidade"
+      ]
+    },
+    {
+      "id": "q-circulacao",
+      "dimensao": "alcance",
+      "texto": "O conteúdo chegou a outras pessoas?",
+      "tipo": "unica",
+      "para_opcoes": [
+        "conta",
+        "dados",
+        "intimidade"
+      ],
+      "mostrar_se": [
+        "q-conta-atividade.mensagem",
+        "q-conta-atividade.publicacao"
+      ],
+      "respostas": [
+        {
+          "id": "q-circulacao.sim",
+          "texto": "Sim",
+          "peso": 1
+        },
+        {
+          "id": "q-circulacao.ameaca",
+          "texto": "Foi só uma ameaça até agora",
+          "peso": 0
+        },
+        {
+          "id": "q-circulacao.nao",
+          "texto": "Não",
+          "peso": 0
+        },
+        {
+          "id": "q-circulacao.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-circulacao.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-socorro",
+      "dimensao": "risco",
+      "texto": "Alguém está ferido ou precisando de atendimento agora?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "q-socorro.sim",
+          "texto": "Sim",
+          "peso": 3
+        },
+        {
+          "id": "q-socorro.nao",
+          "texto": "Não",
+          "peso": 0
+        },
+        {
+          "id": "q-socorro.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-socorro.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-acesso",
+      "dimensao": "consequencias",
+      "texto": "A pessoa afetada ainda tem acesso à conta ou ao dispositivo?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "q-acesso.sim",
+          "texto": "Sim",
+          "peso": 0
+        },
+        {
+          "id": "q-acesso.nao",
+          "texto": "Não",
+          "peso": 2
+        },
+        {
+          "id": "q-acesso.nao-envolve",
+          "texto": "Não envolve conta ou dispositivo",
+          "peso": 0
+        },
+        {
+          "id": "q-acesso.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-acesso.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ],
+      "para_opcoes": [
+        "conta"
+      ]
+    },
+    {
+      "id": "q-forca",
+      "dimensao": "risco",
+      "texto": "Usaram ameaça ou força para levar os pertences?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "q-forca.sim",
+          "texto": "Sim",
+          "peso": 2
+        },
+        {
+          "id": "q-forca.nao",
+          "texto": "Não",
+          "peso": 0
+        },
+        {
+          "id": "q-forca.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-forca.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-uso-risco",
+      "dimensao": "risco",
+      "texto": "O dano coloca alguém em risco agora?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "q-uso-risco.sim",
+          "texto": "Sim",
+          "peso": 3
+        },
+        {
+          "id": "q-uso-risco.nao",
+          "texto": "Não",
+          "peso": 0
+        },
+        {
+          "id": "q-uso-risco.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-uso-risco.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-pressao-uso",
+      "dimensao": "risco",
+      "texto": "Alguém está passando mal ou sendo forçado a participar?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "q-pressao-uso.mal",
+          "texto": "Passando mal",
+          "peso": 3
+        },
+        {
+          "id": "q-pressao-uso.forcado",
+          "texto": "Sendo forçado",
+          "peso": 3
+        },
+        {
+          "id": "q-pressao-uso.ambos",
+          "texto": "As duas situações",
+          "peso": 3
+        },
+        {
+          "id": "q-pressao-uso.nao",
+          "texto": "Não",
+          "peso": 0
+        },
+        {
+          "id": "q-pressao-uso.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-pressao-uso.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-apoio",
+      "dimensao": "risco",
+      "texto": "Existe alguém de confiança com quem a pessoa afetada pode falar hoje?",
+      "tipo": "unica",
+      "respostas": [
+        {
+          "id": "q-apoio.sim",
+          "texto": "Sim",
+          "peso": 0
+        },
+        {
+          "id": "q-apoio.nao",
+          "texto": "Não",
+          "peso": 1
+        },
+        {
+          "id": "q-apoio.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-apoio.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-cyber-forma",
+      "dimensao": "alcance",
+      "texto": "O que aconteceu na internet? Não é preciso reproduzir ofensas ou enviar imagens.",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "cyber"
+      ],
+      "respostas": [
+        {
+          "id": "q-cyber-forma.mensagens",
+          "texto": "Mensagens ou ofensas",
+          "peso": 0
+        },
+        {
+          "id": "q-cyber-forma.boatos",
+          "texto": "Boatos ou informações falsas",
+          "peso": 0
+        },
+        {
+          "id": "q-cyber-forma.imagens",
+          "texto": "Imagens, vídeos ou montagens",
+          "peso": 0
+        },
+        {
+          "id": "q-cyber-forma.exclusao",
+          "texto": "Exclusão de grupos ou atividades online",
+          "peso": 0
+        },
+        {
+          "id": "q-cyber-forma.ameacas",
+          "texto": "Ameaças",
+          "peso": 0
+        },
+        {
+          "id": "q-cyber-forma.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-cyber-forma.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-cyber-canal",
+      "dimensao": "alcance",
+      "texto": "Por qual canal isso aconteceu?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "cyber"
+      ],
+      "respostas": [
+        {
+          "id": "q-cyber-canal.mensagens",
+          "texto": "Conversa privada",
+          "peso": 0
+        },
+        {
+          "id": "q-cyber-canal.grupo",
+          "texto": "Grupo de mensagens",
+          "peso": 0
+        },
+        {
+          "id": "q-cyber-canal.rede",
+          "texto": "Rede social ou perfil público",
+          "peso": 0
+        },
+        {
+          "id": "q-cyber-canal.jogo",
+          "texto": "Jogo ou comunidade online",
+          "peso": 0
+        },
+        {
+          "id": "q-cyber-canal.escolar",
+          "texto": "Plataforma da escola",
+          "peso": 0
+        },
+        {
+          "id": "q-cyber-canal.outro",
+          "texto": "Outro canal",
+          "peso": 0
+        },
+        {
+          "id": "q-cyber-canal.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-cyber-canal.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-cyber-mensagens",
+      "dimensao": "alcance",
+      "texto": "Como as mensagens ou ofensas chegaram à pessoa afetada?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "cyber"
+      ],
+      "respostas": [
+        {
+          "id": "q-cyber-mensagens.diretas",
+          "texto": "Enviadas diretamente",
+          "peso": 0
+        },
+        {
+          "id": "q-cyber-mensagens.grupo",
+          "texto": "Enviadas em grupo",
+          "peso": 0
+        },
+        {
+          "id": "q-cyber-mensagens.marcacoes",
+          "texto": "Publicadas com marcações ou menções",
+          "peso": 0
+        },
+        {
+          "id": "q-cyber-mensagens.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-cyber-mensagens.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ],
+      "mostrar_se": [
+        "q-cyber-forma.mensagens"
+      ]
+    },
+    {
+      "id": "q-cyber-boatos",
+      "dimensao": "alcance",
+      "texto": "Como os boatos estão sendo espalhados?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "cyber"
+      ],
+      "respostas": [
+        {
+          "id": "q-cyber-boatos.publicacao",
+          "texto": "Publicações ou comentários",
+          "peso": 0
+        },
+        {
+          "id": "q-cyber-boatos.encaminhadas",
+          "texto": "Mensagens encaminhadas",
+          "peso": 0
+        },
+        {
+          "id": "q-cyber-boatos.contato",
+          "texto": "Pessoas repetindo o boato em conversas",
+          "peso": 0
+        },
+        {
+          "id": "q-cyber-boatos.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-cyber-boatos.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ],
+      "mostrar_se": [
+        "q-cyber-forma.boatos"
+      ]
+    },
+    {
+      "id": "q-cyber-imagens",
+      "dimensao": "alcance",
+      "texto": "O que fizeram com as imagens, vídeos ou montagens? Sem enviar ou detalhar o conteúdo.",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "cyber"
+      ],
+      "respostas": [
+        {
+          "id": "q-cyber-imagens.publicadas",
+          "texto": "Publicaram ou encaminharam",
+          "peso": 0
+        },
+        {
+          "id": "q-cyber-imagens.ameaca",
+          "texto": "Ameaçaram publicar",
+          "peso": 0
+        },
+        {
+          "id": "q-cyber-imagens.criadas",
+          "texto": "Criaram ou alteraram uma imagem sem compartilhar, pelo que sei",
+          "peso": 0
+        },
+        {
+          "id": "q-cyber-imagens.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-cyber-imagens.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ],
+      "mostrar_se": [
+        "q-cyber-forma.imagens"
+      ]
+    },
+    {
+      "id": "q-cyber-imagens-circulacao",
+      "dimensao": "alcance",
+      "texto": "Até onde as imagens ou montagens chegaram?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "cyber"
+      ],
+      "respostas": [
+        {
+          "id": "q-cyber-imagens-circulacao.privado",
+          "texto": "Uma conversa privada",
+          "peso": 0
+        },
+        {
+          "id": "q-cyber-imagens-circulacao.grupo",
+          "texto": "Um ou mais grupos",
+          "peso": 0
+        },
+        {
+          "id": "q-cyber-imagens-circulacao.publico",
+          "texto": "Publicação que outras pessoas podem acessar",
+          "peso": 0
+        },
+        {
+          "id": "q-cyber-imagens-circulacao.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-cyber-imagens-circulacao.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ],
+      "mostrar_se_todas": [
+        "q-cyber-forma.imagens",
+        "q-cyber-imagens.publicadas"
+      ]
+    },
+    {
+      "id": "q-cyber-exclusao",
+      "dimensao": "alcance",
+      "texto": "Como a exclusão online afetou a participação?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "cyber"
+      ],
+      "respostas": [
+        {
+          "id": "q-cyber-exclusao.retirada",
+          "texto": "Retiraram a pessoa de um grupo",
+          "peso": 0
+        },
+        {
+          "id": "q-cyber-exclusao.impedida",
+          "texto": "Impediram a entrada ou participação",
+          "peso": 0
+        },
+        {
+          "id": "q-cyber-exclusao.escola",
+          "texto": "Bloquearam informações de atividades da escola",
+          "peso": 0
+        },
+        {
+          "id": "q-cyber-exclusao.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-cyber-exclusao.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ],
+      "mostrar_se": [
+        "q-cyber-forma.exclusao"
+      ]
+    },
+    {
+      "id": "q-cyber-ameacas",
+      "dimensao": "alcance",
+      "texto": "Que tipo de ameaça foi feita, sem repetir o conteúdo?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "cyber"
+      ],
+      "respostas": [
+        {
+          "id": "q-cyber-ameacas.fisica",
+          "texto": "Machucar ou encontrar a pessoa para agredir",
+          "peso": 0
+        },
+        {
+          "id": "q-cyber-ameacas.expor",
+          "texto": "Expor informações ou conteúdo",
+          "peso": 0
+        },
+        {
+          "id": "q-cyber-ameacas.exigir",
+          "texto": "Obrigar a fazer ou entregar algo",
+          "peso": 0
+        },
+        {
+          "id": "q-cyber-ameacas.outra",
+          "texto": "Outra ameaça",
+          "peso": 0
+        },
+        {
+          "id": "q-cyber-ameacas.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-cyber-ameacas.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ],
+      "mostrar_se": [
+        "q-cyber-forma.ameacas"
+      ]
+    },
+    {
+      "id": "q-cyber-alcance",
+      "dimensao": "alcance",
+      "texto": "Quem conseguiu ver as mensagens ou os boatos?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "cyber"
+      ],
+      "respostas": [
+        {
+          "id": "q-cyber-alcance.privado",
+          "texto": "Apenas pessoas da conversa",
+          "peso": 0
+        },
+        {
+          "id": "q-cyber-alcance.grupo",
+          "texto": "Pessoas de um ou mais grupos",
+          "peso": 0
+        },
+        {
+          "id": "q-cyber-alcance.publico",
+          "texto": "Qualquer pessoa com acesso à publicação",
+          "peso": 0
+        },
+        {
+          "id": "q-cyber-alcance.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-cyber-alcance.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ],
+      "mostrar_se": [
+        "q-cyber-forma.mensagens",
+        "q-cyber-forma.boatos"
+      ]
+    },
+    {
+      "id": "q-bullying-forma",
+      "dimensao": "alcance",
+      "texto": "Como acontecem as humilhações ou a exclusão?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "bullying"
+      ],
+      "respostas": [
+        {
+          "id": "q-bullying-forma.apelidos",
+          "texto": "Apelidos ou zombarias",
+          "peso": 0
+        },
+        {
+          "id": "q-bullying-forma.exclusao",
+          "texto": "Exclusão de atividades",
+          "peso": 0
+        },
+        {
+          "id": "q-bullying-forma.exposicao",
+          "texto": "Constrangimento diante de outras pessoas",
+          "peso": 0
+        },
+        {
+          "id": "q-bullying-forma.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-bullying-forma.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-bullying-participacao",
+      "dimensao": "alcance",
+      "texto": "Em que situações a exclusão impede a participação?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "bullying"
+      ],
+      "respostas": [
+        {
+          "id": "q-bullying-participacao.aulas",
+          "texto": "Aulas ou trabalhos em grupo",
+          "peso": 0
+        },
+        {
+          "id": "q-bullying-participacao.intervalo",
+          "texto": "Intervalo ou convivência",
+          "peso": 0
+        },
+        {
+          "id": "q-bullying-participacao.eventos",
+          "texto": "Jogos ou outras atividades",
+          "peso": 0
+        },
+        {
+          "id": "q-bullying-participacao.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-bullying-participacao.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ],
+      "mostrar_se": [
+        "q-bullying-forma.exclusao"
+      ]
+    },
+    {
+      "id": "q-discriminacao-tratamento",
+      "dimensao": "alcance",
+      "texto": "Como ocorreu o tratamento desigual?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "discriminacao"
+      ],
+      "respostas": [
+        {
+          "id": "q-discriminacao-tratamento.ofensa",
+          "texto": "Ofensas ou comentários",
+          "peso": 0
+        },
+        {
+          "id": "q-discriminacao-tratamento.acesso",
+          "texto": "Impedimento de participar ou acessar algo",
+          "peso": 0
+        },
+        {
+          "id": "q-discriminacao-tratamento.regra",
+          "texto": "Regra aplicada de forma desigual",
+          "peso": 0
+        },
+        {
+          "id": "q-discriminacao-tratamento.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-discriminacao-tratamento.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-discriminacao-acesso",
+      "dimensao": "alcance",
+      "texto": "O que foi dificultado ou negado?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "discriminacao"
+      ],
+      "respostas": [
+        {
+          "id": "q-discriminacao-acesso.atividade",
+          "texto": "Atividade ou grupo",
+          "peso": 0
+        },
+        {
+          "id": "q-discriminacao-acesso.espaco",
+          "texto": "Espaço ou serviço da escola",
+          "peso": 0
+        },
+        {
+          "id": "q-discriminacao-acesso.atendimento",
+          "texto": "Ajuda ou atendimento",
+          "peso": 0
+        },
+        {
+          "id": "q-discriminacao-acesso.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-discriminacao-acesso.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ],
+      "mostrar_se": [
+        "q-discriminacao-tratamento.acesso",
+        "q-discriminacao-tratamento.regra"
+      ]
+    },
+    {
+      "id": "q-ameaca-meio",
+      "dimensao": "alcance",
+      "texto": "Como a ameaça de machucar chegou à pessoa afetada?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "ameaca"
+      ],
+      "respostas": [
+        {
+          "id": "q-ameaca-meio.direta",
+          "texto": "Foi dita diretamente",
+          "peso": 0
+        },
+        {
+          "id": "q-ameaca-meio.mensagem",
+          "texto": "Mensagem, áudio ou publicação",
+          "peso": 0
+        },
+        {
+          "id": "q-ameaca-meio.terceiro",
+          "texto": "Foi repassada por outra pessoa",
+          "peso": 0
+        },
+        {
+          "id": "q-ameaca-meio.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-ameaca-meio.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-ameaca-destino",
+      "dimensao": "alcance",
+      "texto": "A ameaça indicava quem poderia ser atingido?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "ameaca"
+      ],
+      "respostas": [
+        {
+          "id": "q-ameaca-destino.pessoa",
+          "texto": "Uma pessoa específica",
+          "peso": 0
+        },
+        {
+          "id": "q-ameaca-destino.grupo",
+          "texto": "Um grupo de pessoas",
+          "peso": 0
+        },
+        {
+          "id": "q-ameaca-destino.sem-alvo",
+          "texto": "Não indicava quem",
+          "peso": 0
+        },
+        {
+          "id": "q-ameaca-destino.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-ameaca-destino.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ],
+      "mostrar_se": [
+        "q-ameaca-meio.direta",
+        "q-ameaca-meio.mensagem",
+        "q-ameaca-meio.terceiro"
+      ]
+    },
+    {
+      "id": "q-perseguicao-conduta",
+      "dimensao": "alcance",
+      "texto": "Como acontece a procura insistente?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "perseguicao"
+      ],
+      "respostas": [
+        {
+          "id": "q-perseguicao-conduta.seguir",
+          "texto": "Seguem ou esperam a pessoa",
+          "peso": 0
+        },
+        {
+          "id": "q-perseguicao-conduta.contato",
+          "texto": "Mensagens ou ligações insistentes",
+          "peso": 0
+        },
+        {
+          "id": "q-perseguicao-conduta.locais",
+          "texto": "Aparecem nos lugares que ela frequenta",
+          "peso": 0
+        },
+        {
+          "id": "q-perseguicao-conduta.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-perseguicao-conduta.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-perseguicao-aproximacao",
+      "dimensao": "alcance",
+      "texto": "Onde a pessoa é seguida ou esperada?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "perseguicao"
+      ],
+      "respostas": [
+        {
+          "id": "q-perseguicao-aproximacao.escola",
+          "texto": "Na escola ou na entrada/saída",
+          "peso": 0
+        },
+        {
+          "id": "q-perseguicao-aproximacao.trajeto",
+          "texto": "No trajeto",
+          "peso": 0
+        },
+        {
+          "id": "q-perseguicao-aproximacao.outro",
+          "texto": "Em outro lugar",
+          "peso": 0
+        },
+        {
+          "id": "q-perseguicao-aproximacao.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-perseguicao-aproximacao.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ],
+      "mostrar_se": [
+        "q-perseguicao-conduta.seguir",
+        "q-perseguicao-conduta.locais"
+      ]
+    },
+    {
+      "id": "q-chantagem-pressao",
+      "dimensao": "alcance",
+      "texto": "O que usam para pressionar a pessoa?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "chantagem"
+      ],
+      "respostas": [
+        {
+          "id": "q-chantagem-pressao.divulgar",
+          "texto": "Ameaçam expor informações",
+          "peso": 0
+        },
+        {
+          "id": "q-chantagem-pressao.machucar",
+          "texto": "Ameaçam machucar ou prejudicar",
+          "peso": 0
+        },
+        {
+          "id": "q-chantagem-pressao.consequencia",
+          "texto": "Ameaçam tirar algo ou aplicar uma punição",
+          "peso": 0
+        },
+        {
+          "id": "q-chantagem-pressao.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-chantagem-pressao.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-chantagem-segredo",
+      "dimensao": "alcance",
+      "texto": "O que pedem em relação às informações?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "chantagem"
+      ],
+      "respostas": [
+        {
+          "id": "q-chantagem-segredo.silencio",
+          "texto": "Que a pessoa não conte a ninguém",
+          "peso": 0
+        },
+        {
+          "id": "q-chantagem-segredo.novo",
+          "texto": "Que envie mais informações ou conteúdo",
+          "peso": 0
+        },
+        {
+          "id": "q-chantagem-segredo.acao",
+          "texto": "Que faça algo para evitar a divulgação",
+          "peso": 0
+        },
+        {
+          "id": "q-chantagem-segredo.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-chantagem-segredo.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ],
+      "mostrar_se": [
+        "q-chantagem-pressao.divulgar"
+      ]
+    },
+    {
+      "id": "q-extorsao-cobranca",
+      "dimensao": "alcance",
+      "texto": "Como estão cobrando dinheiro ou pertences?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "extorsao"
+      ],
+      "respostas": [
+        {
+          "id": "q-extorsao-cobranca.pagamento",
+          "texto": "Pedem pagamento ou transferência",
+          "peso": 0
+        },
+        {
+          "id": "q-extorsao-cobranca.entrega",
+          "texto": "Pedem entrega de objetos",
+          "peso": 0
+        },
+        {
+          "id": "q-extorsao-cobranca.repetida",
+          "texto": "Cobram repetidamente algo já entregue",
+          "peso": 0
+        },
+        {
+          "id": "q-extorsao-cobranca.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-extorsao-cobranca.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-extorsao-entrega",
+      "dimensao": "alcance",
+      "texto": "A exigência envolve uma entrega combinada?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "extorsao"
+      ],
+      "respostas": [
+        {
+          "id": "q-extorsao-entrega.presencial",
+          "texto": "Entrega presencial",
+          "peso": 0
+        },
+        {
+          "id": "q-extorsao-entrega.digital",
+          "texto": "Transferência ou pagamento digital",
+          "peso": 0
+        },
+        {
+          "id": "q-extorsao-entrega.sem-combinado",
+          "texto": "Ainda não combinaram a forma",
+          "peso": 0
+        },
+        {
+          "id": "q-extorsao-entrega.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-extorsao-entrega.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ],
+      "mostrar_se": [
+        "q-extorsao-cobranca.pagamento",
+        "q-extorsao-cobranca.entrega",
+        "q-extorsao-cobranca.repetida"
+      ]
+    },
+    {
+      "id": "q-assedio-conduta",
+      "dimensao": "alcance",
+      "texto": "Que tipo de aproximação sexual indesejada aconteceu?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "assedio"
+      ],
+      "respostas": [
+        {
+          "id": "q-assedio-conduta.comentarios",
+          "texto": "Comentários ou gestos",
+          "peso": 0
+        },
+        {
+          "id": "q-assedio-conduta.mensagens",
+          "texto": "Mensagens ou material sexual",
+          "peso": 0
+        },
+        {
+          "id": "q-assedio-conduta.convites",
+          "texto": "Convites ou insistência para encontro",
+          "peso": 0
+        },
+        {
+          "id": "q-assedio-conduta.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-assedio-conduta.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-assedio-convites",
+      "dimensao": "alcance",
+      "texto": "Como os convites indesejados estão sendo feitos?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "assedio"
+      ],
+      "respostas": [
+        {
+          "id": "q-assedio-convites.sozinho",
+          "texto": "Pedem encontro a sós",
+          "peso": 0
+        },
+        {
+          "id": "q-assedio-convites.insistencia",
+          "texto": "Continuam após recusa ou falta de resposta",
+          "peso": 0
+        },
+        {
+          "id": "q-assedio-convites.vantagem",
+          "texto": "Prometem vantagem ou favor",
+          "peso": 0
+        },
+        {
+          "id": "q-assedio-convites.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-assedio-convites.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ],
+      "mostrar_se": [
+        "q-assedio-conduta.convites"
+      ]
+    },
+    {
+      "id": "q-contato-situacao",
+      "dimensao": "alcance",
+      "texto": "Em que contexto ocorreu o contato sem consentimento? Sem detalhes do toque.",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "contato"
+      ],
+      "respostas": [
+        {
+          "id": "q-contato-situacao.isolado",
+          "texto": "Em local isolado ou a sós",
+          "peso": 0
+        },
+        {
+          "id": "q-contato-situacao.coletivo",
+          "texto": "Com outras pessoas por perto",
+          "peso": 0
+        },
+        {
+          "id": "q-contato-situacao.impedido",
+          "texto": "Com dificuldade de se afastar ou sair",
+          "peso": 0
+        },
+        {
+          "id": "q-contato-situacao.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-contato-situacao.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-contato-saida",
+      "dimensao": "alcance",
+      "texto": "O que dificultou se afastar do contato?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "contato"
+      ],
+      "respostas": [
+        {
+          "id": "q-contato-saida.bloqueio",
+          "texto": "Bloquearam a passagem",
+          "peso": 0
+        },
+        {
+          "id": "q-contato-saida.seguraram",
+          "texto": "Seguraram ou imobilizaram a pessoa",
+          "peso": 0
+        },
+        {
+          "id": "q-contato-saida.pressao",
+          "texto": "Medo, pressão ou dependência de alguém",
+          "peso": 0
+        },
+        {
+          "id": "q-contato-saida.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-contato-saida.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ],
+      "mostrar_se": [
+        "q-contato-situacao.impedido"
+      ]
+    },
+    {
+      "id": "q-aliciamento-pedido",
+      "dimensao": "alcance",
+      "texto": "Que tipo de pedido chamou atenção?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "aliciamento"
+      ],
+      "respostas": [
+        {
+          "id": "q-aliciamento-pedido.segredo",
+          "texto": "Manter a relação ou conversa em segredo",
+          "peso": 0
+        },
+        {
+          "id": "q-aliciamento-pedido.fotos",
+          "texto": "Enviar fotos ou conteúdo íntimo",
+          "peso": 0
+        },
+        {
+          "id": "q-aliciamento-pedido.encontro",
+          "texto": "Encontrar alguém em particular",
+          "peso": 0
+        },
+        {
+          "id": "q-aliciamento-pedido.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-aliciamento-pedido.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-aliciamento-encontro",
+      "dimensao": "alcance",
+      "texto": "Como seria o encontro pedido?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "aliciamento"
+      ],
+      "respostas": [
+        {
+          "id": "q-aliciamento-encontro.isolado",
+          "texto": "Em local privado ou isolado",
+          "peso": 0
+        },
+        {
+          "id": "q-aliciamento-encontro.transporte",
+          "texto": "Ofereceram transporte para buscar a pessoa",
+          "peso": 0
+        },
+        {
+          "id": "q-aliciamento-encontro.marcado",
+          "texto": "Já combinaram um encontro",
+          "peso": 0
+        },
+        {
+          "id": "q-aliciamento-encontro.indefinido",
+          "texto": "Ainda não combinaram os detalhes",
+          "peso": 0
+        },
+        {
+          "id": "q-aliciamento-encontro.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-aliciamento-encontro.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ],
+      "mostrar_se": [
+        "q-aliciamento-pedido.encontro"
+      ]
+    },
+    {
+      "id": "q-intimidade-exposicao",
+      "dimensao": "alcance",
+      "texto": "O que aconteceu com o conteúdo íntimo? Sem enviar ou detalhar imagens.",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "intimidade"
+      ],
+      "respostas": [
+        {
+          "id": "q-intimidade-exposicao.gravacao",
+          "texto": "Gravaram ou obtiveram sem autorização",
+          "peso": 0
+        },
+        {
+          "id": "q-intimidade-exposicao.envio",
+          "texto": "Compartilharam sem autorização",
+          "peso": 0
+        },
+        {
+          "id": "q-intimidade-exposicao.ameaca",
+          "texto": "Ameaçaram compartilhar",
+          "peso": 0
+        },
+        {
+          "id": "q-intimidade-exposicao.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-intimidade-exposicao.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-intimidade-destino",
+      "dimensao": "alcance",
+      "texto": "Onde o conteúdo íntimo foi compartilhado?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "intimidade"
+      ],
+      "respostas": [
+        {
+          "id": "q-intimidade-destino.privado",
+          "texto": "Conversa privada",
+          "peso": 0
+        },
+        {
+          "id": "q-intimidade-destino.grupo",
+          "texto": "Grupo de pessoas",
+          "peso": 0
+        },
+        {
+          "id": "q-intimidade-destino.publico",
+          "texto": "Página ou perfil acessível a mais pessoas",
+          "peso": 0
+        },
+        {
+          "id": "q-intimidade-destino.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-intimidade-destino.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ],
+      "mostrar_se": [
+        "q-intimidade-exposicao.envio"
+      ]
+    },
+    {
+      "id": "q-exploracao-troca",
+      "dimensao": "alcance",
+      "texto": "O que foi oferecido ou usado como pressão envolvendo algo sexual?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "exploracao"
+      ],
+      "respostas": [
+        {
+          "id": "q-exploracao-troca.favores",
+          "texto": "Favores, presentes ou dinheiro",
+          "peso": 0
+        },
+        {
+          "id": "q-exploracao-troca.necessidade",
+          "texto": "Moradia, comida, transporte ou outra necessidade",
+          "peso": 0
+        },
+        {
+          "id": "q-exploracao-troca.divida",
+          "texto": "Dívida, obrigação ou ameaça",
+          "peso": 0
+        },
+        {
+          "id": "q-exploracao-troca.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-exploracao-troca.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-exploracao-dependencia",
+      "dimensao": "alcance",
+      "texto": "A pessoa depende dessa oferta para uma necessidade?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "exploracao"
+      ],
+      "respostas": [
+        {
+          "id": "q-exploracao-dependencia.basica",
+          "texto": "Alimentação ou lugar para ficar",
+          "peso": 0
+        },
+        {
+          "id": "q-exploracao-dependencia.transporte",
+          "texto": "Transporte ou acesso à escola",
+          "peso": 0
+        },
+        {
+          "id": "q-exploracao-dependencia.outra",
+          "texto": "Outra necessidade",
+          "peso": 0
+        },
+        {
+          "id": "q-exploracao-dependencia.nao",
+          "texto": "Não depende",
+          "peso": 0
+        },
+        {
+          "id": "q-exploracao-dependencia.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-exploracao-dependencia.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ],
+      "mostrar_se": [
+        "q-exploracao-troca.necessidade"
+      ]
+    },
+    {
+      "id": "q-agressao-situacao",
+      "dimensao": "alcance",
+      "texto": "Como a agressão ocorreu, sem detalhes dos ferimentos?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "agressao"
+      ],
+      "respostas": [
+        {
+          "id": "q-agressao-situacao.confronto",
+          "texto": "Confronto entre pessoas",
+          "peso": 0
+        },
+        {
+          "id": "q-agressao-situacao.surpresa",
+          "texto": "Ataque sem possibilidade de se defender",
+          "peso": 0
+        },
+        {
+          "id": "q-agressao-situacao.grupo",
+          "texto": "Várias pessoas contra alguém",
+          "peso": 0
+        },
+        {
+          "id": "q-agressao-situacao.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-agressao-situacao.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-agressao-continua",
+      "dimensao": "alcance",
+      "texto": "O confronto ainda mantém pessoas próximas umas das outras?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "agressao"
+      ],
+      "respostas": [
+        {
+          "id": "q-agressao-continua.juntas",
+          "texto": "As pessoas continuam no mesmo local",
+          "peso": 0
+        },
+        {
+          "id": "q-agressao-continua.separadas",
+          "texto": "Já foram separadas",
+          "peso": 0
+        },
+        {
+          "id": "q-agressao-continua.voltaram",
+          "texto": "Tentaram se aproximar novamente",
+          "peso": 0
+        },
+        {
+          "id": "q-agressao-continua.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-agressao-continua.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ],
+      "mostrar_se": [
+        "q-agressao-situacao.confronto",
+        "q-agressao-situacao.surpresa",
+        "q-agressao-situacao.grupo"
+      ]
+    },
+    {
+      "id": "q-violencia-restricao",
+      "dimensao": "alcance",
+      "texto": "O que impediu a pessoa de sair ou se proteger?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "violencia"
+      ],
+      "respostas": [
+        {
+          "id": "q-violencia-restricao.trancada",
+          "texto": "Porta ou saída bloqueada",
+          "peso": 0
+        },
+        {
+          "id": "q-violencia-restricao.contida",
+          "texto": "Foi segurada ou imobilizada",
+          "peso": 0
+        },
+        {
+          "id": "q-violencia-restricao.ameacada",
+          "texto": "Ameaça para não sair",
+          "peso": 0
+        },
+        {
+          "id": "q-violencia-restricao.agressao",
+          "texto": "Agressão sem restrição de saída",
+          "peso": 0
+        },
+        {
+          "id": "q-violencia-restricao.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-violencia-restricao.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-violencia-liberdade",
+      "dimensao": "alcance",
+      "texto": "A pessoa já conseguiu sair dessa situação?",
+      "tipo": "unica",
+      "para_opcoes": [
+        "violencia"
+      ],
+      "respostas": [
+        {
+          "id": "q-violencia-liberdade.saiu",
+          "texto": "Conseguiu sair",
+          "peso": 0
+        },
+        {
+          "id": "q-violencia-liberdade.continua",
+          "texto": "Ainda está impedida de sair",
+          "peso": 0
+        },
+        {
+          "id": "q-violencia-liberdade.ajuda",
+          "texto": "Alguém está ajudando a sair",
+          "peso": 0
+        },
+        {
+          "id": "q-violencia-liberdade.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-violencia-liberdade.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ],
+      "mostrar_se": [
+        "q-violencia-restricao.trancada",
+        "q-violencia-restricao.contida",
+        "q-violencia-restricao.ameacada"
+      ]
+    },
+    {
+      "id": "q-ataque-informacao",
+      "dimensao": "alcance",
+      "texto": "Como você soube da tentativa de matar ou da morte?",
+      "tipo": "unica",
+      "para_opcoes": [
+        "ataque"
+      ],
+      "respostas": [
+        {
+          "id": "q-ataque-informacao.presenciei",
+          "texto": "Presenciei o ocorrido",
+          "peso": 0
+        },
+        {
+          "id": "q-ataque-informacao.pessoa",
+          "texto": "Soube por pessoa envolvida ou testemunha",
+          "peso": 0
+        },
+        {
+          "id": "q-ataque-informacao.mensagem",
+          "texto": "Soube por mensagem ou publicação",
+          "peso": 0
+        },
+        {
+          "id": "q-ataque-informacao.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-ataque-informacao.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-ataque-atendimento",
+      "dimensao": "alcance",
+      "texto": "Pelo que você sabe, o atendimento foi acionado?",
+      "tipo": "unica",
+      "para_opcoes": [
+        "ataque"
+      ],
+      "respostas": [
+        {
+          "id": "q-ataque-atendimento.sim",
+          "texto": "Já chamaram atendimento de emergência",
+          "peso": 0
+        },
+        {
+          "id": "q-ataque-atendimento.presente",
+          "texto": "Uma equipe de atendimento está no local",
+          "peso": 0
+        },
+        {
+          "id": "q-ataque-atendimento.nao",
+          "texto": "Ainda não chamaram",
+          "peso": 0
+        },
+        {
+          "id": "q-ataque-atendimento.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-ataque-atendimento.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ],
+      "mostrar_se": [
+        "q-ataque-informacao.presenciei",
+        "q-ataque-informacao.pessoa",
+        "q-ataque-informacao.mensagem"
+      ]
+    },
+    {
+      "id": "q-dados-material",
+      "dimensao": "alcance",
+      "texto": "Que tipo de informação particular foi divulgado? Sem informar os dados aqui.",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "dados"
+      ],
+      "respostas": [
+        {
+          "id": "q-dados-material.dados",
+          "texto": "Dados pessoais ou localização",
+          "peso": 0
+        },
+        {
+          "id": "q-dados-material.conversas",
+          "texto": "Conversas particulares",
+          "peso": 0
+        },
+        {
+          "id": "q-dados-material.gravacoes",
+          "texto": "Áudio, vídeo ou outras gravações",
+          "peso": 0
+        },
+        {
+          "id": "q-dados-material.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-dados-material.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-dados-localizacao",
+      "dimensao": "alcance",
+      "texto": "Os dados divulgados permitem localizar a pessoa?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "dados"
+      ],
+      "respostas": [
+        {
+          "id": "q-dados-localizacao.endereco",
+          "texto": "Endereço ou local onde fica",
+          "peso": 0
+        },
+        {
+          "id": "q-dados-localizacao.rotina",
+          "texto": "Trajeto, horários ou rotina",
+          "peso": 0
+        },
+        {
+          "id": "q-dados-localizacao.nao",
+          "texto": "Não permitem localizar, pelo que sei",
+          "peso": 0
+        },
+        {
+          "id": "q-dados-localizacao.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-dados-localizacao.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ],
+      "mostrar_se": [
+        "q-dados-material.dados"
+      ]
+    },
+    {
+      "id": "q-conta-sinal",
+      "dimensao": "alcance",
+      "texto": "Que sinal de invasão da conta ou dispositivo foi percebido?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "conta"
+      ],
+      "respostas": [
+        {
+          "id": "q-conta-sinal.senha",
+          "texto": "Senha ou acesso alterado",
+          "peso": 0
+        },
+        {
+          "id": "q-conta-sinal.atividade",
+          "texto": "Mensagens, publicações ou compras não reconhecidas",
+          "peso": 0
+        },
+        {
+          "id": "q-conta-sinal.aviso",
+          "texto": "Aviso de acesso desconhecido",
+          "peso": 0
+        },
+        {
+          "id": "q-conta-sinal.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-conta-sinal.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-conta-atividade",
+      "dimensao": "alcance",
+      "texto": "Que atividade não reconhecida foi percebida?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "conta"
+      ],
+      "respostas": [
+        {
+          "id": "q-conta-atividade.mensagem",
+          "texto": "Mensagens enviadas para contatos",
+          "peso": 0
+        },
+        {
+          "id": "q-conta-atividade.publicacao",
+          "texto": "Publicações não reconhecidas",
+          "peso": 0
+        },
+        {
+          "id": "q-conta-atividade.perfil",
+          "texto": "Alterações no perfil, sem publicação",
+          "peso": 0
+        },
+        {
+          "id": "q-conta-atividade.compra",
+          "texto": "Compras ou movimentações",
+          "peso": 0
+        },
+        {
+          "id": "q-conta-atividade.arquivos",
+          "texto": "Acesso ou alteração de arquivos",
+          "peso": 0
+        },
+        {
+          "id": "q-conta-atividade.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-conta-atividade.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ],
+      "mostrar_se": [
+        "q-conta-sinal.atividade"
+      ]
+    },
+    {
+      "id": "q-perfil-identidade",
+      "dimensao": "alcance",
+      "texto": "Quem o perfil falso ou a pessoa está tentando representar?",
+      "tipo": "unica",
+      "para_opcoes": [
+        "perfil"
+      ],
+      "respostas": [
+        {
+          "id": "q-perfil-identidade.afetada",
+          "texto": "A pessoa afetada",
+          "peso": 0
+        },
+        {
+          "id": "q-perfil-identidade.conhecida",
+          "texto": "Outra pessoa conhecida",
+          "peso": 0
+        },
+        {
+          "id": "q-perfil-identidade.instituicao",
+          "texto": "Escola, serviço ou instituição",
+          "peso": 0
+        },
+        {
+          "id": "q-perfil-identidade.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-perfil-identidade.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-perfil-uso",
+      "dimensao": "alcance",
+      "texto": "Como essa identidade está sendo usada?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "perfil"
+      ],
+      "respostas": [
+        {
+          "id": "q-perfil-uso.contatos",
+          "texto": "Para conversar com outras pessoas",
+          "peso": 0
+        },
+        {
+          "id": "q-perfil-uso.pedidos",
+          "texto": "Para pedir dinheiro, dados ou favores",
+          "peso": 0
+        },
+        {
+          "id": "q-perfil-uso.publicacoes",
+          "texto": "Para fazer publicações",
+          "peso": 0
+        },
+        {
+          "id": "q-perfil-uso.sem-uso",
+          "texto": "Ainda não vi uso além da criação",
+          "peso": 0
+        },
+        {
+          "id": "q-perfil-uso.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-perfil-uso.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ],
+      "mostrar_se": [
+        "q-perfil-identidade.afetada",
+        "q-perfil-identidade.conhecida",
+        "q-perfil-identidade.instituicao"
+      ]
+    },
+    {
+      "id": "q-golpe-abordagem",
+      "dimensao": "alcance",
+      "texto": "Qual foi a abordagem suspeita?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "golpe"
+      ],
+      "respostas": [
+        {
+          "id": "q-golpe-abordagem.link",
+          "texto": "Link, arquivo ou página para acessar",
+          "peso": 0
+        },
+        {
+          "id": "q-golpe-abordagem.pagamento",
+          "texto": "Pedido de pagamento",
+          "peso": 0
+        },
+        {
+          "id": "q-golpe-abordagem.oportunidade",
+          "texto": "Prêmio, emprego ou oportunidade",
+          "peso": 0
+        },
+        {
+          "id": "q-golpe-abordagem.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-golpe-abordagem.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-golpe-link",
+      "dimensao": "alcance",
+      "texto": "O que aconteceu com o link ou arquivo?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "golpe"
+      ],
+      "respostas": [
+        {
+          "id": "q-golpe-link.recebido",
+          "texto": "Apenas foi recebido",
+          "peso": 0
+        },
+        {
+          "id": "q-golpe-link.aberto",
+          "texto": "Foi aberto ou baixado",
+          "peso": 0
+        },
+        {
+          "id": "q-golpe-link.preenchido",
+          "texto": "Foram preenchidos dados ou senha",
+          "peso": 0
+        },
+        {
+          "id": "q-golpe-link.instalado",
+          "texto": "Pediram instalar algo ou liberar acesso",
+          "peso": 0
+        },
+        {
+          "id": "q-golpe-link.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-golpe-link.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ],
+      "mostrar_se": [
+        "q-golpe-abordagem.link"
+      ]
+    },
+    {
+      "id": "q-pertences-objeto",
+      "dimensao": "alcance",
+      "texto": "Que tipo de pertence foi levado?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "pertences"
+      ],
+      "respostas": [
+        {
+          "id": "q-pertences-objeto.escolar",
+          "texto": "Material escolar ou roupa",
+          "peso": 0
+        },
+        {
+          "id": "q-pertences-objeto.digital",
+          "texto": "Celular ou outro equipamento",
+          "peso": 0
+        },
+        {
+          "id": "q-pertences-objeto.valor",
+          "texto": "Dinheiro ou outro objeto de valor",
+          "peso": 0
+        },
+        {
+          "id": "q-pertences-objeto.outro",
+          "texto": "Outro pertence",
+          "peso": 0
+        },
+        {
+          "id": "q-pertences-objeto.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-pertences-objeto.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-pertences-digital",
+      "dimensao": "alcance",
+      "texto": "Além da perda do equipamento, o que foi percebido?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "pertences"
+      ],
+      "respostas": [
+        {
+          "id": "q-pertences-digital.acesso",
+          "texto": "Alguém usou a conta ou o aparelho",
+          "peso": 0
+        },
+        {
+          "id": "q-pertences-digital.devolucao",
+          "texto": "Pediram algo para devolver",
+          "peso": 0
+        },
+        {
+          "id": "q-pertences-digital.nenhum",
+          "texto": "Nenhum uso ou pedido conhecido",
+          "peso": 0
+        },
+        {
+          "id": "q-pertences-digital.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-pertences-digital.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ],
+      "mostrar_se": [
+        "q-pertences-objeto.digital"
+      ]
+    },
+    {
+      "id": "q-patrimonio-dano",
+      "dimensao": "alcance",
+      "texto": "Que parte do espaço ou equipamento foi danificada?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "patrimonio"
+      ],
+      "respostas": [
+        {
+          "id": "q-patrimonio-dano.estrutura",
+          "texto": "Portas, janelas ou estrutura",
+          "peso": 0
+        },
+        {
+          "id": "q-patrimonio-dano.instalacao",
+          "texto": "Instalações elétricas, água ou gás",
+          "peso": 0
+        },
+        {
+          "id": "q-patrimonio-dano.equipamento",
+          "texto": "Equipamentos ou materiais",
+          "peso": 0
+        },
+        {
+          "id": "q-patrimonio-dano.area",
+          "texto": "Móveis ou área de circulação",
+          "peso": 0
+        },
+        {
+          "id": "q-patrimonio-dano.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-patrimonio-dano.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-patrimonio-instalacao",
+      "dimensao": "alcance",
+      "texto": "Qual sinal foi percebido nas instalações?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "patrimonio"
+      ],
+      "respostas": [
+        {
+          "id": "q-patrimonio-instalacao.fio",
+          "texto": "Fios expostos ou falha elétrica",
+          "peso": 0
+        },
+        {
+          "id": "q-patrimonio-instalacao.vazamento",
+          "texto": "Vazamento ou cheiro incomum",
+          "peso": 0
+        },
+        {
+          "id": "q-patrimonio-instalacao.agua",
+          "texto": "Água acumulada ou falta de água",
+          "peso": 0
+        },
+        {
+          "id": "q-patrimonio-instalacao.outro",
+          "texto": "Outro sinal de dano",
+          "peso": 0
+        },
+        {
+          "id": "q-patrimonio-instalacao.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-patrimonio-instalacao.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ],
+      "mostrar_se": [
+        "q-patrimonio-dano.instalacao"
+      ]
+    },
+    {
+      "id": "q-arma-presenca",
+      "dimensao": "alcance",
+      "texto": "Como a arma ou objeto foi usado para intimidar?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "arma"
+      ],
+      "respostas": [
+        {
+          "id": "q-arma-presenca.visto",
+          "texto": "Foi visto com a pessoa",
+          "peso": 0
+        },
+        {
+          "id": "q-arma-presenca.mostrado",
+          "texto": "Foi mostrado para intimidar",
+          "peso": 0
+        },
+        {
+          "id": "q-arma-presenca.uso",
+          "texto": "Foi usado contra alguém",
+          "peso": 0
+        },
+        {
+          "id": "q-arma-presenca.relato",
+          "texto": "Houve relato, mas não vi",
+          "peso": 0
+        },
+        {
+          "id": "q-arma-presenca.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-arma-presenca.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-arma-proximidade",
+      "dimensao": "alcance",
+      "texto": "Pelo que você sabe, onde está a pessoa com a arma ou objeto?",
+      "tipo": "unica",
+      "para_opcoes": [
+        "arma"
+      ],
+      "respostas": [
+        {
+          "id": "q-arma-proximidade.escola",
+          "texto": "Na escola ou perto dela",
+          "peso": 0
+        },
+        {
+          "id": "q-arma-proximidade.saiu",
+          "texto": "Saiu do local",
+          "peso": 0
+        },
+        {
+          "id": "q-arma-proximidade.outro",
+          "texto": "Em outro local conhecido",
+          "peso": 0
+        },
+        {
+          "id": "q-arma-proximidade.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-arma-proximidade.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ],
+      "mostrar_se": [
+        "q-arma-presenca.visto",
+        "q-arma-presenca.mostrado",
+        "q-arma-presenca.uso"
+      ]
+    },
+    {
+      "id": "q-ataque-escola-sinal",
+      "dimensao": "alcance",
+      "texto": "Como a ameaça de ataque à escola apareceu?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "ataque-escola"
+      ],
+      "respostas": [
+        {
+          "id": "q-ataque-escola-sinal.mensagem",
+          "texto": "Mensagem, publicação ou aviso",
+          "peso": 0
+        },
+        {
+          "id": "q-ataque-escola-sinal.fala",
+          "texto": "Fala ou conversa presencial",
+          "peso": 0
+        },
+        {
+          "id": "q-ataque-escola-sinal.objeto",
+          "texto": "Objeto suspeito relacionado à ameaça",
+          "peso": 0
+        },
+        {
+          "id": "q-ataque-escola-sinal.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-ataque-escola-sinal.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-ataque-escola-objeto",
+      "dimensao": "alcance",
+      "texto": "O que se sabe sobre o local do objeto suspeito? Não toque nem se aproxime para conferir.",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "ataque-escola"
+      ],
+      "respostas": [
+        {
+          "id": "q-ataque-escola-objeto.circulacao",
+          "texto": "Está em área de circulação",
+          "peso": 0
+        },
+        {
+          "id": "q-ataque-escola-objeto.isolado",
+          "texto": "Está em local já afastado das pessoas",
+          "peso": 0
+        },
+        {
+          "id": "q-ataque-escola-objeto.retirado",
+          "texto": "Houve informação de que foi retirado por equipe responsável",
+          "peso": 0
+        },
+        {
+          "id": "q-ataque-escola-objeto.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-ataque-escola-objeto.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ],
+      "mostrar_se": [
+        "q-ataque-escola-sinal.objeto"
+      ]
+    },
+    {
+      "id": "q-substancias-situacao",
+      "dimensao": "alcance",
+      "texto": "O que aconteceu envolvendo drogas ou álcool?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "substancias"
+      ],
+      "respostas": [
+        {
+          "id": "q-substancias-situacao.oferta",
+          "texto": "Oferta ou venda",
+          "peso": 0
+        },
+        {
+          "id": "q-substancias-situacao.pressao",
+          "texto": "Pressão para consumir",
+          "peso": 0
+        },
+        {
+          "id": "q-substancias-situacao.consumo",
+          "texto": "Consumo observado",
+          "peso": 0
+        },
+        {
+          "id": "q-substancias-situacao.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-substancias-situacao.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-substancias-pressao",
+      "dimensao": "alcance",
+      "texto": "Como foi feita a pressão para consumir?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "substancias"
+      ],
+      "respostas": [
+        {
+          "id": "q-substancias-pressao.grupo",
+          "texto": "Insistência de um grupo",
+          "peso": 0
+        },
+        {
+          "id": "q-substancias-pressao.ameaca",
+          "texto": "Ameaça ou obrigação",
+          "peso": 0
+        },
+        {
+          "id": "q-substancias-pressao.troca",
+          "texto": "Oferta de vantagem ou exigência de troca",
+          "peso": 0
+        },
+        {
+          "id": "q-substancias-pressao.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-substancias-pressao.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ],
+      "mostrar_se": [
+        "q-substancias-situacao.pressao"
+      ]
+    },
+    {
+      "id": "q-adulteracao-consumo",
+      "dimensao": "alcance",
+      "texto": "Alguém consumiu a comida ou bebida suspeita?",
+      "tipo": "unica",
+      "para_opcoes": [
+        "adulteracao"
+      ],
+      "respostas": [
+        {
+          "id": "q-adulteracao-consumo.sim",
+          "texto": "Sim",
+          "peso": 0
+        },
+        {
+          "id": "q-adulteracao-consumo.nao",
+          "texto": "Não, a suspeita surgiu antes do consumo",
+          "peso": 0
+        },
+        {
+          "id": "q-adulteracao-consumo.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-adulteracao-consumo.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-adulteracao-sintomas",
+      "dimensao": "alcance",
+      "texto": "O que foi percebido após o consumo, sem detalhes clínicos?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "adulteracao"
+      ],
+      "respostas": [
+        {
+          "id": "q-adulteracao-sintomas.mal",
+          "texto": "A pessoa começou a passar mal",
+          "peso": 0
+        },
+        {
+          "id": "q-adulteracao-sintomas.alteracao",
+          "texto": "Houve mudança incomum de comportamento ou consciência",
+          "peso": 0
+        },
+        {
+          "id": "q-adulteracao-sintomas.nenhum",
+          "texto": "Nenhuma alteração percebida até agora",
+          "peso": 0
+        },
+        {
+          "id": "q-adulteracao-sintomas.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-adulteracao-sintomas.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ],
+      "mostrar_se": [
+        "q-adulteracao-consumo.sim"
+      ]
+    },
+    {
+      "id": "q-casa-cuidado",
+      "dimensao": "alcance",
+      "texto": "Que situação de violência ou falta de cuidado está acontecendo em casa?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "casa"
+      ],
+      "respostas": [
+        {
+          "id": "q-casa-cuidado.violencia",
+          "texto": "Agressões, ameaças ou humilhações",
+          "peso": 0
+        },
+        {
+          "id": "q-casa-cuidado.basico",
+          "texto": "Falta de alimentação, abrigo ou cuidado necessário",
+          "peso": 0
+        },
+        {
+          "id": "q-casa-cuidado.abandono",
+          "texto": "Pessoa deixada sem o cuidado de que precisa",
+          "peso": 0
+        },
+        {
+          "id": "q-casa-cuidado.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-casa-cuidado.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-casa-necessidade",
+      "dimensao": "alcance",
+      "texto": "Qual cuidado está faltando?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "casa"
+      ],
+      "respostas": [
+        {
+          "id": "q-casa-necessidade.comida",
+          "texto": "Alimentação ou lugar seguro para dormir",
+          "peso": 0
+        },
+        {
+          "id": "q-casa-necessidade.saude",
+          "texto": "Acesso a atendimento ou cuidado de saúde",
+          "peso": 0
+        },
+        {
+          "id": "q-casa-necessidade.supervisao",
+          "texto": "Acompanhamento necessário de uma pessoa responsável",
+          "peso": 0
+        },
+        {
+          "id": "q-casa-necessidade.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-casa-necessidade.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ],
+      "mostrar_se": [
+        "q-casa-cuidado.basico",
+        "q-casa-cuidado.abandono"
+      ]
+    },
+    {
+      "id": "q-adulto-conduta",
+      "dimensao": "alcance",
+      "texto": "Que conduta do adulto da escola ocorreu?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "adulto"
+      ],
+      "respostas": [
+        {
+          "id": "q-adulto-conduta.fisica",
+          "texto": "Machucou ou usou força",
+          "peso": 0
+        },
+        {
+          "id": "q-adulto-conduta.constrange",
+          "texto": "Humilhou ou constrangeu",
+          "peso": 0
+        },
+        {
+          "id": "q-adulto-conduta.discrimina",
+          "texto": "Discriminou ou tratou de forma desigual",
+          "peso": 0
+        },
+        {
+          "id": "q-adulto-conduta.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-adulto-conduta.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-adulto-contexto",
+      "dimensao": "alcance",
+      "texto": "Em qual situação aconteceu o constrangimento ou tratamento desigual?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "adulto"
+      ],
+      "respostas": [
+        {
+          "id": "q-adulto-contexto.aula",
+          "texto": "Durante aula ou atividade",
+          "peso": 0
+        },
+        {
+          "id": "q-adulto-contexto.atendimento",
+          "texto": "Ao pedir ajuda ou atendimento",
+          "peso": 0
+        },
+        {
+          "id": "q-adulto-contexto.convivencia",
+          "texto": "Na convivência fora da aula",
+          "peso": 0
+        },
+        {
+          "id": "q-adulto-contexto.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-adulto-contexto.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ],
+      "mostrar_se": [
+        "q-adulto-conduta.constrange",
+        "q-adulto-conduta.discrimina"
+      ]
+    },
+    {
+      "id": "q-omissao-ajuda",
+      "dimensao": "alcance",
+      "texto": "Como a ajuda foi solicitada ao adulto?",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "omissao"
+      ],
+      "respostas": [
+        {
+          "id": "q-omissao-ajuda.conversa",
+          "texto": "Conversa presencial",
+          "peso": 0
+        },
+        {
+          "id": "q-omissao-ajuda.mensagem",
+          "texto": "Mensagem ou outro registro escrito",
+          "peso": 0
+        },
+        {
+          "id": "q-omissao-ajuda.terceiro",
+          "texto": "Por outra pessoa que pediu ajuda",
+          "peso": 0
+        },
+        {
+          "id": "q-omissao-ajuda.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-omissao-ajuda.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-omissao-retorno",
+      "dimensao": "alcance",
+      "texto": "Que resposta houve ao pedido de ajuda?",
+      "tipo": "unica",
+      "para_opcoes": [
+        "omissao"
+      ],
+      "respostas": [
+        {
+          "id": "q-omissao-retorno.sem-retorno",
+          "texto": "Não houve retorno",
+          "peso": 0
+        },
+        {
+          "id": "q-omissao-retorno.promessa",
+          "texto": "Disseram que ajudariam, mas o risco continua",
+          "peso": 0
+        },
+        {
+          "id": "q-omissao-retorno.minimizou",
+          "texto": "Desconsideraram ou diminuíram a situação",
+          "peso": 0
+        },
+        {
+          "id": "q-omissao-retorno.parcial",
+          "texto": "Houve alguma ação, mas a proteção ainda é insuficiente",
+          "peso": 0
+        },
+        {
+          "id": "q-omissao-retorno.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-omissao-retorno.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ],
+      "mostrar_se": [
+        "q-omissao-ajuda.conversa",
+        "q-omissao-ajuda.mensagem",
+        "q-omissao-ajuda.terceiro"
+      ]
+    },
+    {
+      "id": "q-recrutamento-atividade",
+      "dimensao": "alcance",
+      "texto": "Que tipo de participação estão exigindo? Sem nomes ou detalhes da atividade.",
+      "tipo": "multipla",
+      "para_opcoes": [
+        "recrutamento"
+      ],
+      "respostas": [
+        {
+          "id": "q-recrutamento-atividade.transportar",
+          "texto": "Guardar ou transportar algo",
+          "peso": 0
+        },
+        {
+          "id": "q-recrutamento-atividade.dinheiro",
+          "texto": "Entregar, receber ou cobrar dinheiro",
+          "peso": 0
+        },
+        {
+          "id": "q-recrutamento-atividade.atrair",
+          "texto": "Chamar outras pessoas ou passar informações",
+          "peso": 0
+        },
+        {
+          "id": "q-recrutamento-atividade.outra",
+          "texto": "Outra participação",
+          "peso": 0
+        },
+        {
+          "id": "q-recrutamento-atividade.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-recrutamento-atividade.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ]
+    },
+    {
+      "id": "q-recrutamento-recusa",
+      "dimensao": "alcance",
+      "texto": "O que acontece se a pessoa tentar recusar ou sair?",
+      "tipo": "unica",
+      "para_opcoes": [
+        "recrutamento"
+      ],
+      "respostas": [
+        {
+          "id": "q-recrutamento-recusa.ameaca",
+          "texto": "Ameaçam a pessoa ou alguém próximo",
+          "peso": 0
+        },
+        {
+          "id": "q-recrutamento-recusa.divida",
+          "texto": "Cobram dívida ou obrigação",
+          "peso": 0
+        },
+        {
+          "id": "q-recrutamento-recusa.vigilancia",
+          "texto": "Vigiam ou impedem que se afaste",
+          "peso": 0
+        },
+        {
+          "id": "q-recrutamento-recusa.livre",
+          "texto": "Pelo que sei, consegue recusar ou sair",
+          "peso": 0
+        },
+        {
+          "id": "q-recrutamento-recusa.nao-sei",
+          "texto": "Não sei",
+          "peso": 0
+        },
+        {
+          "id": "q-recrutamento-recusa.prefiro",
+          "texto": "Prefiro não responder",
+          "peso": 0
+        }
+      ],
+      "mostrar_se": [
+        "q-recrutamento-atividade.transportar",
+        "q-recrutamento-atividade.dinheiro",
+        "q-recrutamento-atividade.atrair",
+        "q-recrutamento-atividade.outra"
+      ]
+    }
+  ],
+  "faixas": {
+    "media": 5,
+    "alta": 9
+  },
+  "alertas": [
+    {
+      "todas": [
+        "q-seguranca.nao"
+      ],
+      "motivo": "alerta: não está em segurança"
+    },
+    {
+      "todas": [
+        "q-socorro.sim"
+      ],
+      "motivo": "alerta: atendimento necessário agora"
+    },
+    {
+      "todas": [
+        "q-risco-local.hoje"
+      ],
+      "qualquer": [
+        "q-risco-arma.sim",
+        "arma"
+      ],
+      "motivo": "alerta: ameaça com arma para hoje"
+    },
+    {
+      "todas": [
+        "ataque-escola"
+      ],
+      "qualquer": [
+        "q-quando.sim",
+        "q-quando.voltou"
+      ],
+      "motivo": "alerta: ameaça de ataque à escola em andamento"
+    },
+    {
+      "todas": [
+        "adulteracao",
+        "q-socorro.sim"
+      ],
+      "motivo": "alerta: suspeita de adulteração com pessoa passando mal"
+    },
+    {
+      "todas": [
+        "contato",
+        "q-contato-atual.sim"
+      ],
+      "motivo": "alerta: contato sem consentimento com aproximação atual"
+    },
+    {
+      "todas": [
+        "intimidade"
+      ],
+      "qualquer": [
+        "q-exigencia.dinheiro",
+        "q-exigencia.intimidade",
+        "q-exigencia.fazer",
+        "q-exigencia.silencio"
+      ],
+      "motivo": "alerta: extorsão envolvendo divulgação íntima"
+    }
+  ]
+}

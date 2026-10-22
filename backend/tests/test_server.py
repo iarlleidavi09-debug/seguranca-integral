@@ -57,7 +57,7 @@ def test_execucao_normal_inicializa_banco_e_chama_servir(tmp_path, monkeypatch):
     assert len(chamadas) == 1
     assert chamadas[0].data_dir == tmp_path
     assert (chamadas[0].student_port, chamadas[0].coord_port) == (3000, 4000)
-    assert chamadas[0].host == "127.0.0.1"
+    assert chamadas[0].host == "0.0.0.0"
     assert (tmp_path / "seguranca.db").exists()
 
 
@@ -65,7 +65,7 @@ def test_execucao_normal_inicializa_banco_e_chama_servir(tmp_path, monkeypatch):
 def servidor(tmp_path):
     """Sobe `servir` numa thread, com portas livres escolhidas pelo sistema."""
     config = Config(data_dir=tmp_path, secret_key="chave-de-teste",
-                    student_port=0, coord_port=0)
+                    host="127.0.0.1", student_port=0, coord_port=0)
     parar = threading.Event()
     portas: queue.Queue = queue.Queue()
     erros = []
@@ -123,12 +123,39 @@ def test_backup_na_partida(servidor):
         time.sleep(0.1)
 
 
+def test_real_server_shares_runtime_and_cli_reports_both_portals(servidor, capsys):
+    from app.status_cli import main_status
+    limite = time.monotonic() + 15
+    while True:
+        status, _, corpo = _pedir(servidor['aluno'], 'GET', '/api/servidor')
+        aluno = json.loads(corpo)
+        assert status == 200
+        if aluno['backup']['estado'] == 'ok':
+            break
+        assert time.monotonic() < limite
+        time.sleep(0.1)
+    status, _, corpo = _pedir(servidor['coord'], 'GET', '/api/servidor')
+    coord = json.loads(corpo)
+    assert status == 200 and coord['portal'] == 'coordenacao'
+    assert aluno['backup'] == coord['backup']
+    assert abs(aluno['uptime_s'] - coord['uptime_s']) <= 1
+    pasta = servidor['config'].data_dir
+    (pasta / 'config.json').write_text(json.dumps({
+        'host': '127.0.0.1', 'student_port': servidor['aluno'],
+        'coord_port': servidor['coord']}), encoding='utf-8')
+    antes = sorted(str(p.relative_to(pasta)) for p in pasta.rglob('*'))
+    assert main_status(pasta, json=True) == 0
+    estado = json.loads(capsys.readouterr().out)
+    assert [p['diagnostico']['portal'] for p in estado['portais']] == ['aluno', 'coordenacao']
+    assert sorted(str(p.relative_to(pasta)) for p in pasta.rglob('*')) == antes
+
+
 def test_falha_no_backup_nao_derruba_o_servidor(tmp_path, monkeypatch, caplog):
     def quebrado(*a, **k):
         raise OSError("disco cheio")
 
     monkeypatch.setattr(server, "fazer_backup", quebrado)
-    config = Config(data_dir=tmp_path, secret_key="k", student_port=0, coord_port=0)
+    config = Config(data_dir=tmp_path, secret_key="k", host="127.0.0.1", student_port=0, coord_port=0)
     parar = threading.Event()
     portas: queue.Queue = queue.Queue()
     with caplog.at_level(logging.INFO):
@@ -321,7 +348,7 @@ def test_porta_ocupada_sai_4(tmp_path, monkeypatch, capsys):
     carregar = server.load_config
     monkeypatch.setattr(
         server, "load_config",
-        lambda d=None: dataclasses.replace(carregar(d), student_port=porta, coord_port=0),
+        lambda d=None: dataclasses.replace(carregar(d), host="127.0.0.1", student_port=porta, coord_port=0),
     )
     try:
         assert server.main(["--data-dir", str(tmp_path)]) == 4
@@ -403,7 +430,7 @@ def _subir_e_parar(config):
 
 
 def test_aviso_na_partida_sem_allowed_hosts(tmp_path, caplog):
-    config = Config(data_dir=tmp_path, secret_key="x", student_port=0, coord_port=0)
+    config = Config(data_dir=tmp_path, secret_key="x", host="127.0.0.1", student_port=0, coord_port=0)
     with caplog.at_level(logging.INFO, logger="seguranca.servidor"):
         _subir_e_parar(config)
     avisos = [r for r in caplog.records
@@ -413,7 +440,7 @@ def test_aviso_na_partida_sem_allowed_hosts(tmp_path, caplog):
 
 
 def test_sem_aviso_com_allowed_hosts(tmp_path, caplog):
-    config = Config(data_dir=tmp_path, secret_key="x", student_port=0, coord_port=0,
+    config = Config(data_dir=tmp_path, secret_key="x", host="127.0.0.1", student_port=0, coord_port=0,
                     allowed_hosts=("escola.exemplo.com.br",))
     with caplog.at_level(logging.INFO, logger="seguranca.servidor"):
         _subir_e_parar(config)
@@ -450,7 +477,7 @@ def test_log_em_arquivo_sem_endereco_nem_id_de_caso(tmp_path):
     import logging.handlers
 
     config = Config(data_dir=tmp_path, secret_key="chave-de-teste",
-                    student_port=0, coord_port=0)
+                    host="127.0.0.1", student_port=0, coord_port=0)
     handlers = server._configurar_log(config)
     try:
         arquivos = [h for h in handlers

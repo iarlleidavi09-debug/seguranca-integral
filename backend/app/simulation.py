@@ -100,14 +100,22 @@ def remover_simulacao(conn: sqlite3.Connection,
 
     Se algum tivesse arquivo de anexo (não deveria), o arquivo também é apagado.
     """
-    arquivos = [
-        r[0] for r in conn.execute(
-            "SELECT a.nome_interno FROM anexos a JOIN casos c ON c.id = a.caso_id "
-            "WHERE c.simulacao = 1")
-    ]
-    cur = conn.execute("DELETE FROM casos WHERE simulacao = 1")
-    removidos = cur.rowcount
-    conn.commit()
+    conn.execute('BEGIN IMMEDIATE')
+    try:
+        arquivos = [
+            r[0] for r in conn.execute(
+                "SELECT a.nome_interno FROM anexos a JOIN casos c ON c.id = a.caso_id "
+                "WHERE c.simulacao = 1")
+        ]
+        arquivos.extend(r[0] for r in conn.execute(
+            'SELECT a.foto_nome FROM autores_resolucao a JOIN resolucoes r ON r.id=a.resolucao_id '
+            'JOIN casos c ON c.id=r.caso_id WHERE c.simulacao=1 AND a.foto_nome IS NOT NULL'))
+        cur = conn.execute("DELETE FROM casos WHERE simulacao = 1")
+        removidos = cur.rowcount
+        conn.commit()
+    except BaseException:
+        conn.rollback()
+        raise
     if config is not None:
         for nome in arquivos:
             try:

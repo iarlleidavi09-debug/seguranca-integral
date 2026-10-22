@@ -243,8 +243,8 @@ def test_config_sem_sessao_key_explicita_sorteia_uma(tmp_path):
     assert HEX64.fullmatch(a.sessao_key) and a.sessao_key != b.sessao_key
 
 
-def test_host_padrao_e_so_loopback(tmp_path):
-    assert load_config(tmp_path).host == "127.0.0.1"
+def test_host_padrao_e_lan(tmp_path):
+    assert load_config(tmp_path).host == "0.0.0.0"
 
 
 def test_config_json_define_host_de_escuta(tmp_path):

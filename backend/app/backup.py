@@ -13,7 +13,8 @@ from .config import Config
 _PADRAO_DATA = re.compile(r"\d{4}-\d{2}-\d{2}")
 # sem a secret.key os códigos dos alunos não valem; config.json guarda os
 # endereços. A sessao.key fica de fora: é descartável.
-ARQUIVOS_EXTRAS = ("secret.key", "config.json")
+ARQUIVOS_EXTRAS = ("secret.key", "config.json", "questionario.json",
+                   "questionario_v3.json", "risk_terms.json")
 
 
 def _data_utc(agora: datetime):
@@ -28,7 +29,7 @@ def pasta_do_dia(config: Config, agora: datetime) -> Path:
 
 
 def fazer_backup(config: Config, agora: datetime) -> Path:
-    """Copia banco (API de backup do SQLite), anexos, secret.key e config.json
+    """Copia banco, anexos, chave, configuração e regras locais personalizadas
     para backups/AAAA-MM-DD.
 
     Escreve numa pasta temporária e só então troca pelo nome final, para

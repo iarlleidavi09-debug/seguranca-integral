@@ -404,6 +404,28 @@ def test_resumo_com_banco_vazio_devolve_zeros(coord_logado):
     }
 
 
+def test_resumo_abertos_exclui_resolvidos_de_todas_as_contagens(coord_logado, config):
+    _caso(config, prioridade='alta', status='novo')
+    _caso(config, prioridade='media', status='em_investigacao')
+    fechado, _ = _caso(config, prioridade='critica', status='resolvido')
+    with connect(config) as conn:
+        conn.execute('UPDATE casos SET recorrencia_pendente = 1 WHERE id = ?', (fechado,))
+    dados = coord_logado.get('/api/resumo?abertos=1').get_json()
+    assert dados['status'] == {'novo': 1, 'em_investigacao': 1, 'resolvido': 0}
+    assert dados['prioridade'] == {'critica': 0, 'alta': 1, 'media': 1, 'baixa': 0}
+    assert dados['recorrencia_pendente'] == 0
+
+
+def test_filtro_abertos_por_prioridade_exclui_resolvidos(coord_logado, config):
+    novo, _ = _caso(config, prioridade='alta', status='novo')
+    investigacao, _ = _caso(config, prioridade='alta', status='em_investigacao')
+    _caso(config, prioridade='alta', status='resolvido')
+    _caso(config, prioridade='baixa', status='novo')
+    resposta = coord_logado.get('/api/casos?status=abertos&prioridade=alta')
+    assert resposta.status_code == 200
+    assert {c['id'] for c in resposta.get_json()['casos']} == {novo, investigacao}
+
+
 def test_detalhe_traz_motivos_anexos_e_timeline(coord_logado, config):
     caso_id, _ = _caso(config, tipo="ameaca",
                        relato="Disseram que vao me bater na saida da escola amanha.",
@@ -775,12 +797,15 @@ def test_detalhe_usa_so_colunas_conhecidas_do_caso(coord_logado, config):
     caso_id, _ = _caso(config)
     d = coord_logado.get(f"/api/casos/{caso_id}").get_json()
     assert set(d) == {
-        "id", "tipo", "relato", "quando", "onde", "em_andamento", "anonimo",
+        "id", "canal", "tipo", "relato", "quando", "onde", "em_andamento", "anonimo",
         "nome", "turma", "prioridade", "prioridade_original", "pontos",
         "motivos", "status", "recorrencia_pendente", "ultimo_acesso",
         "simulacao", "criado_em", "atualizado_em",
         "anexos", "eventos", "mensagens", "notas", "resolucoes",
         "situacoes", "revisoes_recorrencia", "questionario",
+        "revisao_estado", "categorias", "opcoes", "assuntos",
+        "ano_relator", "sala_relator", "local_id", "local_nome", "local_outro",
+        "responsavel", "proxima_acao", "prazo_acao", "atencao", "nao_aberto",
     }
     assert not any("hash" in chave for chave in d)
 
@@ -866,22 +891,28 @@ def test_apagar_sessao_key_derruba_as_sessoes_e_preserva_os_codigos(tmp_path):
         criar_usuario(conn, "coord", SENHA_COORD)
     finally:
         conn.close()
-    cliente = create_coord_app(cfg, limites={}).test_client()
+    from app.realtime import CentralEventos
+    central = CentralEventos()
+    cliente = create_coord_app(cfg, limites={}, central=central).test_client()
     assert cliente.post("/api/login", json={"nome": "coord", "senha": SENHA_COORD}
                         ).status_code == 200
     assert cliente.get("/api/eu").status_code == 200
     cookie = cliente.get_cookie("si_coord_sessao").value
 
-    # mesmo par de chaves: o cookie continua valendo depois de "reiniciar"
-    outro = create_coord_app(load_config(tmp_path), limites={}).test_client()
+    # Mesma execução: a assinatura e o registro em memória aceitam o cookie.
+    outro = create_coord_app(load_config(tmp_path), limites={}, central=central).test_client()
     outro.set_cookie("si_coord_sessao", cookie)
     assert outro.get("/api/eu").status_code == 200
+
+    reiniciado = create_coord_app(load_config(tmp_path), limites={}).test_client()
+    reiniciado.set_cookie("si_coord_sessao", cookie)
+    assert reiniciado.get('/api/eu').status_code == 401
 
     (tmp_path / "sessao.key").unlink()
     novo_cfg = load_config(tmp_path)
     assert novo_cfg.secret_key == cfg.secret_key  # códigos dos alunos intactos
     assert novo_cfg.sessao_key != cfg.sessao_key
-    novo = create_coord_app(novo_cfg, limites={}).test_client()
+    novo = create_coord_app(novo_cfg, limites={}, central=central).test_client()
     novo.set_cookie("si_coord_sessao", cookie)
     assert novo.get("/api/eu").status_code == 401
 
@@ -1055,7 +1086,9 @@ def test_resolucao_valida_resolve_e_registra(coord_logado, config):
     assert d["status"] == "resolvido"
     assert len(d["resolucoes"]) == 1
     rs = d["resolucoes"][0]
-    assert set(rs) == {"desfecho", "providencias", "resultado", "usuario", "criado_em"}
+    assert set(rs) == {"desfecho", "providencias", "resultado", "usuario", "criado_em",
+                       "autoria", "justificativa_autoria", "autores"}
+    assert rs['autoria'] is None and rs['justificativa_autoria'] is None and rs['autores'] == []
     assert rs["usuario"] == "coord" and rs["desfecho"] == "solucionada"
     assert rs["providencias"] == "Conversa com a familia"
 

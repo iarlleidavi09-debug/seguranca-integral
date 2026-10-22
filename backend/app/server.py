@@ -4,8 +4,9 @@ Uso:
     python -m app.server [--data-dir PASTA]            sobe os dois portais
     python -m app.server [--data-dir PASTA] --criar-admin
     python -m app.server [--data-dir PASTA] --redefinir-senha
+    python -m app.server [--data-dir PASTA] --status [--watch | --json]
 
-Saída: 0 ok; 2 erro de uso (argparse); 3 admin já existe; 4 pasta de dados
+Saída: 0 ok; 1 status offline/degradado; 2 erro de uso (argparse); 3 admin já existe; 4 pasta de dados
 inutilizável, config.json inválido ou porta ocupada; 5 admin não existe
 (--redefinir-senha).
 
@@ -37,6 +38,9 @@ from .backup import fazer_backup, limpar_antigos, pasta_do_dia
 from .config import Config, load_config, trocar_chave_de_sessao
 from .db import connect, init_db
 from .questionario import QuestionarioInvalido, carregar as carregar_questionario
+from .questionario_v3 import carregar as carregar_questionario_v3
+from .realtime import CentralEventos
+from .diagnostico import EstadoRuntime
 
 ADMIN = "coordenacao"
 # códigos de saída; 2 fica para erro de uso do argparse
@@ -183,32 +187,39 @@ def _configurar_log(config: Config) -> list[logging.Handler]:
 # --- backup diário ---------------------------------------------------------
 
 def _backup_e_limpeza(config: Config, agora: datetime,
-                      so_se_faltar: bool = False) -> None:
+                      so_se_faltar: bool = False) -> bool:
     # na partida não refaz o backup do dia: reinícios seguidos (a tarefa
     # relança a cada 5 minutos) não ficam copiando tudo de novo
-    if not (so_se_faltar and pasta_do_dia(config, agora).exists()):
+    executado = not (so_se_faltar and pasta_do_dia(config, agora).exists())
+    if executado:
         fazer_backup(config, agora)
     limpar_antigos(config, agora)
+    return executado
 
 
-def _backup_uma_vez(config: Config, so_se_faltar: bool = False) -> None:
+def _backup_uma_vez(config: Config, so_se_faltar: bool = False, *, runtime=None) -> None:
     agora = datetime.now(timezone.utc)
     try:
         # cópia de arquivos bloqueia; no threadpool os portais seguem atendendo
-        gevent.get_hub().threadpool.apply(_backup_e_limpeza,
+        executado = gevent.get_hub().threadpool.apply(_backup_e_limpeza,
                                           (config, agora, so_se_faltar))
     except Exception:
+        if runtime is not None:
+            runtime.registrar_backup('erro', agora)
         log.exception("falha no backup diario")
     else:
-        log.info("backup diario concluido")
+        if executado:
+            if runtime is not None:
+                runtime.registrar_backup('ok', agora)
+            log.info("backup diario concluido")
 
 
-def _rotina_backup(config: Config) -> None:
+def _rotina_backup(config: Config, runtime=None) -> None:
     """Backup na partida (se ainda não há o de hoje) e depois a cada 24 horas."""
-    _backup_uma_vez(config, so_se_faltar=True)
+    _backup_uma_vez(config, so_se_faltar=True, runtime=runtime)
     while True:
         gevent.sleep(INTERVALO_BACKUP)
-        _backup_uma_vez(config)
+        _backup_uma_vez(config, runtime=runtime)
 
 
 # --- servidor ----------------------------------------------------------------
@@ -253,11 +264,13 @@ def servir(config: Config, parar: threading.Event | None = None, *,
     servidores: list[WSGIServer] = []
     anteriores: dict = {}
     backup = None
+    central = CentralEventos()
+    runtime = EstadoRuntime()
     try:
         servidores = [
-            WSGIServer((config.host, config.student_port), create_student_app(config),
+            WSGIServer((config.host, config.student_port), create_student_app(config, central=central, runtime=runtime),
                        log=None, error_log=log_erro),
-            WSGIServer((config.host, config.coord_port), create_coord_app(config),
+            WSGIServer((config.host, config.coord_port), create_coord_app(config, central=central, runtime=runtime),
                        log=None, error_log=log_erro),
         ]
         for s in servidores:
@@ -268,12 +281,12 @@ def servir(config: Config, parar: threading.Event | None = None, *,
         if not config.allowed_hosts:
             # sem endereços no log: só o aviso de que o Host não é validado
             log.warning("allowed_hosts vazio no config.json: o cabecalho Host "
-                        "nao esta sendo validado; liste os dominios do tunel")
+                        "nao esta sendo validado; liste os enderecos da rede local")
         # só as portas: o endereço de escuta não vai para o log
         log.info("portal do aluno na porta %d, coordenacao na porta %d", aluno, coord)
         if ao_iniciar is not None:
             ao_iniciar(aluno, coord)
-        backup = gevent.spawn(_rotina_backup, config)
+        backup = gevent.spawn(_rotina_backup, config, runtime)
         # threading.Event.wait travaria o hub inteiro; por isso a espera curta
         while not parar.is_set():
             gevent.sleep(_ESPERA)
@@ -336,11 +349,21 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--data-dir", type=Path, default=None,
                         help="pasta de dados (padrao: C:\\ProgramData\\SegurancaIntegral)")
     acao = parser.add_mutually_exclusive_group()
+    acao.add_argument('--status', action='store_true', help='consulta os dois portais sem alterar dados')
+    monitor = parser.add_mutually_exclusive_group()
+    monitor.add_argument('--watch', action='store_true', help='atualiza status a cada dois segundos')
+    monitor.add_argument('--json', action='store_true', help='status em JSON, uma vez')
     acao.add_argument("--criar-admin", action="store_true",
                       help=f"cria o usuario '{ADMIN}' e mostra a senha inicial uma vez")
     acao.add_argument("--redefinir-senha", action="store_true",
                       help=f"gera nova senha para '{ADMIN}', desbloqueia e reativa a conta")
     args = parser.parse_args(argv)  # erro de uso: o argparse sai com 2
+
+    if (args.watch or args.json) and not args.status:
+        parser.error('--watch e --json exigem --status')
+    if args.status:
+        from .status_cli import main_status
+        return main_status(args.data_dir, watch=args.watch, json=args.json)
 
     try:
         config = load_config(args.data_dir)
@@ -358,6 +381,7 @@ def main(argv: list[str] | None = None) -> int:
     # bloquear a recuperação de conta
     try:
         carregar_questionario(config.questionario_path)
+        carregar_questionario_v3(config.questionario_v3_path)
     except QuestionarioInvalido as erro:
         # definição quebrada: para na partida, sem traceback
         print(f"Questionario invalido: {_sem_endereco(str(erro))}", file=sys.stderr)

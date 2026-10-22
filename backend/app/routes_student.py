@@ -11,6 +11,7 @@ from ._comum import registrar_rotas_finais
 from .db import connect
 from .questionario import QuestionarioInvalido, RespostasInvalidas, carregar
 from .security import chave_limitador
+from .realtime import publicar
 from .uploads import MAX_BYTES, MAX_POR_CASO, AnexoInvalido, salvar_anexo
 
 bp = Blueprint("aluno", __name__)
@@ -140,6 +141,7 @@ def criar_denuncia():
             (config.uploads_dir / a.nome_interno).unlink(missing_ok=True)
         raise
     corpo = {"codigo": codigo}
+    publicar(None)
     if recusados:
         corpo["anexos_recusados"] = recusados
     return jsonify(corpo), 201
@@ -164,7 +166,7 @@ def acompanhar():
         return jsonify({
             "status": caso["status"],
             "mensagens": [
-                {"autor": m["autor"], "texto": m["texto"], "criado_em": m["criado_em"]}
+                {"id": m["id"], "autor": m["autor"], "texto": m["texto"], "criado_em": m["criado_em"]}
                 for m in msgs
             ],
             **pos,
@@ -186,6 +188,7 @@ def informar_situacao():
             return _erro("situacao invalida")
         if casos.registrar_situacao(conn, caso["id"], situacao) != "ok":
             return _erro("caso ainda nao resolvido", 409)
+    publicar(caso['id'])
     return jsonify({"ok": True}), 201
 
 
@@ -206,6 +209,7 @@ def enviar_mensagem():
                             commit=False)
         # um único commit grava a mensagem e o evento juntos
         casos.registrar_evento(conn, caso["id"], "mensagem_aluno", None, "")
+    publicar(caso['id'])
     return jsonify({"ok": True}), 201
 
 

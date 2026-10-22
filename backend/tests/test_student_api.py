@@ -203,7 +203,8 @@ def test_aluno_nao_recebe_autoria_das_mensagens(student_client, config):
         c.close()
     r = student_client.post("/api/acompanhar", json={"codigo": codigo})
     for m in r.get_json()["mensagens"]:
-        assert set(m) == {"autor", "texto", "criado_em"}
+        assert set(m) == {"id", "autor", "texto", "criado_em"}
+        assert isinstance(m['id'], int)
     assert "Maria" not in r.get_data(as_text=True)
 
 
@@ -665,7 +666,11 @@ def test_acompanhar_nao_vaza_dados_internos(student_client, config):
     r = student_client.post("/api/acompanhar", json={"codigo": codigo})
     d = r.get_json()
     assert d["mensagens"] and d["mensagens"][0]["autor"] == "coordenacao"
-    assert not CHAVES_PROIBIDAS & set(_chaves(d))
+    # o id da mensagem é exposto de propósito (marcador de leitura do aluno);
+    # em qualquer outro ponto da resposta, "id" continua proibido
+    sem_id_de_mensagem = {**d, "mensagens": [{k: v for k, v in m.items() if k != "id"} for m in d["mensagens"]]}
+    assert not CHAVES_PROIBIDAS & set(_chaves(sem_id_de_mensagem))
+    assert all(isinstance(m.get("id"), int) for m in d["mensagens"])
     assert "secreta" not in r.get_data(as_text=True)
 
 

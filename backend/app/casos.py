@@ -129,7 +129,7 @@ def caso_por_codigo(conn: sqlite3.Connection, config: Config,
 def listar_mensagens(conn: sqlite3.Connection, caso_id: int) -> list[sqlite3.Row]:
     """Mensagens do caso. Notas internas ficam em outra tabela e nunca entram."""
     return conn.execute(
-        "SELECT autor, texto, criado_em FROM mensagens WHERE caso_id = ? "
+        "SELECT id, autor, texto, criado_em FROM mensagens WHERE caso_id = ? "
         "ORDER BY id",
         (caso_id,),
     ).fetchall()
@@ -151,6 +151,38 @@ def adicionar_mensagem(conn: sqlite3.Connection, caso_id: int, autor: str,
 
 
 # --- consultas e ações da coordenação ------------------------------------
+
+def estado_conversa(conn: sqlite3.Connection, caso_id: int,
+                    usuario_id: int | None) -> dict:
+    ultima = conn.execute(
+        'SELECT id, autor, texto, criado_em FROM mensagens WHERE caso_id=? ORDER BY id DESC LIMIT 1',
+        (caso_id,),
+    ).fetchone()
+    novas = conn.execute(
+        "SELECT count(*) FROM mensagens WHERE caso_id=? AND autor='aluno' "
+        "AND id > coalesce((SELECT ultimo_id FROM leituras_conversa WHERE caso_id=? AND usuario_id=?),0)",
+        (caso_id, caso_id, usuario_id),
+    ).fetchone()[0]
+    estado = ('sem_mensagem' if ultima is None else 'mensagem_nova' if novas else
+              'aguardando_equipe' if ultima['autor'] == 'aluno' else 'aguardando_aluno')
+    return {'conversa_estado': estado, 'mensagens_novas': novas,
+            'ultima_mensagem': dict(ultima) if ultima else None}
+
+
+def registrar_leitura_conversa(conn: sqlite3.Connection, caso_id: int,
+                              usuario_id: int, ultimo_id: int) -> bool:
+    # O ID precisa pertencer ao caso. Não avançar ao MAX atual: uma mensagem
+    # recebida depois de montar o detalhe ainda não foi exibida.
+    if not conn.execute('SELECT 1 FROM mensagens WHERE caso_id=? AND id=?',
+                        (caso_id, ultimo_id)).fetchone():
+        return False
+    conn.execute(
+        'INSERT INTO leituras_conversa (caso_id, usuario_id, ultimo_id) VALUES (?,?,?) '
+        'ON CONFLICT(caso_id,usuario_id) DO UPDATE SET ultimo_id=max(ultimo_id,excluded.ultimo_id)',
+        (caso_id, usuario_id, ultimo_id),
+    )
+    conn.commit()
+    return True
 
 STATUS = ("novo", "em_investigacao", "resolvido")
 DESFECHOS = ("solucionada", "intervencao_realizada")
@@ -191,7 +223,8 @@ def _escapar_like(texto: str) -> str:
 
 def listar_fila(conn: sqlite3.Connection, status: str | None = None,
                 prioridade: str | None = None, tipo: str | None = None,
-                q: str | None = None) -> list[dict]:
+                q: str | None = None, grupo: str | None = None,
+                opcao: str | None = None, usuario_id: int | None = None) -> list[dict]:
     """Fila da coordenação: prioridade (critica, alta, media, baixa) e depois antiguidade.
 
     Os filtros chegam já validados pela rota; aqui só entram como parâmetro.
@@ -199,6 +232,9 @@ def listar_fila(conn: sqlite3.Connection, status: str | None = None,
     do relato (sem diferenciar maiúsculas nem acentos; `%`, `_` e a barra invertida valem como texto).
     """
     filtros, params = [], []
+    if status == 'abertos':
+        filtros.append("c.status != 'resolvido'")
+        status = None
     for coluna, valor in (("c.status", status), ("c.prioridade", prioridade),
                           ("c.tipo", tipo)):
         if valor:
@@ -217,35 +253,48 @@ def listar_fila(conn: sqlite3.Connection, status: str | None = None,
             params.append(padrao)
     onde = f"WHERE {' AND '.join(filtros)} " if filtros else ""
     linhas = conn.execute(
-        "SELECT c.id, c.tipo, c.prioridade, c.pontos, c.status, c.em_andamento, "
+        "SELECT c.id, c.canal, c.tipo, c.prioridade, c.pontos, c.status, c.em_andamento, "
         "c.anonimo, c.simulacao, c.relato, c.criado_em, c.atualizado_em, "
-        "c.recorrencia_pendente, c.motivos_json, u.nome AS ultimo_acesso_por, c.ultimo_acesso_em "
+        "c.recorrencia_pendente, c.motivos_json, c.triagem_snapshot_json, c.revisao_estado, "
+        "u.nome AS ultimo_acesso_por, c.ultimo_acesso_em "
         "FROM casos c LEFT JOIN usuarios u ON u.id = c.ultimo_acesso_por "
         f"{onde}ORDER BY {_ORDEM_FILA}",
         params,
     ).fetchall()
     fila = []
+    from .atendimento import listar_atendimentos
+    atendimentos = listar_atendimentos(conn)
+    from .questionario_v3 import projetar
     for linha in linhas:
         d = _bools(dict(linha))
+        snapshot_json = d.pop('triagem_snapshot_json')
+        d['categorias'], d['opcoes'] = projetar(d['tipo'], snapshot_json)
+        d['assuntos'] = _assuntos_snapshot(snapshot_json)
+        if (grupo and grupo not in d['categorias']) or (opcao and opcao not in d['opcoes']):
+            continue
         d["motivos"] = json.loads(d.pop("motivos_json") or "[]")
         d["resumo"] = d.pop("relato")[:RESUMO_MAX]
+        d.update(atendimentos[d['id']])
+        d.update(estado_conversa(conn, d['id'], usuario_id))
         fila.append(d)
     return fila
 
 
-def resumo(conn: sqlite3.Connection) -> dict:
+def resumo(conn: sqlite3.Connection, *, somente_abertos: bool = False) -> dict:
     """Contagens para o painel; todas as chaves aparecem, mesmo com zero."""
     por_status = dict.fromkeys(STATUS, 0)
     por_prioridade = dict.fromkeys(PRIORIDADES, 0)
-    for linha in conn.execute("SELECT status, COUNT(*) FROM casos GROUP BY status"):
+    filtro = " WHERE status != 'resolvido'" if somente_abertos else ''
+    for linha in conn.execute("SELECT status, COUNT(*) FROM casos" + filtro + " GROUP BY status"):
         if linha[0] in por_status:
             por_status[linha[0]] = linha[1]
     for linha in conn.execute(
-            "SELECT prioridade, COUNT(*) FROM casos GROUP BY prioridade"):
+            "SELECT prioridade, COUNT(*) FROM casos" + filtro + " GROUP BY prioridade"):
         if linha[0] in por_prioridade:
             por_prioridade[linha[0]] = linha[1]
     recorrencia = conn.execute(
-        "SELECT COUNT(*) FROM casos WHERE recorrencia_pendente = 1"
+        "SELECT COUNT(*) FROM casos WHERE recorrencia_pendente = 1" +
+        (" AND status != 'resolvido'" if somente_abertos else '')
     ).fetchone()[0]
     return {"status": por_status, "prioridade": por_prioridade,
             "recorrencia_pendente": recorrencia}
@@ -260,11 +309,20 @@ def existe_caso(conn: sqlite3.Connection, caso_id: int) -> bool:
 # Colunas nomeadas: uma coluna sensível nova na tabela (como codigo_hash)
 # nunca vaza para a coordenação sem alguém incluí-la aqui de propósito.
 COLUNAS_DETALHE = (
+    "canal",
     "id", "tipo", "relato", "quando", "onde", "em_andamento", "anonimo",
     "nome", "turma", "prioridade", "prioridade_original", "pontos",
     "motivos_json", "status", "simulacao", "criado_em", "atualizado_em",
-    "recorrencia_pendente", "respostas_json",
+    "recorrencia_pendente", "respostas_json", "revisao_estado", "triagem_snapshot_json",
+    "ano_relator", "sala_relator", "local_id", "local_nome", "local_outro",
 )
+
+
+def _assuntos_snapshot(snapshot_json: str | None) -> list[str]:
+    if not snapshot_json:
+        return []
+    descricao = json.loads(snapshot_json)['descricao']
+    return descricao['marcadas'] or [descricao['situacao']['nome']]
 
 
 def detalhe_caso(conn: sqlite3.Connection, caso_id: int,
@@ -280,6 +338,10 @@ def detalhe_caso(conn: sqlite3.Connection, caso_id: int,
     if linha is None:
         return None
     caso = _bools(dict(linha))
+    from .questionario_v3 import projetar
+    snapshot_json = caso.pop('triagem_snapshot_json')
+    caso['categorias'], caso['opcoes'] = projetar(caso['tipo'], snapshot_json)
+    caso['assuntos'] = _assuntos_snapshot(snapshot_json)
     caso["motivos"] = json.loads(caso.pop("motivos_json") or "[]")
     bruto = caso.pop("respostas_json")
     try:
@@ -287,6 +349,7 @@ def detalhe_caso(conn: sqlite3.Connection, caso_id: int,
     except (ValueError, RecursionError):
         respostas = None
     caso["questionario"] = (
+        json.loads(snapshot_json)['descricao'] if snapshot_json else
         questionario.descrever(respostas) if questionario is not None else None)
     caso["anexos"] = [
         dict(a) for a in conn.execute(
@@ -304,7 +367,7 @@ def detalhe_caso(conn: sqlite3.Connection, caso_id: int,
     ]
     caso["mensagens"] = [
         dict(m) for m in conn.execute(
-            "SELECT m.autor, m.texto, m.criado_em, m.usuario_id, u.nome AS usuario "
+            "SELECT m.id, m.autor, m.texto, m.criado_em, m.usuario_id, u.nome AS usuario "
             "FROM mensagens m LEFT JOIN usuarios u ON u.id = m.usuario_id "
             "WHERE m.caso_id = ? ORDER BY m.id",
             (caso_id,),
@@ -320,12 +383,18 @@ def detalhe_caso(conn: sqlite3.Connection, caso_id: int,
     ]
     caso["resolucoes"] = [
         dict(r) for r in conn.execute(
-            "SELECT r.desfecho, r.providencias, r.resultado, u.nome AS usuario, "
+            "SELECT r.id, r.autoria, r.justificativa_autoria, r.desfecho, r.providencias, r.resultado, u.nome AS usuario, "
             "r.criado_em FROM resolucoes r LEFT JOIN usuarios u "
             "ON u.id = r.usuario_id WHERE r.caso_id = ? ORDER BY r.id",
             (caso_id,),
         )
     ]
+    for resolution in caso['resolucoes']:
+        resolution['autores'] = [dict(row) for row in conn.execute(
+            'SELECT id,nome,ano,sala,(foto_nome IS NOT NULL) AS tem_foto FROM autores_resolucao WHERE resolucao_id=? ORDER BY id',
+            (resolution.pop('id'),))]
+        for author in resolution['autores']:
+            author['tem_foto'] = bool(author['tem_foto'])
     caso["situacoes"] = [
         dict(s) for s in conn.execute(
             "SELECT situacao, criado_em FROM situacoes_aluno "
@@ -339,6 +408,8 @@ def detalhe_caso(conn: sqlite3.Connection, caso_id: int,
             "WHERE r.caso_id = ? ORDER BY r.id", (caso_id,),
         )
     ]
+    from .atendimento import projetar_atendimento
+    caso.update(projetar_atendimento(conn, caso_id))
     return caso
 
 
@@ -374,8 +445,17 @@ def registrar_acesso(conn: sqlite3.Connection, caso_id: int,
     return {"por": linha[0], "em": linha[1]}
 
 
+class RevisaoConflitante(Exception):
+    pass
+
+
+def _conferir_revisao(linha, revisao):
+    if linha is not None and revisao is not None and linha['revisao_estado'] != revisao:
+        raise RevisaoConflitante()
+
+
 def _mudar(conn: sqlite3.Connection, caso_id: int, campo: str, valor: str,
-           usuario_id: int, detalhe) -> bool:
+           usuario_id: int, detalhe, revisao=None) -> bool:
     """Muda `status` ou `prioridade` e registra o evento (tipo = campo).
 
     Leitura, atualização e evento ficam na mesma transação. Devolve False se
@@ -387,15 +467,16 @@ def _mudar(conn: sqlite3.Connection, caso_id: int, campo: str, valor: str,
     conn.execute("BEGIN IMMEDIATE")
     try:
         linha = conn.execute(
-            f"SELECT {campo} FROM casos WHERE id = ?", (caso_id,)
+            f"SELECT {campo}, revisao_estado FROM casos WHERE id = ?", (caso_id,)
         ).fetchone()
+        _conferir_revisao(linha, revisao)
         if linha is None:
             conn.rollback()
             return False
         anterior = linha[0]
         if anterior != valor:
             conn.execute(
-                f"UPDATE casos SET {campo} = ?, atualizado_em = ? WHERE id = ?",
+                f"UPDATE casos SET {campo} = ?, atualizado_em = ?, revisao_estado = revisao_estado + 1 WHERE id = ?",
                 (valor, _agora(), caso_id),
             )
             registrar_evento(conn, caso_id, campo, usuario_id,
@@ -408,7 +489,7 @@ def _mudar(conn: sqlite3.Connection, caso_id: int, campo: str, valor: str,
 
 
 def mudar_status(conn: sqlite3.Connection, caso_id: int, valor: str,
-                 usuario_id: int) -> bool:
+                 usuario_id: int, revisao=None) -> bool:
     """Marca o caso como novo ou em investigação (reabrir um resolvido vale).
 
     `resolvido` não passa por aqui: vem só da resolução. False se o caso não
@@ -417,12 +498,12 @@ def mudar_status(conn: sqlite3.Connection, caso_id: int, valor: str,
     if valor not in ("novo", "em_investigacao"):
         raise ValueError("status invalido")
     return _mudar(conn, caso_id, "status", valor, usuario_id,
-                  lambda ant: f"status: {ant} -> {valor}")
+                  lambda ant: f"status: {ant} -> {valor}", revisao)
 
 
 def registrar_resolucao(conn: sqlite3.Connection, caso_id: int, desfecho: str,
                         providencias: str, resultado: str,
-                        usuario_id: int) -> str:
+                        usuario_id: int, revisao=None, *, autoria_dados=None) -> str:
     """Resolve o caso: grava a resolução, o status e o evento numa transação.
 
     Devolve "ok", "nao_encontrado" ou "ja_resolvido" (sem gravar nada).
@@ -432,8 +513,9 @@ def registrar_resolucao(conn: sqlite3.Connection, caso_id: int, desfecho: str,
     conn.execute("BEGIN IMMEDIATE")
     try:
         linha = conn.execute(
-            "SELECT status FROM casos WHERE id = ?", (caso_id,)
+            "SELECT status, revisao_estado FROM casos WHERE id = ?", (caso_id,)
         ).fetchone()
+        _conferir_revisao(linha, revisao)
         if linha is None:
             conn.rollback()
             return "nao_encontrado"
@@ -441,13 +523,22 @@ def registrar_resolucao(conn: sqlite3.Connection, caso_id: int, desfecho: str,
             conn.rollback()
             return "ja_resolvido"
         agora = _agora()
-        conn.execute(
+        resolution = conn.execute(
             "INSERT INTO resolucoes (caso_id, desfecho, providencias, resultado, "
             "usuario_id, criado_em) VALUES (?,?,?,?,?,?)",
             (caso_id, desfecho, providencias, resultado, usuario_id, agora),
         )
+        if autoria_dados is not None:
+            conn.execute('UPDATE resolucoes SET autoria=?,justificativa_autoria=? WHERE id=?',
+                         (autoria_dados['autoria'],autoria_dados['justificativa_autoria'],resolution.lastrowid))
+            for author in autoria_dados['autores']:
+                photo = author.get('_foto')
+                conn.execute('''INSERT INTO autores_resolucao
+                    (resolucao_id,nome,ano,sala,foto_nome,foto_tipo) VALUES (?,?,?,?,?,?)''',
+                    (resolution.lastrowid,author['nome'],author['ano'],author['sala'],
+                     photo.nome_interno if photo else None,photo.tipo if photo else None))
         conn.execute(
-            "UPDATE casos SET status = 'resolvido', atualizado_em = ? WHERE id = ?",
+            "UPDATE casos SET status = 'resolvido', atualizado_em = ?, revisao_estado = revisao_estado + 1 WHERE id = ?",
             (agora, caso_id),
         )
         registrar_evento(conn, caso_id, "resolucao", usuario_id, desfecho,
@@ -516,7 +607,7 @@ def registrar_situacao(conn: sqlite3.Connection, caso_id: int,
         )
         if situacao == "voltou":
             conn.execute(
-                "UPDATE casos SET recorrencia_pendente = 1 WHERE id = ?",
+                "UPDATE casos SET recorrencia_pendente = 1, revisao_estado = revisao_estado + 1 WHERE id = ?",
                 (caso_id,),
             )
             registrar_evento(conn, caso_id, "recorrencia", None,
@@ -531,7 +622,7 @@ def registrar_situacao(conn: sqlite3.Connection, caso_id: int,
 
 
 def revisar_recorrencia(conn: sqlite3.Connection, caso_id: int,
-                        usuario_id: int) -> str:
+                        usuario_id: int, revisao=None) -> str:
     """Marca a recorrência como revisada: zera a pendência e registra quem.
 
     Devolve "ok", "nao_encontrado" ou "nao_pendente" (sem gravar).
@@ -539,8 +630,9 @@ def revisar_recorrencia(conn: sqlite3.Connection, caso_id: int,
     conn.execute("BEGIN IMMEDIATE")
     try:
         linha = conn.execute(
-            "SELECT recorrencia_pendente FROM casos WHERE id = ?", (caso_id,)
+            "SELECT recorrencia_pendente, revisao_estado FROM casos WHERE id = ?", (caso_id,)
         ).fetchone()
+        _conferir_revisao(linha, revisao)
         if linha is None:
             conn.rollback()
             return "nao_encontrado"
@@ -549,7 +641,7 @@ def revisar_recorrencia(conn: sqlite3.Connection, caso_id: int,
             return "nao_pendente"
         agora = _agora()
         conn.execute(
-            "UPDATE casos SET recorrencia_pendente = 0, atualizado_em = ? "
+            "UPDATE casos SET recorrencia_pendente = 0, atualizado_em = ?, revisao_estado = revisao_estado + 1 "
             "WHERE id = ?", (agora, caso_id),
         )
         conn.execute(
@@ -566,12 +658,12 @@ def revisar_recorrencia(conn: sqlite3.Connection, caso_id: int,
 
 
 def mudar_prioridade(conn: sqlite3.Connection, caso_id: int, valor: str,
-                     justificativa: str, usuario_id: int) -> bool:
+                     justificativa: str, usuario_id: int, revisao=None) -> bool:
     """Troca a prioridade com justificativa; `prioridade_original` não muda."""
     if valor not in PRIORIDADES:
         raise ValueError("prioridade invalida")
     return _mudar(conn, caso_id, "prioridade", valor, usuario_id,
-                  lambda ant: f"{ant} -> {valor}: {justificativa}")
+                  lambda ant: f"{ant} -> {valor}: {justificativa}", revisao)
 
 
 def adicionar_nota(conn: sqlite3.Connection, caso_id: int, usuario_id: int,

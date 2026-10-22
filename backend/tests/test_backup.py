@@ -154,3 +154,22 @@ def test_backup_sem_secret_key_nem_config_json(conn, config):
     pasta = fazer_backup(config, AGORA)
     assert (pasta / "seguranca.db").exists()
     assert not (pasta / "secret.key").exists()
+
+
+def test_backup_restore_preserves_local_questionnaires_and_risk_rules(conn, config, tmp_path):
+    import shutil
+    from app.config import Config
+    from app.questionario import carregar
+    from app.questionario_v3 import carregar as carregar_v3
+    fontes = [config.questionario_path, config.questionario_v3_path, config.risk_terms_path]
+    for fonte in fontes:
+        conteudo = fonte.read_bytes() + b'\n'
+        (config.data_dir / fonte.name).write_bytes(conteudo)
+    pasta = fazer_backup(config, AGORA)
+    restaurado = tmp_path / 'restaurado'
+    shutil.copytree(pasta, restaurado)
+    novo = Config(data_dir=restaurado, secret_key='x')
+    for nome in ['questionario.json', 'questionario_v3.json', 'risk_terms.json']:
+        assert (restaurado / nome).read_bytes() == (config.data_dir / nome).read_bytes()
+    assert carregar(novo.questionario_path) == carregar(config.questionario_path)
+    assert carregar_v3(novo.questionario_v3_path) == carregar_v3(config.questionario_v3_path)

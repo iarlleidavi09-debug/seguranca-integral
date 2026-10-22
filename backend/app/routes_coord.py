@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import sqlite3
 import time
+import csv
+import io
 from datetime import datetime, timedelta, timezone
 
 from flask import (
@@ -20,10 +22,24 @@ from . import auth, casos, simulation
 from ._comum import registrar_rotas_finais
 from .db import connect
 from .questionario import QuestionarioInvalido, carregar
+from .questionario_v3 import carregar as carregar_v3
 from .security import chave_limitador, https_encaminhado
+from .realtime import publicar
+from .relatorios import gerar_relatorio
 from .uploads import AnexoInvalido, caminho_anexo
 
 bp = Blueprint("coord", __name__)
+
+
+@bp.get('/api/v3/questionario')
+def questionario_v3():
+    try:
+        definition = carregar_v3(current_app.config['SI_CONFIG'].questionario_v3_path)
+    except QuestionarioInvalido:
+        return _erro('questionario indisponivel', 503)
+    response = jsonify(definition.para_aluno())
+    response.headers['Cache-Control'] = 'no-store'
+    return response
 
 DURACAO_SESSAO = timedelta(hours=12)
 NOME_MAX, SENHA_MAX = 100, 256
@@ -101,6 +117,9 @@ def _sessao_valida() -> dict | None:
     ).fetchone()
     if linha is None or not linha["ativo"]:
         return None
+    central = current_app.extensions['eventos']
+    if not central.sessao_ativa(session.get('sid')):
+        return None
     return {"id": linha["id"], "nome": linha["nome"], "papel": linha["papel"]}
 
 
@@ -117,9 +136,31 @@ def portaria():
         g.usuario = usuario
         if endpoint in SO_ADMIN and usuario["papel"] != "admin":
             return _erro("apenas administrador", 403)
-    if request.method in ESCRITA and request.mimetype != "application/json":
+    multipart_resolution = endpoint == 'coord.registrar_resolucao_v4'
+    if multipart_resolution and request.headers.get('X-SI-Coord') != '1':
+        return _erro('cabecalho de coordenacao obrigatorio', 403)
+    if not multipart_resolution and request.content_length is not None and request.content_length > 1024 * 1024:
+        return _erro('pedido grande demais', 413)
+    if request.method in ESCRITA and request.mimetype != ('multipart/form-data' if multipart_resolution else 'application/json'):
         return _erro("use application/json", 415)
+    if request.method == 'POST' and request.path.startswith('/api/v3/casos/'):
+        revisao = _json().get('revisao_estado')
+        if type(revisao) is not int or not 0 <= revisao <= casos.ID_MAX:
+            return _erro('revisao_estado invalida')
     return None
+
+
+@bp.errorhandler(casos.RevisaoConflitante)
+def conflito_revisao(_erro):
+    return jsonify({'erro': 'caso atualizado por outra pessoa; revise e confirme novamente'}), 409
+
+
+def _revisao():
+    return _json()['revisao_estado'] if request.path.startswith('/api/v3/') else None
+
+
+def _revogar_sessao():
+    current_app.extensions['eventos'].revogar_sessao(session.get('sid'))
 
 
 # --- sessão --------------------------------------------------------------
@@ -162,10 +203,12 @@ def setup():
         return _erro(str(erro))
     if novo_id is None:
         return _erro("ja existe usuario", 409)
+    _revogar_sessao()
     session.clear()
     session.permanent = True
     session["usuario_id"] = novo_id
     session["inicio"] = int(time.time())
+    session['sid'] = current_app.extensions['eventos'].iniciar_sessao(session['inicio'] + DURACAO_SESSAO.total_seconds())
     return jsonify({"nome": nome.strip()}), 201
 
 
@@ -175,6 +218,7 @@ def login():
     if limitador is not None and not limitador.permitir(chave_limitador(request)):
         return _erro("muitas tentativas, tente mais tarde", 429)
     # qualquer tentativa derruba a sessão anterior (evita fixação de sessão)
+    _revogar_sessao()
     session.clear()
     dados = _json()
     nome, senha = dados.get("nome"), dados.get("senha")
@@ -192,11 +236,13 @@ def login():
     session.permanent = True
     session["usuario_id"] = usuario_id
     session["inicio"] = int(time.time())
+    session['sid'] = current_app.extensions['eventos'].iniciar_sessao(session['inicio'] + DURACAO_SESSAO.total_seconds())
     return jsonify({"nome": linha["nome"]})
 
 
 @bp.post("/api/logout")
 def logout():
+    _revogar_sessao()
     session.clear()
     return jsonify({"ok": True})
 
@@ -220,8 +266,19 @@ def _filtro(nome: str, permitidos: tuple[str, ...]):
 
 @bp.get("/api/casos")
 def fila():
+    grupo = request.args.get('grupo') or None
+    opcao = request.args.get('opcao') or None
+    if grupo or opcao:
+        try:
+            definition = carregar_v3(current_app.config['SI_CONFIG'].questionario_v3_path)
+        except QuestionarioInvalido:
+            return _erro('questionario indisponivel', 503)
+        if grupo and grupo not in {g['id'] for g in definition.dados['grupos']}:
+            return _erro('filtro grupo invalido')
+        if opcao and opcao not in definition.opcoes:
+            return _erro('filtro opcao invalido')
     try:
-        status = _filtro("status", casos.STATUS)
+        status = _filtro("status", (*casos.STATUS, 'abertos'))
         prioridade = _filtro("prioridade", casos.PRIORIDADES)
         tipo = _filtro("tipo", casos.TIPOS)
     except ValueError as erro:
@@ -229,12 +286,71 @@ def fila():
     q = request.args.get("q", "").strip()
     if len(q) > casos.BUSCA_MAX:
         return _erro("busca longa demais")
-    return jsonify({"casos": casos.listar_fila(_db(), status, prioridade, tipo, q)})
+    return jsonify({"casos": casos.listar_fila(
+        _db(), status, prioridade, tipo, q, grupo, opcao, usuario_id=g.usuario['id'])})
 
 
 @bp.get("/api/resumo")
 def resumo():
-    return jsonify(casos.resumo(_db()))
+    return jsonify(casos.resumo(_db(), somente_abertos=request.args.get('abertos') == '1'))
+
+
+@bp.post('/api/casos/<int:caso_id>/conversa/lida')
+def conversa_lida(caso_id: int):
+    conn = _db()
+    if not casos.existe_caso(conn, caso_id):
+        return _nao_encontrado()
+    ultimo_id = _json().get('ultimo_id')
+    if type(ultimo_id) is not int or not 1 <= ultimo_id <= casos.ID_MAX:
+        return _erro('ultimo_id invalido')
+    if not casos.registrar_leitura_conversa(conn, caso_id, g.usuario['id'], ultimo_id):
+        return _erro('ultimo_id invalido')
+    publicar(caso_id)
+    return jsonify({'ok': True})
+
+
+@bp.get('/api/relatorios')
+def relatorio():
+    hoje = datetime.now(timezone(timedelta(hours=-3))).date()
+    try:
+        inicio = datetime.strptime(request.args.get('inicio', (hoje - timedelta(days=29)).isoformat()), '%Y-%m-%d').date()
+        fim = datetime.strptime(request.args.get('fim', hoje.isoformat()), '%Y-%m-%d').date()
+    except ValueError:
+        return _erro('periodo invalido; use AAAA-MM-DD')
+    if fim < inicio or (fim - inicio).days > 365:
+        return _erro('escolha um periodo de ate 366 dias')
+    formato = request.args.get('formato', 'json')
+    if formato not in ('json', 'csv'):
+        return _erro('formato invalido')
+    dados = gerar_relatorio(_db(), inicio, fim)
+    if formato == 'json':
+        return jsonify(dados)
+    arquivo = io.StringIO(newline='')
+    escritor = csv.writer(arquivo, delimiter=';')
+    escritor.writerow(['Data', 'Recebidos', 'Resolvidos'])
+    escritor.writerows((d['data'], d['recebidos'], d['resolvidos']) for d in dados['evolucao'])
+    return Response('\ufeff' + arquivo.getvalue(), content_type='text/csv; charset=utf-8',
+                    headers={'Content-Disposition': f'attachment; filename="tetra-guard-{inicio}-{fim}.csv"'})
+
+
+@bp.get('/api/equipe')
+def equipe():
+    return jsonify({'usuarios': [dict(u) for u in _db().execute(
+        'SELECT id, nome FROM usuarios WHERE ativo=1 ORDER BY nome COLLATE NOCASE')]})
+
+
+@bp.post('/api/v3/casos/<int:caso_id>/atendimento')
+@bp.post('/api/v3/casos/<int:caso_id>/atendimento/concluir')
+def salvar_atendimento(caso_id):
+    from .atendimento import salvar
+    try:
+        if not salvar(_db(), caso_id, g.usuario['id'], _revisao(), _json(),
+                      concluir=request.path.endswith('/concluir')):
+            return _nao_encontrado()
+    except ValueError as erro:
+        return _erro(str(erro))
+    publicar(None)
+    return jsonify({'ok': True})
 
 
 @bp.get("/api/casos/<int:caso_id>")
@@ -265,6 +381,7 @@ def _texto_valido(campo: str = "texto"):
 
 
 @bp.post("/api/casos/<int:caso_id>/status")
+@bp.post("/api/v3/casos/<int:caso_id>/status")
 def mudar_status(caso_id: int):
     conn = _db()
     # existência antes da validação: caso inexistente sempre dá o mesmo 404
@@ -274,12 +391,14 @@ def mudar_status(caso_id: int):
     # resolvido só vem da resolução do caso
     if not isinstance(valor, str) or valor not in ("novo", "em_investigacao"):
         return _erro("status invalido")
-    if not casos.mudar_status(conn, caso_id, valor, g.usuario["id"]):
+    if not casos.mudar_status(conn, caso_id, valor, g.usuario["id"], _revisao()):
         return _nao_encontrado()
+    publicar(caso_id)
     return jsonify({"ok": True, "status": valor})
 
 
 @bp.post("/api/casos/<int:caso_id>/resolucao")
+@bp.post("/api/v3/casos/<int:caso_id>/resolucao")
 def registrar_resolucao(caso_id: int):
     conn = _db()
     if not casos.existe_caso(conn, caso_id):
@@ -295,26 +414,30 @@ def registrar_resolucao(caso_id: int):
     if not isinstance(resultado, str) or len(resultado.strip()) > TEXTO_MAX:
         return _erro("resultado deve ter ate 2000 caracteres")
     r = casos.registrar_resolucao(conn, caso_id, desfecho, providencias,
-                                  resultado.strip(), g.usuario["id"])
+                                  resultado.strip(), g.usuario["id"], _revisao())
     if r == "nao_encontrado":
         return _nao_encontrado()
     if r == "ja_resolvido":
         return _erro("caso ja resolvido", 409)
+    publicar(caso_id)
     return jsonify({"ok": True}), 201
 
 
 @bp.post("/api/casos/<int:caso_id>/revisao-recorrencia")
+@bp.post("/api/v3/casos/<int:caso_id>/revisao-recorrencia")
 def revisar_recorrencia(caso_id: int):
     conn = _db()
-    r = casos.revisar_recorrencia(conn, caso_id, g.usuario["id"])
+    r = casos.revisar_recorrencia(conn, caso_id, g.usuario["id"], _revisao())
     if r == "nao_encontrado":
         return _nao_encontrado()
     if r == "nao_pendente":
         return _erro("sem recorrencia pendente", 409)
+    publicar(caso_id)
     return jsonify({"ok": True}), 201
 
 
 @bp.post("/api/casos/<int:caso_id>/prioridade")
+@bp.post("/api/v3/casos/<int:caso_id>/prioridade")
 def mudar_prioridade(caso_id: int):
     conn = _db()
     if not casos.existe_caso(conn, caso_id):
@@ -326,8 +449,9 @@ def mudar_prioridade(caso_id: int):
     if justificativa is None:
         return _erro("justificativa deve ter de 1 a 2000 caracteres")
     if not casos.mudar_prioridade(conn, caso_id, valor, justificativa,
-                                  g.usuario["id"]):
+                                  g.usuario["id"], _revisao()):
         return _nao_encontrado()
+    publicar(caso_id)
     return jsonify({"ok": True, "prioridade": valor})
 
 
@@ -344,6 +468,7 @@ def enviar_mensagem(caso_id: int):
     # um único commit grava a mensagem e o evento juntos
     casos.registrar_evento(conn, caso_id, "mensagem_coordenacao",
                            g.usuario["id"], "")
+    publicar(caso_id)
     return jsonify({"ok": True}), 201
 
 
@@ -357,6 +482,7 @@ def criar_nota(caso_id: int):
         return _erro("nota deve ter de 1 a 2000 caracteres")
     casos.adicionar_nota(conn, caso_id, g.usuario["id"], texto, commit=False)
     casos.registrar_evento(conn, caso_id, "nota_interna", g.usuario["id"], "")
+    publicar(None)
     return jsonify({"ok": True}), 201
 
 
@@ -389,12 +515,14 @@ def anexo(caso_id: int, anexo_id: int):
 @bp.post("/api/simulacao/carregar")
 def carregar_simulacao():
     criados = simulation.carregar_simulacao(_db(), current_app.config["SI_CONFIG"])
+    publicar(None)
     return jsonify({"criados": criados})
 
 
 @bp.delete("/api/simulacao")
 def remover_simulacao():
     removidos = simulation.remover_simulacao(_db(), current_app.config["SI_CONFIG"])
+    publicar(None)
     return jsonify({"removidos": removidos})
 
 
@@ -440,7 +568,14 @@ def desativar(usuario_id: int):
     if existe is None:
         return _nao_encontrado()
     auth.desativar_usuario(conn, usuario_id)
+    publicar(None)
     return jsonify({"ok": True})
 
 
+from .routes_mapa import registrar_coord
+from .autoria import registrar_rotas
+from .exportacao import registrar as registrar_exportacao
+registrar_exportacao(bp, _db, _nao_encontrado)
+registrar_coord(bp)
+registrar_rotas(bp)
 registrar_rotas_finais(bp)

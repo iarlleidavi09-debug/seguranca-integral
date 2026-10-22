@@ -32,7 +32,7 @@ class Config:
     # assina o cookie da sessão da coordenação; separada da secret_key para
     # poder ser trocada (derrubando as sessões) sem invalidar os códigos
     sessao_key: str = field(default_factory=_nova_chave)
-    host: str = "127.0.0.1"
+    host: str = "0.0.0.0"
     student_port: int = 3000
     coord_port: int = 4000
     allowed_hosts: tuple[str, ...] = ()
@@ -66,6 +66,11 @@ class Config:
         if copia.exists():
             return copia
         return Path(__file__).parent / "questionario.json"
+
+    @property
+    def questionario_v3_path(self) -> Path:
+        copia = self.data_dir / "questionario_v3.json"
+        return copia if copia.exists() else Path(__file__).parent / "questionario_v3.json"
 
 
 def load_config(data_dir: Path | None = None) -> Config:
@@ -186,11 +191,11 @@ def _ler_config_json(arquivo: Path) -> dict:
     if not isinstance(hosts, list) or not all(isinstance(h, str) for h in hosts):
         raise ValueError("config.json: allowed_hosts precisa ser uma lista de textos")
 
-    host = dados.get("host", "127.0.0.1")
+    host = dados.get("host", "0.0.0.0")
     try:
         if not isinstance(host, str):
             raise TypeError
-        # só endereço IPv4 literal: "0.0.0.0" abre para a LAN, o padrão fica no loopback
+        # Endereço IPv4 literal; instalações novas atendem a rede local.
         ipaddress.IPv4Address(host)
     except (ValueError, TypeError):
         raise ValueError("config.json: host precisa ser um endereco IPv4, ex.: 0.0.0.0")
