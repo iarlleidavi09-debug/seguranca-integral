@@ -245,3 +245,38 @@ it('não registra mensagem como vista enquanto a página está oculta', async ()
  document.dispatchEvent(new Event('visibilitychange'));
  expect(JSON.parse(localStorage.getItem('tetra-guard.acessos.v1') || '[]')).toEqual([{codigo:'K7M2-9QXD',lastRead:50}]);
 });
+
+describe('Acompanhar: mensagens editadas e apagadas', () => {
+  const coord = { autor: 'coordenacao', criado_em: '2026-10-14T12:00:00Z' };
+  it('mostra (editada) ao lado do horário e o texto novo', async () => {
+    responder({ ...base, status: 'em_investigacao', mensagens: [{ ...coord, id: 1, texto: 'Texto corrigido', editada: true, apagada: false }] });
+    render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+    expect(await screen.findByText('Texto corrigido')).toBeInTheDocument();
+    const artigo = screen.getByText('Texto corrigido').closest('article')!;
+    expect(artigo).toHaveTextContent('(editada)');
+    expect(artigo.querySelector('time')!.parentElement).toHaveTextContent('(editada)');
+  });
+  it('não mostra (editada) em mensagem comum', async () => {
+    responder({ ...base, status: 'em_investigacao', mensagens: [{ ...coord, id: 1, texto: 'Texto comum', editada: false, apagada: false }] });
+    render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+    await screen.findByText('Texto comum');
+    expect(screen.queryByText(/\(editada\)/)).not.toBeInTheDocument();
+  });
+  it('mensagem apagada mostra o aviso no lugar do texto, sem horário e sem parágrafo vazio', async () => {
+    responder({ ...base, status: 'em_investigacao', mensagens: [{ ...coord, id: 1, texto: '', editada: false, apagada: true }] });
+    render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+    const aviso = await screen.findByText('Mensagem apagada');
+    const artigo = aviso.closest('article')!;
+    expect(artigo.querySelector('time')).toBeNull();
+    expect(artigo).not.toHaveTextContent('(editada)');
+    expect([...artigo.querySelectorAll('p')].every(p => p.textContent!.trim() !== '')).toBe(true);
+    expect(screen.getByRole('log')).toContainElement(artigo);
+  });
+  it('mensagem apagada da coordenação nunca conta como nova', async () => {
+    responder({ ...base, status: 'em_investigacao', mensagens: [{ ...coord, id: 5, texto: '', editada: false, apagada: true }] });
+    render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+    await screen.findByText('Mensagem apagada');
+    expect(screen.queryByText('Mensagem nova')).not.toBeInTheDocument();
+    expect(screen.queryByText(/mensagens? nova/i)).not.toBeInTheDocument();
+  });
+});

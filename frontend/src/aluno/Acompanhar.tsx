@@ -33,7 +33,7 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
     const dados = await acompanhar(codigoConsulta);
     if (!montado.current || atual !== consulta.current) return false;
     const ultimoLido = lerAcessos().find(a => a.codigo === normalizarCodigo(codigoConsulta))?.lastRead || 0;
-    setNovas(dados.mensagens.filter(m => m.autor === 'coordenacao' && typeof m.id === 'number' && m.id! > ultimoLido).map(m => m.id!));
+    setNovas(dados.mensagens.filter(m => m.autor === 'coordenacao' && !m.apagada && typeof m.id === 'number' && m.id! > ultimoLido).map(m => m.id!));
     if (!guardarAcesso(codigoConsulta)) setAvisoStorage('Não foi possível salvar o acesso neste navegador. Anote seu código para voltar.');
     setCaso(dados);
     return true;
@@ -141,9 +141,11 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
       <div role="log" aria-live="polite" aria-label="Mensagens do caso" className="mensagens">
         {!caso.mensagens.length && <p className="vazio">Ainda não há mensagens. Você pode escrever para a coordenação por aqui.</p>}
         {caso.mensagens.map((mensagem, i) => <article key={`${mensagem.criado_em}-${i}`} className="mensagem" data-autor={mensagem.autor}>
-          {novas.includes(mensagem.id || 0) && <p className="texto-pequeno">Mensagem nova</p>}
+          {!mensagem.apagada && novas.includes(mensagem.id || 0) && <p className="texto-pequeno">Mensagem nova</p>}
           <h3>{mensagem.autor === 'aluno' ? 'Você' : 'Coordenação'}</h3>
-          <p>{mensagem.texto}</p><time dateTime={mensagem.criado_em}>{dataLegivel(mensagem.criado_em)}</time>
+          {mensagem.apagada
+            ? <p className="texto-pequeno">Mensagem apagada</p>
+            : <><p>{mensagem.texto}</p><time dateTime={mensagem.criado_em}>{dataLegivel(mensagem.criado_em)}</time>{mensagem.editada && <span className="texto-pequeno"> (editada)</span>}</>}
         </article>)}
       </div>
       <button type="button" className="botao secundario atualizar" disabled={carregando || enviando} onClick={() => void atualizar()}>Atualizar conversa</button>

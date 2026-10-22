@@ -86,3 +86,24 @@ it('recarga após informar situação superada por SSE não mostra falso erro de
   expect(screen.queryByText('Não foi possível atualizar agora. Use Atualizar conversa.')).not.toBeInTheDocument();
   view.unmount();
 });
+
+it('atualização em tempo real troca o texto antigo pelo editado e depois por mensagem apagada', async () => {
+  let source!: ReadableStreamDefaultController<Uint8Array>;
+  let mensagens: any[] = [{ id: 1, autor: 'coordenacao', texto: 'Texto antigo', criado_em: '2026-10-16T12:00:00Z', editada: false, apagada: false }];
+  vi.mocked(fetch).mockImplementation(async input => {
+    if (input === '/api/acompanhar/eventos') return new Response(new ReadableStream({ start(c) { source = c; } }), { headers: { 'Content-Type': 'text/event-stream' } });
+    return new Response(JSON.stringify({ status: 'em_investigacao', mensagens, resolucao: null, pos_resolucao: false, ultima_situacao: null }));
+  });
+  const view = render(<Acompanhar codigoInicial="ABCD-EFGH" />);
+  await screen.findByText('Texto antigo');
+  mensagens = [{ ...mensagens[0], texto: 'Texto novo', editada: true }];
+  await act(async () => source.enqueue(new TextEncoder().encode('event: atualizar\ndata: {}\n\n')));
+  expect(await screen.findByText('Texto novo')).toBeInTheDocument();
+  expect(screen.queryByText('Texto antigo')).not.toBeInTheDocument();
+  expect(screen.getByRole('log')).toHaveTextContent('(editada)');
+  mensagens = [{ ...mensagens[0], texto: '', editada: false, apagada: true }];
+  await act(async () => source.enqueue(new TextEncoder().encode('event: atualizar\ndata: {}\n\n')));
+  expect(await screen.findByText('Mensagem apagada')).toBeInTheDocument();
+  expect(screen.queryByText('Texto novo')).not.toBeInTheDocument();
+  view.unmount();
+});
