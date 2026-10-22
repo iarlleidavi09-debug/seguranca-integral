@@ -4,10 +4,10 @@
 #   powershell -NoProfile -ExecutionPolicy Bypass -File installer\build.ps1 [-SemTestes]
 #
 # Passos, parando no primeiro erro:
-#   1. frontend: npm ci, npm run build:aluno, npm run build:coord
+#   1. frontend existente: npm run build:aluno, npm run build:coord
 #   2. backend: suite completa do pytest (pule com -SemTestes)
 #   3. PyInstaller -> dist\SegurancaIntegral\SegurancaIntegral.exe
-#   4. Inno Setup  -> dist\SegurancaIntegral-Setup.exe
+#   4. Inno Setup  -> dist\SegurancaIntegral-Setup-LAN.exe
 # Sem o ISCC.exe o script FALHA (antes de qualquer build), a menos que se
 # passe -SemInstalador (so o executavel). Um Setup antigo em dist\ e apagado
 # no inicio: nunca sobra instalador de outra versao.
@@ -21,7 +21,8 @@
 param(
     [switch]$SemTestes,
     [switch]$SemInstalador,
-    [switch]$Lan
+    [switch]$Lan = $true,
+    [switch]$Tunnel
 )
 
 $ErrorActionPreference = 'Stop'
@@ -34,8 +35,9 @@ $Dist = Join-Path $Raiz 'dist'
 $Trabalho = Join-Path $Raiz 'build'
 $Spec = Join-Path $PSScriptRoot 'seguranca.spec'
 $Iss = Join-Path $PSScriptRoot 'instalador.iss'
-# -Lan gera o instalador SO PARA REDE LOCAL (sem tunel): outro arquivo, mesmo programa
-$NomeSetup = if ($Lan) { 'SegurancaIntegral-Setup-LAN.exe' } else { 'SegurancaIntegral-Setup.exe' }
+# -Tunnel gera a edicao para os dominios publicos; -Lan preserva os scripts existentes.
+if (-not $Lan -and -not $Tunnel) { throw 'Escolha -Lan ou -Tunnel.' }
+$NomeSetup = if ($Tunnel) { 'SegurancaIntegral-Setup.exe' } else { 'SegurancaIntegral-Setup-LAN.exe' }
 $Setup = Join-Path $Dist $NomeSetup
 
 # $ErrorActionPreference nao pega codigo de saida de programa nativo no
@@ -81,6 +83,9 @@ function Find-Iscc {
 if (-not (Test-Path -LiteralPath $Python -PathType Leaf)) {
     throw "Nao achei $Python. Crie o venv e instale backend\requirements-dev.txt."
 }
+if (-not (Test-Path -LiteralPath (Join-Path $Frontend 'node_modules') -PathType Container)) {
+    throw 'Dependencias frontend ausentes. Prepare node_modules antes do build; este script nao instala dependencias.'
+}
 
 # falha cedo, antes de gastar minutos de build: sem Inno nao ha instalador
 $Iscc = Find-Iscc
@@ -94,7 +99,6 @@ if (Test-Path -LiteralPath $Setup) {
 }
 
 # npm.cmd e nao npm: a politica de execucao pode bloquear o npm.ps1
-Invoke-Passo -Titulo 'npm ci' -Pasta $Frontend -Programa 'npm.cmd' -Argumentos @('ci')
 Invoke-Passo -Titulo 'build do portal do aluno' -Pasta $Frontend -Programa 'npm.cmd' -Argumentos @('run', 'build:aluno')
 Invoke-Passo -Titulo 'build do portal da coordenacao' -Pasta $Frontend -Programa 'npm.cmd' -Argumentos @('run', 'build:coord')
 
@@ -120,7 +124,11 @@ if ($SemInstalador) {
     Write-Host '==> Inno Setup PULADO (-SemInstalador).' -ForegroundColor Yellow
     $Setup = $null
 } else {
-    Invoke-Passo -Titulo 'Inno Setup' -Pasta $PSScriptRoot -Programa $Iscc -Argumentos $(if ($Lan) { @('/DLAN=1', $Iss) } else { @($Iss) })
+    if ($Tunnel) {
+        Invoke-Passo -Titulo 'Inno Setup (Tunnel)' -Pasta $PSScriptRoot -Programa $Iscc -Argumentos @('/DTUNNEL=1', $Iss)
+    } else {
+        Invoke-Passo -Titulo 'Inno Setup' -Pasta $PSScriptRoot -Programa $Iscc -Argumentos @('/DLAN=1', $Iss)
+    }
     if (-not (Test-Path -LiteralPath $Setup -PathType Leaf)) {
         throw "Inno Setup terminou sem gerar $Setup"
     }
@@ -132,3 +140,5 @@ Write-Host "Executavel: $Exe"
 if ($null -ne $Setup) {
     Write-Host "Instalador: $Setup"
 }
+
+

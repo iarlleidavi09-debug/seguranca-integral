@@ -22,6 +22,7 @@ dados = [
     (os.path.join(APP, 'static'), 'app/static'),
     (os.path.join(APP, 'risk_terms.json'), 'app'),
     (os.path.join(APP, 'questionario.json'), 'app'),
+    (os.path.join(APP, 'questionario_v3.json'), 'app'),
 ]
 
 a = Analysis(
@@ -51,6 +52,7 @@ exe = EXE(
     strip=False,
     upx=False,
     console=True,
+    version=os.path.join(SPECPATH, 'versao.txt'),
     disable_windowed_traceback=False,
 )
 coll = COLLECT(

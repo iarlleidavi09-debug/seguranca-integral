@@ -1,4 +1,4 @@
-﻿; Instalador do Segurança Integral (Inno Setup 6.3 ou mais novo).
+; Instalador do TETRA-GUARD (Inno Setup 6.3 ou mais novo).
 ; Compilar com o build.ps1, que gera antes dist\SegurancaIntegral\ com o PyInstaller.
 ;
 ; O que faz, em ordem:
@@ -18,8 +18,13 @@
   #error É preciso o Inno Setup 6.3 ou mais novo (usa ExecAndCaptureOutput).
 #endif
 
-#define AppNome "Segurança Integral"
-#define AppVersao "1.0.0"
+#define AppNome "TETRA-GUARD"
+#define AppVersao "3.0.0"
+#ifndef LAN
+  #ifndef TUNNEL
+    #define LAN 1
+  #endif
+#endif
 #define AppExe "SegurancaIntegral.exe"
 #define NomeTarefa "SegurancaIntegral"
 
@@ -62,6 +67,7 @@ Type: filesandordirs; Name: "{app}\_internal"
 Source: "tarefas.ps1"; DestDir: "{app}"; Flags: ignoreversion
 #ifdef LAN
 Source: "lan.ps1"; DestDir: "{app}"; Flags: ignoreversion
+Source: "atualizar-rede.ps1"; DestDir: "{app}"; Flags: ignoreversion
 Source: "LEIA-ME-LAN.txt"; DestDir: "{app}"; Flags: ignoreversion isreadme
 #else
 Source: "LEIA-ME.txt"; DestDir: "{app}"; Flags: ignoreversion isreadme
@@ -73,25 +79,30 @@ Source: "..\dist\SegurancaIntegral\{#AppExe}"; DestDir: "{app}"; Flags: ignoreve
 [INI]
 ; atalhos que abrem os portais no navegador padrão (o servidor roda em segundo
 ; plano, como tarefa agendada, e não tem janela própria)
-Filename: "{autodesktop}\Segurança Integral - Coordenação.url"; Section: "InternetShortcut"; Key: "URL"; String: "http://127.0.0.1:4000"
-Filename: "{autodesktop}\Segurança Integral - Portal do aluno.url"; Section: "InternetShortcut"; Key: "URL"; String: "http://127.0.0.1:3000"
-Filename: "{autoprograms}\Segurança Integral\Coordenação.url"; Section: "InternetShortcut"; Key: "URL"; String: "http://127.0.0.1:4000"
-Filename: "{autoprograms}\Segurança Integral\Portal do aluno.url"; Section: "InternetShortcut"; Key: "URL"; String: "http://127.0.0.1:3000"
+Filename: "{autodesktop}\TETRA-GUARD - Coordenação.url"; Section: "InternetShortcut"; Key: "URL"; String: "http://127.0.0.1:4000"
+Filename: "{autodesktop}\TETRA-GUARD - Portal do aluno.url"; Section: "InternetShortcut"; Key: "URL"; String: "http://127.0.0.1:3000"
+Filename: "{autoprograms}\TETRA-GUARD\Coordenação.url"; Section: "InternetShortcut"; Key: "URL"; String: "http://127.0.0.1:4000"
+Filename: "{autoprograms}\TETRA-GUARD\Portal do aluno.url"; Section: "InternetShortcut"; Key: "URL"; String: "http://127.0.0.1:3000"
 
 [Icons]
 ; liga a tarefa (pede administrador) e abre a coordenação quando o servidor já subiu
-Name: "{autoprograms}\Segurança Integral\Iniciar servidor"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command ""Start-Process -Verb RunAs -WindowStyle Hidden -FilePath schtasks.exe -ArgumentList '/Run','/TN','{#NomeTarefa}'; Start-Sleep -Seconds 6; Start-Process 'http://127.0.0.1:4000'"""; Comment: "Liga o servidor do Segurança Integral e abre a coordenação"
 #ifdef LAN
-Name: "{autoprograms}\Segurança Integral\Endereços da rede"; Filename: "{app}\Enderecos-da-rede.txt"; Comment: "Endereços para compartilhar com os alunos"
+Name: "{autoprograms}\TETRA-GUARD\Iniciar servidor"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\atualizar-rede.ps1"" -AbrirCoordenacao"; Comment: "Atualiza a rede, reinicia o servidor e abre a coordenação"
+Name: "{autoprograms}\TETRA-GUARD\Atualizar rede"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\atualizar-rede.ps1"""; Comment: "Atualiza os endereços após trocar de Wi-Fi e verifica os portais"
+#else
+Name: "{autoprograms}\TETRA-GUARD\Iniciar servidor"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command ""Start-Process -Verb RunAs -WindowStyle Hidden -FilePath schtasks.exe -ArgumentList '/Run','/TN','{#NomeTarefa}'; Start-Sleep -Seconds 6; Start-Process 'http://127.0.0.1:4000'"""; Comment: "Liga o servidor do TETRA-GUARD e abre a coordenação"
+#endif
+#ifdef LAN
+Name: "{autoprograms}\TETRA-GUARD\Endereços da rede"; Filename: "{app}\Enderecos-da-rede.txt"; Comment: "Endereços para compartilhar com os alunos"
 
 [Run]
 Filename: "{app}\Enderecos-da-rede.txt"; Description: "Ver os endereços da rede"; Flags: postinstall shellexec skipifsilent
 #endif
 
 [UninstallDelete]
-Type: files; Name: "{autodesktop}\Segurança Integral - Coordenação.url"
-Type: files; Name: "{autodesktop}\Segurança Integral - Portal do aluno.url"
-Type: filesandordirs; Name: "{autoprograms}\Segurança Integral"
+Type: files; Name: "{autodesktop}\TETRA-GUARD - Coordenação.url"
+Type: files; Name: "{autodesktop}\TETRA-GUARD - Portal do aluno.url"
+Type: filesandordirs; Name: "{autoprograms}\TETRA-GUARD"
 #ifdef LAN
 Type: files; Name: "{app}\Enderecos-da-rede.txt"
 #endif
@@ -335,3 +346,4 @@ begin
     end;
   end;
 end;
+

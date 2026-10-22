@@ -1,9 +1,15 @@
-﻿SEGURANÇA INTEGRAL - VERSÃO SÓ PARA REDE LOCAL (LAN)
+TETRA-GUARD - VERSÃO SÓ PARA REDE LOCAL (LAN)
 ====================================================
 
-Esta versão funciona dentro da rede da escola, sem túnel e sem endereço na
+Esta versão funciona dentro da rede da escola, sem exigir túnel ou endereço na
 internet. Os alunos acessam pelo endereço do computador onde o programa foi
 instalado.
+
+ATUALIZAÇÃO COM TÚNEL EXISTENTE
+O instalador não altera o serviço, as credenciais nem os arquivos do Cloudflare
+Tunnel. Os domínios e as portas já configurados no config.json são mantidos.
+A configuração anterior é copiada para config.json.bak antes da atualização
+dos endereços locais. Instale por cima da versão existente, sem desinstalar.
 
 1. DEPOIS DE INSTALAR
 ---------------------
@@ -12,7 +18,7 @@ Ao final, o instalador abre o arquivo "Endereços da rede" com:
   - o endereço do portal do ALUNO (compartilhe com os alunos, por exemplo num
     cartaz ou no mural);
   - o endereço do portal da COORDENAÇÃO (só para a equipe).
-O mesmo arquivo fica no Menu Iniciar, na pasta "Segurança Integral".
+O mesmo arquivo fica no Menu Iniciar, na pasta "TETRA-GUARD".
 
 Primeiro acesso: abra  http://127.0.0.1:4000  NESTE computador. Se ainda não
 existir nenhuma conta, a página mostra "Criar conta de administrador". Essa
@@ -24,8 +30,7 @@ criação só é aceita no próprio computador do servidor, nunca pela rede.
   - O computador precisa ficar ligado e na mesma rede dos alunos.
   - Peça ao responsável pela rede para RESERVAR um IP fixo para este
     computador. Se o roteador trocar o número, o endereço dado aos alunos
-    deixa de funcionar (rode o instalador de novo ou edite o config.json, veja
-    abaixo).
+    deixa de funcionar (use Atualizar rede no Menu Iniciar, veja abaixo).
   - O Windows precisa classificar a rede como "Privada" (ou de Domínio). Em
     rede "Pública" o firewall bloqueia o acesso. Em Configurações > Rede e
     Internet > propriedades da conexão > Tipo de perfil de rede: Privada.
@@ -48,9 +53,27 @@ criação só é aceita no próprio computador do servidor, nunca pela rede.
 4. ENDEREÇO NOVO (IP MUDOU)
 ---------------------------
 
-Rode este instalador de novo (as informações e contas são mantidas): ele
-atualiza a lista de endereços do computador em
-  C:\ProgramData\SegurancaIntegral\config.json
+No Menu Iniciar, abra TETRA-GUARD > Atualizar rede e autorize a
+permissão de administrador. O comando detecta os IPs atuais, atualiza os
+endereços permitidos e reinicia o servidor para aplicar a configuração.
+Depois de verificar os dois portais no notebook, abre Endereços da rede.
+Compartilhe o endereço atualizado do aluno com porta 3000 (ou a porta
+personalizada indicada). O comando Iniciar servidor também atualiza a rede.
+
+Para demonstrações em outra escola: conecte notebook e celular à mesma rede,
+use Atualizar rede e teste o novo endereço no celular. No celular, não use
+127.0.0.1: ele aponta para o próprio celular. A atualização é manual, pelo
+atalho; não acontece automaticamente a cada troca de Wi-Fi.
+
+O relatório avisa sobre rede Pública. O programa não muda esse perfil nem
+libera o firewall Público: confirme com o responsável pela rede se ela pode
+ser classificada como Privada. Redes de visitantes ou isolamento entre
+clientes podem impedir o acesso mesmo com os dois aparelhos no mesmo Wi-Fi.
+A verificação local não comprova conectividade a partir do celular.
+
+As informações, contas, portas e limites são mantidos. A configuração fica
+em C:\ProgramData\SegurancaIntegral\config.json, com cópia anterior .bak.
+Sem endereço IPv4 utilizável, o comando avisa e não altera a configuração.
 
 5. DESINSTALAR
 --------------
@@ -58,3 +81,49 @@ atualiza a lista de endereços do computador em
 Painel de Controle > Programas. A regra do firewall é removida. As informações
 (casos, contas) continuam em C:\ProgramData\SegurancaIntegral, e o instalador
 pergunta se você quer apagá-las.
+
+6. DIAGNÓSTICO LOCAL - VERSÃO 3.0.0
+----------------------------------
+
+No terminal deste computador (com acesso à pasta protegida), execute:
+
+  "C:\Program Files\SegurancaIntegral\SegurancaIntegral.exe" --status
+  "C:\Program Files\SegurancaIntegral\SegurancaIntegral.exe" --status --watch
+  "C:\Program Files\SegurancaIntegral\SegurancaIntegral.exe" --status --json
+
+O monitor consulta os dois portais e mostra banco, uptime, backup e assinantes
+de atualização. Não cria nem altera arquivos, não lê chaves e não reinicia o
+servidor. Ctrl+C encerra só o monitor. --watch atualiza após dois segundos;
+--json faz uma leitura única e não combina com --watch. Para outra pasta,
+acrescente --data-dir "D:\DadosSeguranca".
+
+Saídas: 0 saudável; 1 offline/degradado; 2 uso inválido; 4 configuração
+ilegível/inválida. Outra versão, serviço desconhecido ou uma porta ausente
+nunca aparecem como saudáveis. O diagnóstico HTTP só aceita acesso local
+direto: não pode ser consultado por outro computador ou por proxy.
+
+Backup pendente: este processo ainda não observou uma tentativa. A existência
+de um backup antigo não prova sucesso atual. Se já existe cópia de hoje, a
+partida não a refaz. Depois disso, a rotina roda a cada 24 horas. Backup com
+erro deixa o monitor degradado; confira espaço, permissões e logs locais.
+
+7. BACKUP E RECUPERAÇÃO
+-----------------------
+
+As cópias em C:\ProgramData\SegurancaIntegral\backups\AAAA-MM-DD incluem o
+banco, anexos, secret.key, config.json e cópias locais de questionario.json,
+questionario_v3.json e risk_terms.json, quando existirem. Guarde cópias
+protegidas fora do computador. Os backups locais são mantidos por sete dias.
+
+Para restaurar: pare a tarefa SegurancaIntegral, preserve a pasta atual,
+restaure o conteúdo de uma cópia completa na pasta protegida e inicie a
+tarefa. Mantenha banco e secret.key correspondentes; sem essa chave os códigos
+dos alunos deixam de valer. Preserve também os questionários/termos locais e
+as portas do config.json. Verifique --status e os dois portais após iniciar.
+A sessao.key não vai ao backup. Após cada reinício a coordenação precisa
+entrar novamente; os códigos dos alunos permanecem válidos.
+
+Para recuperar a conta local coordenacao, pare a tarefa e execute o programa
+com --redefinir-senha (e a mesma --data-dir, se personalizada); anote a senha
+exibida uma vez e reinicie a tarefa. --criar-admin cria essa conta se ausente.
+

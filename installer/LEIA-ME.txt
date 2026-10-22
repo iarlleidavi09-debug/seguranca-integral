@@ -1,4 +1,4 @@
-﻿SEGURANÇA INTEGRAL 1.0: LEIA-ME
+﻿TETRA-GUARD 1.0: LEIA-ME
 ================================
 
 O programa roda neste computador e abre dois portais, só para o próprio
@@ -355,6 +355,6 @@ o aparelho é agrupado pelo prefixo /64.
 11. DESINSTALAR
 --------------
 
-Painel de Controle > Programas > Segurança Integral > Desinstalar. O programa
+Painel de Controle > Programas > TETRA-GUARD > Desinstalar. O programa
 e a tarefa são removidos. Os dados ficam, a não ser que você responda "Sim"
 quando o desinstalador perguntar se deve apagá-los (o padrão é "Não").
