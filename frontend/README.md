@@ -2,6 +2,12 @@
 
 React, Vite e TypeScript. API em mesma origem, com código de acompanhamento somente no corpo de requisições POST. Sem roteador ou código de caso em URLs.
 
+### Acolhimento e conversas (20/10/2026)
+
+O início oferece acolhimento anônimo direto, sem questionário ou dados escolares. A primeira mensagem abre o atendimento por `POST /api/acolhimento`. Os acessos criados/consultados ficam no histórico local `tetra-guard.acessos.v1` (somente código e marcador de leitura), com remoção individual ou de todos. Esse histórico é separado do rascunho.
+
+O acompanhamento foca a conversa e destaca respostas novas. A coordenação pode filtrar estados de conversa, ver prévias e exportar um relatório de apoio ao preenchimento manual do ROE. A leitura da equipe é por usuário e registrada apenas na aba Conversa visível. Veja o [guia de uso](../docs/acolhimento-e-conversas.md) e a [validação](../docs/validacao-acolhimento-frontend.md).
+
 ```powershell
 cd frontend
 npm install
@@ -15,51 +21,60 @@ O tema segue `docs/design/tokens.md` e `prefers-color-scheme`. A fonte é empaco
 
 **Divergência com `docs/design/tokens.md`:** o documento pede "Atkinson Hyperlegible Next" nos pesos 400, 600 e 700. Usamos "Atkinson Hyperlegible" (pacote `@fontsource/atkinson-hyperlegible`, que não traz o peso 600 nem a família Next), então todo texto que o design marca com 600 sai em 700. Se a Next for empacotada depois, basta trocar a dependência e o `--fonte` em `tema.css`. Não depende de Google Fonts, CDN, estilos inline ou scripts inline.
 
-### Telas e passos
+### Telas e passos v3
 
-1. **Início**: apresentação, o botão "Preciso de ajuda", o campo para acompanhar por código e o aviso "Antes de contar" (inclui a orientação de usar dados móveis para anonimato total).
-2. **Pedir ajuda**, em quatro passos: situação (Cyberbullying, Ameaças, Vazamento, Perfil falso, Golpe, Aliciamento ou Outros); detalhes (opções marcadas e, em seguida, perguntas encadeadas, uma por tela; aparece sempre que o servidor traz opções para a situação); relato, quando, onde e "está acontecendo agora"; provas (até 5 imagens) e identificação (anônimo por padrão).
-3. **Confirmação**: mostra o código de acompanhamento uma única vez, com botão de copiar.
-4. **Acompanhar**: linha do tempo de três etapas (Recebido, Em investigação, Resolvido), conversa com a coordenação e, com o caso resolvido, a área pós-resolução.
+1. **Início**: acolhimento, entrada do pedido e consulta por código. O consentimento explica o funcionamento na LAN e os registros da rede, sem prometer anonimato total.
+2. **Pedido**: oito grupos colapsáveis, seleção múltipla entre grupos e contagens; perguntas comuns e relacionadas, uma por tela; relato; revisão editável, provas opcionais e identificação.
+3. **Confirmação**: código de acompanhamento para guardar e copiar.
+4. **Acompanhar**: conversa, resolução e pós-resolução. O aluno nunca recebe prioridade, autoria da equipe ou notas internas.
 
-**Detalhes em perguntas encadeadas.** O passo 2 lê a definição em `GET /api/questionario` (`obterQuestionario`, com tempo limite de 8 s). O aluno marca as opções da situação; cada opção abre perguntas, e a resposta a uma pergunta pode abrir outras (por exemplo, "Pagar dinheiro" em Ameaças abre as perguntas de golpe). A regra de visibilidade está em `src/aluno/fluxo.ts` e é a mesma do servidor: a pergunta aparece se uma opção marcada a cita ou se uma resposta-gatilho dela foi dada, até estabilizar. Uma pergunta por tela, com contagem ("Pergunta 3 de 11"), foco na pergunta, opção de seguir sem responder e "Voltar" que mantém as respostas. Mudar uma resposta fecha as perguntas que dependiam dela e apaga as respostas delas. Trocar de situação descarta opções e respostas.
+O App principal usa `src/aluno/Pedido.tsx` e a definição pública `GET /api/v3/questionario`, com tempo limite de 8 segundos. Falha ou definição malformada permite seguir só com o relato. `fluxoV3.ts` une perguntas por ID: perguntas citadas nas opções são raízes diretas; `mostrar_se` usa OU entre alternativas alcançadas; `mostrar_se_todas` exige todas as alternativas. `para_opcoes` limita raízes e descendentes aos temas selecionados. Ao fechar um ramo, suas respostas são eliminadas.
 
-O envio leva o campo `respostas` com texto JSON (`situacao`, `marcadas`, `respostas`), só com perguntas visíveis, e o relato vai só com o texto do aluno (mínimo de 10 caracteres, limite de 5000; o bloco `Situações marcadas:` não existe mais). Se o servidor devolver 400 `respostas invalidas`, o pedido é reenviado uma vez sem `respostas` e a confirmação avisa que as respostas não foram enviadas.
+O catálogo tem 85 perguntas (65 novas), com caminhos próprios para cada uma das 29 opções e quatro perguntas comuns. Cyberbullying distingue mensagens, boatos, imagens/montagens, exclusão e ameaças, com canal e aprofundamentos condicionais. A interface mostra o assunto da pergunta. Consulte a [matriz dos caminhos](../docs/bifurcacoes-por-tema.md) e a [verificação](../docs/verificacao-bifurcacoes.md). Novas respostas descritivas têm peso zero. Definições personalizadas anteriores continuam válidas sem os novos campos. Respostas e rascunho admitem até 400 IDs no total; o JSON enviado admite 64 KiB.
 
-**Sem definição.** O questionário nunca bloqueia o pedido. Se `GET /api/questionario` falhar (por exemplo 503), o passo 2 é pulado, um aviso aparece e o pedido segue só com situação e relato. Enquanto a definição carrega, a tela mostra "Carregando as perguntas…" com o botão "Continuar só com o relato"; se passar de 8 s, a saída é automática.
+O multipart `POST /api/v4/denuncias` envia `envio_id` (32 hex), relato e campos existentes, anexos e `respostas` JSON `{versao:3,marcadas,respostas}`. Exige `ano_relator` e `sala_relator`, inclusive sem nome, e aceita `local_id` e `local_outro`. Esses campos integram o recibo de deduplicação. O relato tem de 10 a 5000 caracteres. O recibo fica em memória até começar outro pedido, inclusive quando há edição após falha de rede; conteúdo diferente com recibo já recebido gera conflito 409, sem duplicar o caso. Respostas rejeitadas nunca geram reenvio silencioso: o aluno precisa confirmar o botão “Confirmar envio sem respostas”. Somente uma rejeição 400 definitiva permite novo recibo para esse envio confirmado; a escolha e o recibo permanecem nos retries seguintes. Navegação e saída da página ficam bloqueadas durante o envio; o envio aguarda o giro das imagens. Clientes v2/v3 continuam aceitos pelas rotas anteriores.
 
-**Orientação de risco.** Se a resposta a "Você está seguro agora?" for "Não" ou "Quero falar com alguém hoje", a tela da pergunta e a confirmação mostram a orientação de apoio imediato (sem telefones inventados) e o pedido segue normalmente.
+**Turma e localização.** `GET /api/locais` entrega somente nomes e hierarquia dos ambientes. O aluno escolhe o caminho no catálogo ou descreve outro local, sem bloquear o pedido quando a planta está vazia ou indisponível. Ano e sala são da turma de quem relata; não são a sala física da ocorrência. Os campos acompanham o rascunho de 24 horas e permanecem quando o aluno escolhe enviar sem nome. A revisão explica que turma e conteúdo podem permitir reconhecimento.
 
-**Rascunho de 24 horas.** O texto, as opções marcadas e as respostas (por id) ficam em `si-aluno-rascunho-v3` e expiram 24 horas depois da última edição (abrir a tela não renova o prazo). As chaves antigas `si-aluno-rascunho-v1` e `-v2` são apagadas ao abrir. Ao restaurar, o aluno volta ao passo 1, e ids que a definição não conhece mais são descartados. O rascunho é apagado no envio ou em "Limpar rascunho", e nunca guarda código, imagens nem conversa. Se o navegador bloquear o armazenamento, a tela avisa e segue sem rascunho. Anexos permanecem só em memória.
+### Mapa e autoria na coordenação
 
-**Girar imagem.** No passo 4, cada imagem (exceto GIF) tem o botão "Girar", que gira 90 graus no próprio navegador antes do envio. Se a rotação falhar ou a imagem girada passar de 5 MB, a original continua anexada e uma mensagem explica. O envio fica bloqueado enquanto uma imagem gira.
+A aba Mapa da escola (`#mapa`) começa vazia. Cada nível admite alas, andares, salas e áreas comuns em retângulo ou em L. O formato em L permite rotação de 0/90/180/270 graus e espessura dos braços de 15% a 85% de cada dimensão. Há desenho com ponteiro, criação por formulário, movimentação, tamanho, nome, desfazer, cancelamento, busca, zoom e navegação entre níveis. A planta salva usa revisão; um conflito preserva o rascunho. O desenho não salvo permanece ao navegar entre abas e é descartado ao sair da conta. Ambientes com filhos ou casos vinculados têm exclusão protegida. Limites: 500 ambientes e seis níveis. A área inicial de 1200 × 800 unidades pode crescer até 12000 × 8000 por nível com os botões Ampliar para a direita/baixo. A área visível tem rolagem nos eixos necessários; as barras desaparecem quando o conteúdo cabe ao afastar o zoom. As dimensões salvas são reconstruídas a partir dos ambientes, sem alterar as coordenadas existentes.
 
-**Pós-resolução.** Com o caso resolvido, o aluno vê o desfecho, as providências e o resultado (texto puro, nunca HTML) e responde "Melhorou" ou "Voltou a acontecer". "Voltou" sinaliza recorrência para a coordenação revisar. Se a coordenação reabrir o caso, o bloco some e a resolução antiga deixa de aparecer. O aluno nunca vê prioridade, autoria da equipe nem notas.
+### Organização do atendimento
 
-**Privacidade do código.** O código de acompanhamento só viaja no corpo de requisições `POST`. Não vai para a URL, para `localStorage` nem para `sessionStorage`, e a confirmação é o único lugar em que aparece.
+Casos oferece os recortes Todos, Ainda não abertos, Precisam de atenção e Resolvidos, com contagens e filtro por motivo. Não aberto significa que ninguém consultou o detalhe; isso é independente do status. A atenção reúne casos abertos sem responsável ativo ou sem primeira mensagem da coordenação, mensagens do aluno sem resposta, ações vencidas e recorrências. Um resolvido também entra na atenção quando tem mensagem pendente, ação vencida ou recorrência.
+
+No detalhe, Organização do atendimento permite atribuir um usuário ativo e registrar uma próxima ação com data, inclusive para acompanhamento de resolvidos. A data vale até o fim do dia em Brasília; a fila atualiza ao mudar o dia, mesmo com SSE online. Concluir ação limpa a pendência e mantém o registro no histórico. Para retirar uma ação sem concluí-la, limpe texto e data e salve. Alterações simultâneas exigem conferência sem apagar o rascunho. Esses dados e o histórico de atribuições são internos; o acompanhamento do aluno não os recebe.
+
+A migração cria `seguranca.db.pre-atendimento.bak` antes de acrescentar campos a bancos existentes. Casos antigos começam sem atribuição ou ação automática. A cópia anterior é preservada nas próximas inicializações.
+
+Filtros por período, ano/sala e base da turma do relator ou autores apurados contam casos, não pessoas. Simulações não entram. O ambiente mostra também seus descendentes; a distribuição por ano/turma pode ter grupos sobrepostos quando há vários autores. Casos sem autoria identificada ficam fora dessa base e aparecem em contador separado.
+
+A finalização usa `POST /api/v4/casos/<id>/resolucao` multipart, com `X-SI-Coord: 1`, mantendo a revisão do caso. Até dez autores têm nome, ano e sala obrigatórios, foto opcional PNG/JPEG/WebP de até 5 MiB. A alternativa de autoria não identificada exige justificativa interna. Esses dados são internos e não integram os textos de providências/resultado visíveis ao aluno; a foto é servida apenas na rota autenticada da coordenação.
+
+**Rascunho.** `si-aluno-pedido-v3` expira 24 horas após a última edição. Abrir ou validar contra a definição não renova o prazo. As chaves legadas são descartadas com aviso. A allowlist guarda somente texto, escolhas, respostas e identificação escolhida; não guarda código, recibo, imagens ou conversa. Há aviso quando o storage está bloqueado. Imagens permanecem em memória e são revogadas ao remover/sair.
+
+**Imagens e identificação.** Até cinco imagens de 5 MB, PNG/JPEG/WebP/GIF, com giro de 90 graus exceto GIF. Ao escolher anonimato, nome e turma são apagados. “Não” e “Não tenho certeza” na pergunta de segurança mostram orientação imediata.
+
+Os módulos v2 continuam em `Denuncia.tsx`, `fluxo.ts` e `rascunho.ts`, com a casca `src/preview/AppV2.tsx` para suas prévias e testes. Eles não são importados pelo App principal v3.
 
 ## Verificação em navegador
 
-Duas verificações, ambas com Chrome instalado. As capturas (`verificacao/capturas/`) e os `resultado*.json` são locais e não entram no commit.
-
-**Com API simulada** (rápida):
+Rode os builds sequencialmente e depois a suíte: a checagem CSP lê os arquivos gerados e não deve disputar o `emptyOutDir` do Vite.
 
 ```powershell
-npm run build:aluno
-npm run test:navegador
+npm.cmd run build:aluno
+npm.cmd run build:coord
+npm.cmd test
+npm.cmd run contraste
+node verificacao/v3-lan.mjs
 ```
 
-O script serve o build com a CSP do portal e uma API falsa, e percorre 375, 768 e 1280 px nos temas claro e escuro.
+A rodada v3 exige Chrome instalado e um backend **de teste** em loopback com pasta de dados fictícios e limites desligados. Padrão: portas 23000/24000; variáveis opcionais `SI_ALUNO` e `SI_COORD`. O script cria ou usa uma conta fictícia pelo primeiro acesso e guarda a credencial na pasta ignorada `.superpowers/sdd/2026-10-16-v3-lan/test-credentials.json`.
 
-**Com o backend real** (`verificacao/aluno.mjs`): suba o servidor com uma pasta de dados temporária (portas altas e limites de taxa desligados no `config.json`), crie o administrador de teste pelo primeiro acesso da coordenação e rode:
+Em 375, 768 e 1280 px, claro/escuro, verifica: teclado; seleção entre grupos; segurança; dinheiro e troca para intimidade com limpeza; relato e edição; imagem e giro; envio anônimo real; código; conversa; filtros e detalhe autenticados da coordenação. Confere CSP, recursos externos, estilos inline, controles de 44 px e ausência de rolagem horizontal. Capturas e resultados ficam em `.superpowers/sdd/2026-10-16-v3-lan/task-2-capturas/` e `task-2-browser.json`.
 
-```powershell
-$env:SI_ALUNO_URL='http://127.0.0.1:23000'; $env:SI_COORD_URL='http://127.0.0.1:24000'
-$env:SI_ADMIN_NOME='Admin Teste'; $env:SI_COORD_SENHA='<senha de teste>'
-node verificacao/aluno.mjs
-```
-
-O script percorre, em 375, 768, 900, 1024 e 1280 px e nos dois temas: início, pedido completo de Ameaças (perguntas encadeadas com salto e volta, orientação de risco, imagem girada e identificação anônima), Cyberbullying com troca de situação, rascunho restaurado, definição indisponível (503 simulado) e definição que nunca responde, confirmação com código, acompanhar por código, conversa, resolução registrada pela API da coordenação (com marcação HTML para provar o texto literal), pós-resolução, "Voltou a acontecer", recorrência vista pela coordenação e reabertura. Em cada combinação confere rolagem horizontal, violações de CSP, erros de console, foco visível e texto cortado. No fim, envia por situação um pedido com todas as opções e a primeira resposta de cada pergunta visível e outro sem respostas, e compara prioridade, pontos e motivos, para provar que as respostas ainda não alteram a triagem. No portal da coordenação o `coordenacao.mjs` abre um caso com respostas e confere o bloco "Respostas do aluno". `SI_LARGURAS`, `SI_TEMAS` e `SI_TRIAGEM=0` reduzem a rodada. Apague a pasta temporária e encerre o servidor ao final.
+Os scripts anteriores `navegador.mjs` e `aluno.mjs` descrevem o percurso legado e permanecem como referência da v2. Não são a verificação do App v3.
 
 ## Portal da coordenação
 

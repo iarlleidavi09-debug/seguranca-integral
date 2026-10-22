@@ -335,9 +335,10 @@ try {
         await ok('rascunho some depois do envio', async () => {
           if (await pagina.evaluate(() => localStorage.getItem('si-aluno-rascunho-v3'))) throw new Error('rascunho continua');
         });
-        await ok('código fora de URL e do armazenamento', async () => {
-          const r = await pagina.evaluate(() => JSON.stringify([location.href, { ...localStorage }, { ...sessionStorage }]));
-          if (r.includes(codigo) || r.includes(codigo.replace('-', ''))) throw new Error('código encontrado');
+        await ok('código salvo sem conteúdo e fora da URL', async () => {
+          const r = await pagina.evaluate(() => ({ url: location.href, acessos: JSON.parse(localStorage.getItem('tetra-guard.acessos.v1') || '[]') }));
+          if (r.url.includes(codigo) || r.url.includes(codigo.replace('-', ''))) throw new Error('código na URL');
+          if (!r.acessos.some(a => a.codigo === codigo) || r.acessos.some(a => Object.keys(a).some(k => !['codigo', 'lastRead'].includes(k)))) throw new Error('acesso salvo incorreto');
         });
         await ok('a confirmação mostra a orientação de risco', async () => {
           await pagina.locator('.confirmacao .aviso.orientacao').waitFor();

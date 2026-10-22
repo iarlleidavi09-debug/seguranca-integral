@@ -89,7 +89,7 @@ function App() {
     <a className="pular" href="#previa-conteudo" onClick={e => { e.preventDefault(); document.getElementById('previa-conteudo')?.focus(); }}>Pular para a prévia</a>
     <aside className="indice-lateral" aria-label="Índice de interfaces">
       <h1>Interfaces</h1>
-      <p className="indice-intro">Segurança Integral<br />Selecione uma tela para revisar.</p>
+      <p className="indice-intro">TETRA-GUARD<br />Selecione uma tela para revisar.</p>
       <nav aria-label="Telas de prévia">{['Aluno', 'Coordenação'].map(grupo => <section key={grupo}>
         <h2>{grupo}</h2>
         {telas.filter(t => t.grupo === grupo).map(t => <a key={t.id} href={`#${t.id}`} aria-current={t.id === tela ? 'page' : undefined} onClick={() => setTela(t.id)}>{t.nome}</a>)}
@@ -107,7 +107,7 @@ function App() {
       <div className="indice-aviso" role="note">Modo de revisão · Tema da coordenação · Dados de exemplo</div>
       <div key={`${tela}-${versao}`}>
         {atual.grupo === 'Aluno' ? <>
-          <header className="cabecalho"><div className="cabecalho-conteudo"><p className="marca">Segurança Integral</p><span>Portal do aluno</span></div></header>
+          <header className="cabecalho"><div className="cabecalho-conteudo"><p className="marca">TETRA-GUARD</p><span>Portal do aluno</span></div></header>
           <main id="previa-conteudo" tabIndex={-1} className="portal">
             {tela !== 'inicio' && <button className="botao-texto" onClick={() => ir('inicio')}>Voltar ao início</button>}
             {conteudo()}
@@ -115,7 +115,7 @@ function App() {
         </> : tela === 'login' ? <div className="coord-app">{conteudo()}</div> : <div className="coord-app">
           <div className="coord-layout">
             <div className="coord-lateral">
-              <p className="marca">Segurança Integral <span>Coordenação</span></p>
+              <p className="marca">TETRA-GUARD <span>Coordenação</span></p>
               <Navegacao tela={telaDaCoordenacao(tela)} admin pendencias={0} aoIr={destino => ir(destinoDe(destino))} />
               <div className="sessao"><span className="sessao-nome">Equipe de exemplo</span>
                 <button type="button" className="botao secundario" onClick={() => ir('login')}>Sair</button></div>

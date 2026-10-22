@@ -1,0 +1,125 @@
+import { chromium, expect } from '@playwright/test';
+import { readFile, mkdir, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const root = fileURLToPath(new URL('../../', import.meta.url));
+const pasta = path.join(root, '.superpowers/sdd/2026-10-16-v3-lan');
+const capturas = path.join(pasta, 'task-2-capturas');
+await mkdir(capturas, { recursive: true });
+const aluno = process.env.SI_ALUNO ?? 'http://127.0.0.1:23000';
+const coord = process.env.SI_COORD ?? 'http://127.0.0.1:24000';
+if (![aluno, coord].every(url => new URL(url).hostname === '127.0.0.1')) throw new Error('Esta rodada exige servidor de teste loopback com dados fictícios.');
+const authPath = path.join(pasta, 'test-credentials.json');
+let credencial;
+try { credencial = JSON.parse(await readFile(authPath, 'utf8')); }
+catch { credencial = { nome: 'Equipe de teste frontend', senha: 'Teste-local-v3-2026!somente-ficticio' }; }
+const navegador = await chromium.launch({ channel: 'chrome', headless: true });
+const resultados = [];
+const rodada = Date.now().toString(36);
+try {
+  const sessao = await navegador.newContext();
+  const setup = await (await sessao.request.get(`${coord}/api/setup`)).json();
+  const login = await sessao.request.post(`${coord}/api/${setup.pendente ? 'setup' : 'login'}`, { data: credencial });
+  expect(login.ok()).toBe(true);
+  await writeFile(authPath, JSON.stringify(credencial));
+  const auth = await sessao.storageState();
+  await sessao.close();
+  for (const largura of [375, 768, 1280]) for (const tema of ['light', 'dark']) {
+    const ctx = await navegador.newContext({ viewport: { width: largura, height: 900 }, colorScheme: tema, storageState: auth });
+    const pagina = await ctx.newPage();
+    const erros = [], externos = [], violacoes = [];
+    pagina.on('pageerror', e => erros.push(e.message));
+    pagina.on('request', r => { if (![aluno, coord].some(origem => r.url().startsWith(origem)) && !r.url().startsWith('blob:') && !r.url().startsWith('data:')) externos.push(r.url()); });
+    await pagina.exposeFunction('registrarCsp', v => violacoes.push(v));
+    await pagina.addInitScript(() => document.addEventListener('securitypolicyviolation', e => window.registrarCsp(e.violatedDirective)));
+    let telas = 0;
+    async function capturar(tela) {
+      await pagina.evaluate(() => document.fonts.ready);
+      expect(await pagina.locator('[style]').count()).toBe(0);
+      expect(await pagina.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      const pequenos = await pagina.locator('button, summary, input:not([type="radio"],[type="checkbox"]), textarea, select, label.opcao').evaluateAll(lista => lista.filter(e => {
+        const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.height < 44;
+      }).map(e => e.outerHTML));
+      expect(pequenos).toEqual([]);
+      await pagina.screenshot({ path: path.join(capturas, `${largura}-${tema}-${tela}.png`), fullPage: true }); telas++;
+    }
+    await pagina.goto(aluno);
+    await expect(pagina.getByRole('button', { name: 'Preciso de ajuda' })).toBeVisible();
+    await pagina.keyboard.press('Tab'); await expect(pagina.getByText('Pular para o conteúdo')).toBeFocused();
+    await pagina.keyboard.press('Enter'); await capturar('inicio');
+    await pagina.getByRole('button', { name: 'Preciso de ajuda' }).click();
+    await expect(pagina.locator('details')).toHaveCount(8);
+    await pagina.locator('summary').filter({ hasText: 'Humilhação, bullying e discriminação' }).click();
+    await pagina.getByRole('checkbox', { name: 'Humilhações, apelidos ou exclusão repetida' }).check();
+    await pagina.locator('summary').filter({ hasText: 'Ameaças, perseguição e pressão' }).click();
+    await pagina.getByRole('checkbox', { name: 'Pressão ou chantagem para fazer algo' }).check();
+    await expect(pagina.getByText('2 situações selecionadas')).toBeVisible(); await capturar('grupos');
+    await pagina.getByRole('button', { name: 'Continuar', exact: true }).click();
+    await expect(pagina.locator('legend')).toHaveText('Você está em segurança agora?');
+    await pagina.getByRole('radio', { name: 'Não tenho certeza', exact: true }).check();
+    await expect(pagina.locator('.orientacao')).toBeVisible(); await capturar('seguranca');
+    while (!(await pagina.locator('legend').textContent()).includes('O que estão exigindo?')) await pagina.getByRole('button', { name: 'Continuar', exact: true }).click();
+    await pagina.getByRole('radio', { name: 'Dinheiro ou pertences', exact: true }).check();
+    await pagina.getByRole('button', { name: 'Continuar', exact: true }).click();
+    await expect(pagina.locator('legend')).toHaveText('Você chegou a enviar dinheiro ou dados?');
+    await pagina.getByRole('radio', { name: 'Dinheiro', exact: true }).check();
+    await pagina.getByRole('button', { name: 'Voltar', exact: true }).click();
+    await pagina.getByRole('radio', { name: 'Fotos ou algo íntimo', exact: true }).check();
+    await pagina.getByRole('button', { name: 'Continuar', exact: true }).click();
+    await expect(pagina.locator('legend')).toHaveText('Essa pessoa ainda consegue se aproximar ou falar com você?');
+    await pagina.getByRole('radio', { name: 'Sim', exact: true }).check(); await capturar('ramo-intimidade');
+    await pagina.getByRole('button', { name: 'Ir para o relato' }).click();
+    const relato = `Pedido fictício de verificação v3 ${rodada} ${largura}px ${tema}. Preciso conversar com a equipe da escola.`;
+    await pagina.getByLabel('O que aconteceu?', { exact: true }).fill(relato); await capturar('relato');
+    await pagina.getByRole('button', { name: 'Continuar', exact: true }).click();
+    await expect(pagina.getByRole('heading', { name: 'Revise seu pedido' })).toBeFocused();
+    await expect(pagina.getByText('Você chegou a enviar dinheiro ou dados?', { exact: true })).toHaveCount(0);
+    await pagina.getByRole('button', { name: 'Editar relato' }).click();
+    await expect(pagina.getByLabel('O que aconteceu?', { exact: true })).toHaveValue(relato);
+    await pagina.getByRole('button', { name: 'Continuar', exact: true }).click();
+    const imagem = await pagina.evaluate(() => {
+      const canvas = document.createElement('canvas'); canvas.width = 32; canvas.height = 20;
+      const ctx = canvas.getContext('2d'); ctx.fillStyle = '#1f5c56'; ctx.fillRect(0, 0, 32, 20);
+      return canvas.toDataURL('image/png').split(',')[1];
+    });
+    const png = Buffer.from(imagem, 'base64');
+    await pagina.getByLabel('Adicionar imagens').setInputFiles({ name: 'prova-ficticia.png', mimeType: 'image/png', buffer: png });
+    await pagina.getByRole('button', { name: 'Girar prova-ficticia.png' }).click();
+    await expect(pagina.getByRole('button', { name: 'Girar prova-ficticia.png' })).toBeEnabled();
+    await expect(pagina.locator('.erro')).toHaveCount(0);
+    await expect(pagina.locator('.anexos img')).toHaveJSProperty('naturalWidth', 20);
+    await expect(pagina.locator('.anexos img')).toHaveJSProperty('naturalHeight', 32);
+    await pagina.getByRole('radio', { name: 'Quero me identificar' }).check();
+    await pagina.getByLabel('Seu nome', { exact: true }).fill('Nome fictício descartado');
+    await pagina.getByRole('radio', { name: 'Quero ficar anônimo' }).check(); await capturar('revisao');
+    const respostaPromise = pagina.waitForResponse(r => r.url() === `${aluno}/api/v3/denuncias` && r.request().method() === 'POST');
+    await pagina.getByRole('button', { name: 'Enviar pedido de ajuda' }).click();
+    const resposta = await respostaPromise; expect(resposta.status()).toBe(201);
+    const resultado = await resposta.json();
+    await expect(pagina.getByText(resultado.codigo, { exact: true })).toBeVisible(); await capturar('confirmacao');
+    expect(await pagina.evaluate(() => JSON.parse(localStorage.getItem('tetra-guard.acessos.v1') || '[]'))).toEqual([{ codigo: resultado.codigo, lastRead: 0 }]);
+    expect(pagina.url()).not.toContain(resultado.codigo);
+    await pagina.getByRole('button', { name: 'Acompanhar meu caso', exact: true }).click();
+    await expect(pagina.getByRole('heading', { name: 'Acompanhar meu caso' })).toBeVisible();
+    await pagina.getByLabel('Sua resposta', { exact: true }).fill('Mensagem fictícia de verificação.');
+    await pagina.getByRole('button', { name: 'Enviar resposta' }).click();
+    await expect(pagina.getByText('Mensagem fictícia de verificação.', { exact: true })).toBeVisible(); await capturar('conversa');
+    expect(await pagina.evaluate(() => JSON.parse(localStorage.getItem('tetra-guard.acessos.v1') || '[]'))).toEqual([{ codigo: resultado.codigo, lastRead: 0 }]);
+    await pagina.goto(`${coord}/#casos`);
+    await expect(pagina.getByRole('heading', { name: 'Casos', exact: true })).toBeVisible();
+    await pagina.getByLabel('Buscar por assunto ou número do caso').fill(`${rodada} ${largura}px ${tema}`);
+    await pagina.getByLabel('Grupo de situações').selectOption('ameacas');
+    await pagina.getByLabel('Situação relatada').selectOption('chantagem');
+    await expect(pagina.locator('.casos-resumo').filter({ hasText: relato })).toBeVisible(); await capturar('coord-fila');
+    const linha = pagina.getByRole('row').filter({ hasText: relato });
+    await linha.getByRole('button', { name: /Abrir/ }).click();
+    await expect(pagina.getByText(relato, { exact: true })).toBeVisible();
+    await expect(pagina.getByText('Essa pessoa ainda consegue se aproximar ou falar com você?', { exact: true })).toBeVisible(); await capturar('coord-detalhe');
+    expect(erros).toEqual([]); expect(externos).toEqual([]); expect(violacoes).toEqual([]);
+    resultados.push({ largura, tema, telas, api: 'real Flask, dados fictícios isolados', csp: 'PASS', recursosExternos: 0, estilosInline: 0, rolagemHorizontal: false });
+    console.log(`${largura}px ${tema}: PASS (${telas} telas, ramo/limpeza/anexo/conversa/fila/detalhe reais)`);
+    await ctx.close();
+  }
+  await writeFile(path.join(pasta, 'task-2-browser.json'), JSON.stringify(resultados, null, 2));
+} finally { await navegador.close(); }

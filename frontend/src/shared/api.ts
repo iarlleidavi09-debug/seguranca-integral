@@ -1,4 +1,5 @@
-export type Mensagem = { autor: 'aluno' | 'coordenacao'; texto: string; criado_em: string };
+import type { QuestionarioV3 } from './v3';
+export type Mensagem = { id?: number; autor: 'aluno' | 'coordenacao'; texto: string; criado_em: string };
 export type ResultadoDenuncia = { codigo: string; anexos_recusados?: { nome: string; motivo: string }[] };
 export type StatusAluno = 'novo' | 'em_investigacao' | 'resolvido';
 export type ResolucaoAluno = { desfecho: 'solucionada' | 'intervencao_realizada'; providencias: string; resultado: string; criado_em: string };
@@ -50,6 +51,8 @@ const normalizar = (codigo: string) => codigo.replace(/[\s-]/g, '').toUpperCase(
 export function enviarDenuncia(form: FormData): Promise<ResultadoDenuncia> {
   return post('/api/denuncias', form);
 }
+export function enviarPedidoV3(form: FormData): Promise<ResultadoDenuncia> { return post('/api/v3/denuncias', form); }
+export function enviarPedidoV4(form: FormData): Promise<ResultadoDenuncia> { return post('/api/v4/denuncias', form); }
 export function acompanhar(codigo: string): Promise<Caso> {
   return post('/api/acompanhar', JSON.stringify({ codigo: normalizar(codigo) }), true);
 }
@@ -61,7 +64,7 @@ export async function enviarSituacao(codigo: string, situacao: Situacao): Promis
 }
 
 export type Resposta = { id: string; texto: string };
-export type Pergunta = { id: string; dimensao: string; texto: string; tipo: 'unica' | 'multipla'; respostas: Resposta[]; mostrar_se?: string[] };
+export type Pergunta = { id: string; dimensao: string; texto: string; tipo: 'unica' | 'multipla'; respostas: Resposta[]; mostrar_se?: string[]; mostrar_se_todas?: string[]; para_opcoes?: string[] };
 export type Opcao = { id: string; texto: string; perguntas: string[] };
 export type SituacaoQ = { id: string; tipo: string; nome: string; descricao: string; opcoes: Opcao[] };
 export type Questionario = { dimensoes: Record<string, string>; situacoes: SituacaoQ[]; perguntas: Pergunta[] };
@@ -71,18 +74,42 @@ export const TEMPO_LIMITE_QUESTIONARIO = 8000;
 
 /** Definição do questionário (sem pesos nem alertas). Falha de rede, tempo esgotado ou 503 viram ErroApi. */
 export async function obterQuestionario(): Promise<Questionario> {
+  return buscarDefinicao<Questionario>('/api/questionario');
+}
+export async function obterQuestionarioV3(): Promise<QuestionarioV3> {
+  const def = await buscarDefinicao<QuestionarioV3>('/api/v3/questionario');
+  if (def?.versao !== 3 || !Array.isArray(def.grupos) || !Array.isArray(def.comuns) || !Array.isArray(def.perguntas)) throw new ErroApi(502);
+  const texto = (v: unknown) => typeof v === 'string' && v.length > 0;
+  const lista = (v: unknown): v is string[] => Array.isArray(v) && v.every(texto);
+  if (!lista(def.comuns) || !def.dimensoes || typeof def.dimensoes !== 'object' || !Object.values(def.dimensoes).every(texto)
+    || !def.grupos.every(g => g && texto(g.id) && texto(g.nome) && Array.isArray(g.opcoes) && g.opcoes.every(o => o && texto(o.id) && texto(o.texto) && lista(o.perguntas)))
+    || !def.perguntas.every(p => p && texto(p.id) && texto(p.texto) && texto(p.dimensao) && ['unica', 'multipla'].includes(p.tipo)
+      && Array.isArray(p.respostas) && p.respostas.every(r => r && texto(r.id) && texto(r.texto))
+      && (p.mostrar_se === undefined || lista(p.mostrar_se))
+      && (p.mostrar_se_todas === undefined || lista(p.mostrar_se_todas))
+      && (p.para_opcoes === undefined || (lista(p.para_opcoes) && p.para_opcoes.length > 0)))) throw new ErroApi(502);
+  const perguntas = new Set(def.perguntas.map(p => p.id));
+  const opcoes = new Set(def.grupos.flatMap(g => g.opcoes.map(o => o.id)));
+  const alternativas = new Set(def.perguntas.flatMap(p => p.respostas.map(r => r.id)));
+  const referencias = (valores: string[] | undefined, permitidas: Set<string>) => valores === undefined || (new Set(valores).size === valores.length && valores.every(id => permitidas.has(id)));
+  if (def.perguntas.length > 200 || perguntas.size !== def.perguntas.length
+    || def.perguntas.some(p => !referencias(p.para_opcoes, opcoes) || !referencias(p.mostrar_se, alternativas) || !referencias(p.mostrar_se_todas, alternativas))) throw new ErroApi(502);
+  if (def.comuns.some(id => !perguntas.has(id)) || def.grupos.some(g => g.opcoes.some(o => o.perguntas.some(id => !perguntas.has(id))))) throw new ErroApi(502);
+  return def;
+}
+async function buscarDefinicao<T>(rota: string): Promise<T> {
   const controle = new AbortController();
   let cronometro: ReturnType<typeof setTimeout> | undefined;
   // a corrida garante a desistência mesmo que o fetch ignore o sinal de cancelamento
   const esgotado = new Promise<never>((_, rejeitar) => {
     cronometro = setTimeout(() => { controle.abort(); rejeitar(new ErroApi(0)); }, TEMPO_LIMITE_QUESTIONARIO);
   });
-  const buscar = async (): Promise<Questionario> => {
+  const buscar = async (): Promise<T> => {
     let resposta: Response;
-    try { resposta = await fetch('/api/questionario', { method: 'GET', credentials: 'same-origin', cache: 'no-store', signal: controle.signal }); }
+    try { resposta = await fetch(rota, { method: 'GET', credentials: 'same-origin', cache: 'no-store', signal: controle.signal }); }
     catch { throw new ErroApi(0); }
     if (!resposta.ok) throw new ErroApi(resposta.status);
-    try { return await resposta.json() as Questionario; }
+    try { return await resposta.json() as T; }
     catch { throw new ErroApi(controle.signal.aborted ? 0 : 502); }
   };
   try { return await Promise.race([buscar(), esgotado]); }
@@ -102,6 +129,12 @@ export type StatusCaso = 'novo' | 'em_investigacao' | 'resolvido';
 export type Desfecho = 'solucionada' | 'intervencao_realizada';
 export type Situacao = 'melhorou' | 'voltou';
 export type CasoFila = {
+  canal?: 'relato' | 'acolhimento';
+  conversa_estado?: 'sem_mensagem' | 'mensagem_nova' | 'aguardando_equipe' | 'aguardando_aluno';
+  mensagens_novas?: number; ultima_mensagem?: Mensagem | null;
+  responsavel?: { id: number; nome: string; ativo: boolean } | null;
+  proxima_acao?: string | null; prazo_acao?: string | null; atencao?: string[]; nao_aberto?: boolean;
+  categorias?: string[]; opcoes?: string[]; assuntos?: string[]; revisao_estado?: number;
   id: number; tipo: string; prioridade: Prioridade; pontos: number; status: StatusCaso;
   em_andamento: boolean; anonimo: boolean; simulacao: boolean;
   resumo: string; motivos: string[]; recorrencia_pendente: boolean;
@@ -109,12 +142,16 @@ export type CasoFila = {
   criado_em: string; atualizado_em: string;
 };
 export type Resumo = { status: Record<StatusCaso, number>; prioridade: Record<Prioridade, number>; recorrencia_pendente: number };
-export type FiltrosFila = { status: string; prioridade: string; tipo: string; q: string };
+export type FiltrosFila = { status: string; prioridade: string; tipo: string; q: string; grupo?: string; opcao?: string; visao?: string; atencao?: string; conversa?: string };
 export type Evento = { id: number; tipo: string; usuario_id: number | null; usuario: string | null; detalhe: string; criado_em: string };
 export type Nota = { id: number; usuario_id: number; usuario: string | null; texto: string; criado_em: string };
 export type AnexoCaso = { id: number; tipo: string; tamanho: number };
 export type MensagemCoord = Mensagem & { usuario_id: number | null; usuario: string | null };
-export type Resolucao = { desfecho: Desfecho; providencias: string; resultado: string; usuario: string | null; criado_em: string };
+export type AutorResolucaoInput = { nome: string; ano: string; sala: string; foto?: File };
+export type DadosResolucao = { desfecho: Desfecho; providencias: string; resultado: string; autoria: 'identificada' | 'nao_identificada'; justificativa_autoria: string; autores: AutorResolucaoInput[] };
+export type AutorResolucao = { id: number; nome: string; ano: string; sala: string; tem_foto: boolean };
+export type Resolucao = { desfecho: Desfecho; providencias: string; resultado: string; usuario: string | null; criado_em: string;
+  autoria?: 'identificada' | 'nao_identificada'; justificativa_autoria?: string; autores?: AutorResolucao[] };
 export type SituacaoInformada = { situacao: Situacao; criado_em: string };
 export type RevisaoRecorrencia = { usuario: string | null; criado_em: string };
 export type QuestionarioCaso = {
@@ -124,6 +161,7 @@ export type QuestionarioCaso = {
 export type CasoDetalhe = Omit<CasoFila, 'resumo' | 'ultimo_acesso_por' | 'ultimo_acesso_em'> & {
   relato: string; quando: string | null; onde: string | null;
   nome: string | null; turma: string | null; prioridade_original: Prioridade;
+  ano_relator?: string | null; sala_relator?: string | null; local_id?: string | null; local_nome?: string | null; local_outro?: string | null;
   ultimo_acesso: { por: string | null; em: string } | null;
   anexos: AnexoCaso[]; eventos: Evento[]; mensagens: MensagemCoord[]; notas: Nota[];
   resolucoes: Resolucao[]; situacoes: SituacaoInformada[]; revisoes_recorrencia: RevisaoRecorrencia[];
@@ -140,6 +178,7 @@ export class ErroCoord extends ErroApi {
 let aoPerderSessao: (() => void) | null = null;
 /** Registra quem é avisado quando qualquer chamada responde 401. */
 export function ouvirSessaoPerdida(ouvinte: (() => void) | null): void { aoPerderSessao = ouvinte; }
+export function notificarSessaoPerdida(): void { aoPerderSessao?.(); }
 
 export function mensagemErroCoord(erro: unknown): string {
   const status = erro instanceof ErroApi ? erro.status : 0;
@@ -179,6 +218,7 @@ async function coord<T>(metodo: 'GET' | 'POST' | 'DELETE', caminho: string, corp
 const id = (valor: number) => encodeURIComponent(String(valor));
 
 export const urlAnexo = (casoId: number, anexoId: number) => `/api/casos/${id(casoId)}/anexos/${id(anexoId)}`;
+export const urlFotoAutor = (casoId: number, autorId: number) => `/api/casos/${id(casoId)}/autores/${id(autorId)}/foto`;
 // O login só devolve o nome; o id (para não desativar a própria conta) vem de /api/eu.
 export const entrar = (nome: string, senha: string) => coord<{ nome: string }>('POST', '/api/login', { nome, senha });
 export const sair = () => coord<{ ok: boolean }>('POST', '/api/logout');
@@ -191,14 +231,54 @@ export async function listarCasos(filtros: FiltrosFila, sinal?: AbortSignal): Pr
   const texto = consulta.toString();
   return (await coord<{ casos: CasoFila[] }>('GET', `/api/casos${texto ? `?${texto}` : ''}`, undefined, sinal)).casos;
 }
-export const obterResumo = (sinal?: AbortSignal) => coord<Resumo>('GET', '/api/resumo', undefined, sinal);
+export const obterResumo = (sinal?: AbortSignal, somenteAbertos = false) => coord<Resumo>('GET', `/api/resumo${somenteAbertos ? '?abertos=1' : ''}`, undefined, sinal);
+
+export type Relatorio = {
+  inicio: string; fim: string; recebidos: number; resolvidos: number;
+  evolucao: { data: string; recebidos: number; resolvidos: number }[];
+  prioridades: { prioridade: string; quantidade: number }[];
+  evolucao_prioridades: { data: string; critica: number; alta: number; media: number; baixa: number }[];
+};
+export const obterRelatorio = (inicio: string, fim: string, sinal?: AbortSignal) =>
+  coord<Relatorio>('GET', `/api/relatorios?${new URLSearchParams({ inicio, fim })}`, undefined, sinal);
 export const detalheCaso = (casoId: number, sinal?: AbortSignal) => coord<CasoDetalhe>('GET', `/api/casos/${id(casoId)}`, undefined, sinal);
-export const mudarStatus = (casoId: number, status: 'novo' | 'em_investigacao') => coord<{ ok: boolean }>('POST', `/api/casos/${id(casoId)}/status`, { status });
-export const mudarPrioridade = (casoId: number, prioridade: Prioridade, justificativa: string) =>
-  coord<{ ok: boolean }>('POST', `/api/casos/${id(casoId)}/prioridade`, { prioridade, justificativa });
-export const registrarResolucao = (casoId: number, dados: { desfecho: Desfecho; providencias: string; resultado: string }) =>
-  coord<{ ok: boolean }>('POST', `/api/casos/${id(casoId)}/resolucao`, dados);
-export const revisarRecorrencia = (casoId: number) => coord<{ ok: boolean }>('POST', `/api/casos/${id(casoId)}/revisao-recorrencia`, {});
+export const registrarLeituraConversa = (casoId: number, ultimo_id: number) => coord<{ ok: boolean }>('POST', `/api/casos/${id(casoId)}/conversa/lida`, { ultimo_id });
+export const urlExportacao = (casoId: number) => `/api/casos/${id(casoId)}/exportacao`;
+export type DadosAtendimento = { responsavel_id: number | null; proxima_acao: string; prazo_acao: string | null };
+export const listarEquipe = (sinal?: AbortSignal) => coord<{ usuarios: { id: number; nome: string }[] }>('GET', '/api/equipe', undefined, sinal);
+export const salvarAtendimento = (casoId: number, dados: DadosAtendimento, revisao_estado: number) => coord('POST', `/api/v3/casos/${id(casoId)}/atendimento`, { ...dados, revisao_estado });
+export const concluirAcao = (casoId: number, revisao_estado: number) => coord('POST', `/api/v3/casos/${id(casoId)}/atendimento/concluir`, { revisao_estado });
+const acaoCaso = (casoId: number, acao: string, dados: object, revisao?: number) => coord<{ ok: boolean }>('POST',
+  `/api/${revisao === undefined ? '' : 'v3/'}casos/${id(casoId)}/${acao}`, { ...dados, ...(revisao === undefined ? {} : { revisao_estado: revisao }) });
+export const mudarStatus = (casoId: number, status: 'novo' | 'em_investigacao', revisao?: number) => acaoCaso(casoId, 'status', { status }, revisao);
+export const mudarPrioridade = (casoId: number, prioridade: Prioridade, justificativa: string, revisao?: number) => acaoCaso(casoId, 'prioridade', { prioridade, justificativa }, revisao);
+export async function registrarResolucao(casoId: number, dados: DadosResolucao | { desfecho: Desfecho; providencias: string; resultado: string }, revisao?: number): Promise<{ ok: boolean }> {
+  if (!('autoria' in dados)) return acaoCaso(casoId, 'resolucao', dados, revisao);
+  const form = new FormData();
+  const autores = dados.autores.map(({ foto, ...autor }, indice) => {
+    if (!foto) return autor;
+    const campo = `foto_${indice}`;
+    form.append(campo, foto);
+    return { ...autor, foto_campo: campo };
+  });
+  form.append('dados', JSON.stringify({ ...dados, autores, revisao_estado: revisao }));
+  let resposta: Response;
+  try { resposta = await fetch(`/api/v4/casos/${id(casoId)}/resolucao`, { method: 'POST', credentials: 'same-origin', cache: 'no-store', headers: { 'X-SI-Coord': '1' }, body: form }); }
+  catch { throw new ErroCoord(0); }
+  if (!resposta.ok) {
+    if (resposta.status === 401) aoPerderSessao?.();
+    let detalhe = '';
+    try { const erro = await resposta.json(); if (typeof erro?.erro === 'string') detalhe = erro.erro; } catch { /* Resposta sem JSON. */ }
+    throw new ErroCoord(resposta.status, detalhe);
+  }
+  try { return await resposta.json() as { ok: boolean }; } catch { throw new ErroCoord(502); }
+}
+export const revisarRecorrencia = (casoId: number, revisao?: number) => acaoCaso(casoId, 'revisao-recorrencia', {}, revisao);
+export type Atividade = 'vendo' | 'mensagem' | 'nota';
+export type PessoaPresente = { id: number; nome: string; atividade: Atividade };
+export const obterPresenca = (casoId: number) => coord<{ pessoas: PessoaPresente[] }>('GET', `/api/casos/${id(casoId)}/presenca`);
+export const pulsarPresenca = (casoId: number, aba: string, atividade: Atividade) => coord<{ pessoas: PessoaPresente[] }>('POST', `/api/casos/${id(casoId)}/presenca`, { aba, atividade });
+export const removerPresenca = (casoId: number, aba: string) => coord<{ pessoas: PessoaPresente[] }>('DELETE', `/api/casos/${id(casoId)}/presenca`, { aba });
 export const enviarMensagemAoAluno = (casoId: number, texto: string) => coord<{ ok: boolean }>('POST', `/api/casos/${id(casoId)}/mensagens`, { texto });
 export const criarNota = (casoId: number, texto: string) => coord<{ ok: boolean }>('POST', `/api/casos/${id(casoId)}/notas`, { texto });
 export async function listarUsuarios(sinal?: AbortSignal): Promise<UsuarioLista[]> {
