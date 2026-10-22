@@ -1,0 +1,8 @@
+Validação backend — acolhimento e conversas
+Data: 2026-10-20 (America/Sao_Paulo)
+Comando: backend/.venv/Scripts/python.exe -m pytest backend/tests/test_conversas.py backend/tests/test_coord_api.py backend/tests/test_db.py -q --maxfail=1
+Resultado: 365 passed in 992.57s (0:16:32)
+Código de saída: 0
+Escopo: conversas, API de coordenação e banco/migrações.
+Contrato atualizado no teste legado de detalhe: campo canal explicitamente permitido; proteção contra hashes mantida.
+Não representa execução da suíte backend completa.
