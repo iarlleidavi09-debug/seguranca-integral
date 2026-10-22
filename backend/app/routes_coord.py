@@ -369,6 +369,9 @@ def detalhe(caso_id: int):
     except sqlite3.OperationalError:
         # banco ocupado: o detalhe sai mesmo assim, sem o último acesso
         caso["ultimo_acesso"] = None
+    for m in caso["mensagens"]:
+        m["pode_alterar"] = casos.pode_alterar_mensagem(
+            m, g.usuario["id"], g.usuario["papel"])
     return jsonify(caso)
 
 
@@ -470,6 +473,50 @@ def enviar_mensagem(caso_id: int):
                            g.usuario["id"], "")
     publicar(caso_id)
     return jsonify({"ok": True}), 201
+
+
+ERRO_SEM_PERMISSAO_MSG = "sem permissao para alterar esta mensagem"
+
+
+@bp.patch("/api/casos/<int:caso_id>/mensagens/<int:mensagem_id>")
+def editar_mensagem(caso_id: int, mensagem_id: int):
+    conn = _db()
+    # o domínio não valida o tamanho: vale a regra de enviar_mensagem
+    texto = _texto_valido()
+    if texto is None:
+        return _erro("mensagem deve ter de 1 a 2000 caracteres")
+    r = casos.alterar_mensagem(conn, caso_id, mensagem_id, g.usuario["id"],
+                               g.usuario["papel"], texto)
+    if r == "inexistente":
+        return _nao_encontrado()
+    if r == "proibido":
+        return _erro(ERRO_SEM_PERMISSAO_MSG, 403)
+    if r == "apagada":
+        return _erro("mensagem apagada nao pode ser editada", 409)
+    if r == "ok":
+        publicar(caso_id)
+    return jsonify({"ok": True})
+
+
+@bp.delete("/api/casos/<int:caso_id>/mensagens/<int:mensagem_id>")
+def apagar_mensagem(caso_id: int, mensagem_id: int):
+    r = casos.apagar_mensagem(_db(), caso_id, mensagem_id, g.usuario["id"],
+                              g.usuario["papel"])
+    if r == "inexistente":
+        return _nao_encontrado()
+    if r == "proibido":
+        return _erro(ERRO_SEM_PERMISSAO_MSG, 403)
+    if r == "ok":
+        publicar(caso_id)
+    return jsonify({"ok": True})
+
+
+@bp.get("/api/casos/<int:caso_id>/mensagens/<int:mensagem_id>/versoes")
+def versoes_da_mensagem(caso_id: int, mensagem_id: int):
+    versoes = casos.versoes_mensagem(_db(), caso_id, mensagem_id)
+    if versoes is None:
+        return _nao_encontrado()
+    return jsonify({"versoes": versoes})
 
 
 @bp.post("/api/casos/<int:caso_id>/notas")

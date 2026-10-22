@@ -62,7 +62,12 @@ def registrar(bp, obter_db, nao_encontrado):
             secoes += '<p>Nenhuma mensagem registrada.</p>'
         for mensagem in caso['mensagens']:
             secoes += '<dl>' + campo('Autor', 'Aluno' if mensagem['autor'] == 'aluno' else 'Coordenação')
-            secoes += campo('Enviada em (UTC)', mensagem['criado_em']) + campo('Mensagem', mensagem['texto']) + '</dl>'
+            if mensagem.get('apagada_em'):
+                rotulo, texto = 'Mensagem', 'Mensagem apagada'
+            else:
+                rotulo = 'Mensagem (editada)' if mensagem.get('editada_em') else 'Mensagem'
+                texto = mensagem['texto']
+            secoes += campo('Enviada em (UTC)', mensagem['criado_em']) + campo(rotulo, texto) + '</dl>'
         html = ('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">'
                 '<meta name="viewport" content="width=device-width,initial-scale=1">'
                 f'<title>Caso {caso_id} — apoio ao ROE</title>'

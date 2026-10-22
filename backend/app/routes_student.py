@@ -166,7 +166,9 @@ def acompanhar():
         return jsonify({
             "status": caso["status"],
             "mensagens": [
-                {"id": m["id"], "autor": m["autor"], "texto": m["texto"], "criado_em": m["criado_em"]}
+                {"id": m["id"], "autor": m["autor"], "texto": m["texto"],
+                 "criado_em": m["criado_em"], "editada": m["editada_em"] is not None,
+                 "apagada": m["apagada_em"] is not None}
                 for m in msgs
             ],
             **pos,

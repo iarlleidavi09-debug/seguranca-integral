@@ -203,7 +203,7 @@ def test_aluno_nao_recebe_autoria_das_mensagens(student_client, config):
         c.close()
     r = student_client.post("/api/acompanhar", json={"codigo": codigo})
     for m in r.get_json()["mensagens"]:
-        assert set(m) == {"id", "autor", "texto", "criado_em"}
+        assert set(m) == {"id", "autor", "texto", "criado_em", "editada", "apagada"}
         assert isinstance(m['id'], int)
     assert "Maria" not in r.get_data(as_text=True)
 
