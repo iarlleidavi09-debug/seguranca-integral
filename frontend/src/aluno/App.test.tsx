@@ -1,7 +1,9 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { chamadasDeEnvio, simularQuestionario } from '../test/questionario';
+import { questionarioV3 } from '../test/questionarioV3';
+const chamadasDeEnvio = () => vi.mocked(fetch).mock.calls.filter(([url]) => url === '/api/v4/denuncias');
+const simularQuestionario = () => vi.mocked(fetch).mockImplementation(async url => new Response(JSON.stringify(url === '/api/v3/questionario' ? questionarioV3 : { codigo: 'K7M2-9QXD' })));
 import App from './App';
 
 const navegacao = () => within(screen.getByRole('navigation', { name: 'Principal' }));
@@ -12,7 +14,7 @@ describe('Casca do portal do aluno', () => {
     const { container } = render(<App />);
     expect(container.firstElementChild).toHaveClass('aluno-app');
     const cabecalho = screen.getByRole('banner');
-    expect(within(cabecalho).getByRole('button', { name: 'Segurança Integral' })).toBeInTheDocument();
+    expect(within(cabecalho).getByRole('button', { name: 'TETRA-GUARD' })).toBeInTheDocument();
     expect(screen.getByRole('contentinfo')).toHaveTextContent('Um canal da escola para ouvir e cuidar.');
   });
   it('a navegação tem os três itens e marca o atual com aria-current', async () => {
@@ -43,25 +45,30 @@ describe('Casca do portal do aluno', () => {
     const user = userEvent.setup();
     render(<App />);
     await user.click(navegacao().getByRole('button', { name: 'Acompanhar' }));
-    await user.click(screen.getByRole('button', { name: 'Segurança Integral' }));
+    await user.click(screen.getByRole('button', { name: 'TETRA-GUARD' }));
     expect(screen.getByRole('heading', { name: 'Você não precisa lidar com isso sozinho.' })).toBeInTheDocument();
   });
   it('desabilita a navegação enquanto o pedido é enviado e a reabilita depois', async () => {
     const user = userEvent.setup();
     render(<App />);
     await user.click(navegacao().getByRole('button', { name: 'Pedir ajuda' }));
-    await user.click(screen.getByRole('radio', { name: /^Ameaças\./ }));
+    await user.click(await screen.findByText('Ameaças, perseguição e pressão', { exact: false }));
+    await user.click(screen.getByRole('checkbox', { name: 'Ameaça de machucar alguém' }));
     await user.click(screen.getByRole('button', { name: 'Continuar' }));
-    await user.click(await screen.findByRole('checkbox', { name: 'Disseram que vão me machucar.' }));
-    await user.click(screen.getByRole('button', { name: 'Continuar' }));
-    while (screen.queryByText(/^Pergunta \d+ de \d+$/)) await user.click(screen.getByRole('button', { name: 'Continuar' }));
+    await user.click(screen.getByRole('button', { name: 'Ir para o relato' }));
     await user.type(screen.getByLabelText('O que aconteceu?'), 'Estão me ameaçando no aplicativo da turma.');
+    fireEvent.change(screen.getByLabelText('Seu ano'), { target: { value: '8º ano' } });
+    fireEvent.change(screen.getByLabelText('Sua sala'), { target: { value: 'B' } });
     await user.click(screen.getByRole('button', { name: 'Continuar' }));
     let concluir!: (resposta: Response) => void;
     vi.mocked(fetch).mockImplementationOnce(() => new Promise(resolve => { concluir = resolve; }));
     await user.click(screen.getByRole('button', { name: 'Enviar pedido de ajuda' }));
     for (const nome of ['Início', 'Pedir ajuda', 'Acompanhar']) expect(navegacao().getByRole('button', { name: nome })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Segurança Integral' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'TETRA-GUARD' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Voltar ao início' })).toBeDisabled();
+    const sair = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(sair);
+    expect(sair.defaultPrevented).toBe(true);
     concluir(new Response('{"codigo":"K7M2-9QXD"}', { status: 201 }));
     expect(await screen.findByText('K7M2-9QXD')).toBeInTheDocument();
     for (const nome of ['Início', 'Pedir ajuda', 'Acompanhar']) expect(navegacao().getByRole('button', { name: nome })).toBeEnabled();
@@ -88,10 +95,11 @@ describe('Casca do portal do aluno', () => {
     await user.click(inicio);
     expect(screen.getByRole('main')).not.toHaveFocus();
     await user.click(navegacao().getByRole('button', { name: 'Pedir ajuda' }));
-    await user.click(screen.getByRole('radio', { name: /^Ameaças\./ }));
-    expect(screen.getByRole('radio', { name: /^Ameaças\./ })).toHaveFocus();
+    await user.click(await screen.findByText('Ameaças, perseguição e pressão', { exact: false }));
+    await user.click(screen.getByRole('checkbox', { name: 'Ameaça de machucar alguém' }));
+    expect(screen.getByRole('checkbox', { name: 'Ameaça de machucar alguém' })).toHaveFocus();
     await user.click(navegacao().getByRole('button', { name: 'Pedir ajuda' }));
-    expect(screen.getByRole('radio', { name: /^Ameaças\./ })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'Ameaça de machucar alguém' })).toBeChecked();
     expect(screen.getByRole('main')).not.toHaveFocus();
     await user.click(navegacao().getByRole('button', { name: 'Acompanhar' }));
     expect(screen.getByRole('main')).toHaveFocus();

@@ -10,7 +10,7 @@ export default function Confirmacao({ resultado, onAcompanhar, orientacao = fals
   }
   return <section className="confirmacao">
     <h1>Você deu o primeiro passo.</h1>
-    <p>Seu pedido chegou à coordenação. Use o código abaixo para acompanhar e conversar com a escola.</p>
+    <p>Seu pedido chegou à coordenação. Na rede local da escola, use o código abaixo para acompanhar e conversar com a equipe.</p>
     <div className="codigo-bloco">
       <h2>Seu código de acompanhamento</h2>
       <p className="codigo">{resultado.codigo}</p>
@@ -18,7 +18,7 @@ export default function Confirmacao({ resultado, onAcompanhar, orientacao = fals
       <p className="texto-pequeno" role="status">{aviso}</p>
     </div>
     {orientacao && <div className="aviso orientacao" role="status"><p>{TEXTO_ORIENTACAO}</p></div>}
-    <p className="aviso">Anote e guarde seu código. Ele só aparece nesta confirmação. Você vai precisar dele para voltar ao caso.</p>
+    <p className="aviso">Anote e guarde seu código. Tentamos salvar o acesso neste navegador para você voltar pelo início. Se usar um aparelho compartilhado, apague o acesso salvo ao terminar.</p>
     {respostasNaoEnviadas && <p className="texto-pequeno">As respostas às perguntas não foram enviadas, mas o seu relato chegou à coordenação.</p>}
     {!!resultado.anexos_recusados?.length && <div className="erro" role="alert"><p>Seu pedido foi recebido, mas estas imagens foram recusadas:</p>
       <ul>{resultado.anexos_recusados.map((anexo, i) => <li key={i}>{anexo.nome}: {anexo.motivo}</li>)}</ul>

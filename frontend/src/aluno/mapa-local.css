@@ -1,0 +1,20 @@
+.planta-local { margin-block:16px; min-width:0; }
+.pedido-v3 .campos { grid-template-columns:minmax(0,1fr); }
+.pedido-v3 .campos > div { min-width:0; }
+.pedido-v3 #local-mapa, .planta-local select { max-width:100%; min-height:44px; padding:8px; font:inherit; color:var(--texto-principal); background:var(--fundo-superficie); border:1px solid var(--borda-forte); border-radius:8px; }
+.pedido-v3 #local-mapa { width:100%; }
+.planta-local-ferramentas { display:flex; align-items:end; flex-wrap:wrap; gap:12px; margin-block:12px; }
+.planta-local-ferramentas nav { display:flex; flex-wrap:wrap; gap:8px; flex:1 1 240px; }
+.planta-local-ferramentas label { flex:0 1 140px; }
+.planta-local-rolagem { overflow:auto; max-height:520px; border:1px solid var(--borda-forte); border-radius:8px; background:var(--fundo-superficie); }
+.planta-local-rolagem svg { display:block; max-width:none; height:auto; }
+.planta-local-ambiente { cursor:pointer; }
+.planta-local-ambiente :is(rect,polygon) { fill:var(--fundo-superficie-2); stroke:var(--borda-forte); stroke-width:2; }
+.planta-local-ambiente text { fill:var(--texto-principal); font-family:inherit; font-size:22px; pointer-events:none; }
+.planta-local-ambiente:hover :is(rect,polygon), .planta-local-ambiente:focus-visible :is(rect,polygon) { stroke:var(--primaria-base); stroke-width:6; }
+.planta-local-ambiente.marcado :is(rect,polygon) { fill:var(--primaria-suave); stroke:var(--primaria-base); stroke-width:8; stroke-dasharray:12 5; }
+.planta-local-ambiente.localizado :is(rect,polygon) { stroke:var(--primaria-base); stroke-width:8; }
+.planta-local-busca ul { padding:0; list-style:none; display:grid; gap:8px; max-height:280px; overflow:auto; }
+.planta-local-busca button { width:100%; text-align:left; }
+.planta-local-ambiente:focus-visible { outline:3px solid var(--foco-anel); outline-offset:4px; }
+@media(max-width:600px) { .planta-local-rolagem { max-height:380px; } }

@@ -4,11 +4,11 @@ import { describe, expect, it, vi } from 'vitest';
 import Confirmacao from './Confirmacao';
 
 describe('Confirmação', () => {
-  it('acolhe, mostra o código em destaque e avisa que ele só aparece aqui', () => {
+  it('acolhe, mostra o código em destaque e explica acesso salvo e cuidado em aparelho compartilhado', () => {
     render(<Confirmacao resultado={{ codigo: 'K7M2-9QXD' }} onAcompanhar={() => {}} />);
     expect(screen.getByRole('heading', { level: 1, name: 'Você deu o primeiro passo.' })).toBeInTheDocument();
     expect(screen.getByText('K7M2-9QXD')).toHaveClass('codigo');
-    expect(screen.getByText(/Ele só aparece nesta confirmação/)).toBeInTheDocument();
+    expect(screen.getByText(/Tentamos salvar o acesso neste navegador/)).toBeInTheDocument();
   });
   it('copia o código e avisa em role=status; avisa também quando a cópia falha', async () => {
     const user = userEvent.setup();

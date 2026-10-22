@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TEMPO_LIMITE_QUESTIONARIO } from '../shared/api';
 import type { Questionario } from '../shared/api';
 import { DEFINICAO_TESTE, chamadasDeEnvio, formDoEnvio, simularQuestionario } from '../test/questionario';
-import App from './App';
+import App from '../preview/AppV2';
 import Denuncia from './Denuncia';
 import { salvarRascunho } from './rascunho';
 import { readFileSync } from 'node:fs';

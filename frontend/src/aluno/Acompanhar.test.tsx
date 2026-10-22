@@ -1,11 +1,23 @@
 import { StrictMode } from 'react';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import Acompanhar from './Acompanhar';
 
-const responder = (body: unknown, status = 200) => vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify(body), { status }));
+let respostas: Array<() => Promise<Response>> = [];
+beforeEach(() => {
+  respostas = [];
+  localStorage.clear();
+  vi.mocked(fetch).mockImplementation(async url => {
+    if (url === '/api/acompanhar/eventos') return new Response(new ReadableStream(), { headers: { 'Content-Type': 'text/event-stream' } });
+    const proxima = respostas.shift();
+    if (!proxima) throw new Error('Resposta HTTP não preparada no teste');
+    return proxima();
+  });
+});
+const responder = (body: unknown, status = 200) => respostas.push(async () => new Response(JSON.stringify(body), { status }));
+const consultas = () => vi.mocked(fetch).mock.calls.filter(([url]) => url !== '/api/acompanhar/eventos');
 const base = { resolucao: null, pos_resolucao: false, ultima_situacao: null };
 const resolvido = { status: 'resolvido', mensagens: [], pos_resolucao: true, ultima_situacao: null, resolucao: { desfecho: 'solucionada', providencias: 'Conversamos.', resultado: 'Ok', criado_em: '2026-10-14T12:00:00Z' } };
 
@@ -27,7 +39,7 @@ describe('Acompanhar', () => {
     await user.click(screen.getByRole('button', { name: 'Enviar resposta' }));
     expect(await screen.findByText('Obrigado pela ajuda')).toBeInTheDocument();
     expect(screen.getByText('Você')).toBeInTheDocument();
-    expect(storage).not.toHaveBeenCalled();
+    expect(storage).toHaveBeenCalled();
     expect(document.querySelector('[style]')).toBeNull();
     expect(window.location.search + window.location.hash).not.toContain('K7M2');
   });
@@ -51,7 +63,7 @@ describe('Acompanhar', () => {
     responder({ ...base, status: 'em_investigacao', mensagens: [{ autor: 'coordenacao', texto: 'Olá, aluno', criado_em: '2026-10-14T12:00:00Z' }] });
     render(<StrictMode><Acompanhar codigoInicial="K7M2-9QXD" /></StrictMode>);
     expect(await screen.findByText('Olá, aluno')).toBeInTheDocument();
-    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(consultas()).toHaveLength(1));
   });
   it.each([
     ['novo', 'Recebido'], ['em_investigacao', 'Em investigação'], ['resolvido', 'Resolvido'],
@@ -89,7 +101,7 @@ describe('Acompanhar', () => {
     await screen.findByLabelText('Sua resposta');
     await user.click(screen.getByRole('button', { name: 'Enviar resposta' }));
     expect(screen.getByRole('alert')).toHaveTextContent('1 a 2000');
-    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(consultas()).toHaveLength(1);
   });
   it('com o caso resolvido mantém a conversa e mostra o bloco pós-resolução', async () => {
     responder(resolvido);
@@ -114,7 +126,7 @@ describe('Acompanhar', () => {
     await user.click(screen.getByRole('button', { name: 'Melhorou' }));
     expect(await screen.findByText('Você informou: Melhorou')).toBeInTheDocument();
     expect(fetch).toHaveBeenCalledWith('/api/acompanhar/situacao', expect.objectContaining({ body: JSON.stringify({ codigo: 'K7M29QXD', situacao: 'melhorou' }) }));
-    expect(fetch).toHaveBeenCalledTimes(3);
+    expect(consultas()).toHaveLength(3);
     expect(screen.getByText('Obrigado por contar. A equipe vai ver.')).toBeInTheDocument();
   });
   it('409 mostra a mensagem e recarrega o caso', async () => {
@@ -126,7 +138,7 @@ describe('Acompanhar', () => {
     responder({ ...resolvido, status: 'em_investigacao', pos_resolucao: false, resolucao: null });
     await user.click(screen.getByRole('button', { name: 'Melhorou' }));
     expect(await screen.findByText('Esse caso ainda não foi resolvido.')).toBeInTheDocument();
-    expect(fetch).toHaveBeenCalledTimes(3);
+    expect(consultas()).toHaveLength(3);
     expect(screen.queryByText('Seu caso foi resolvido')).toBeNull();
   });
   it('429 e falha de rede mantêm a tela com a mensagem', async () => {
@@ -137,7 +149,7 @@ describe('Acompanhar', () => {
     responder({}, 429);
     await user.click(screen.getByRole('button', { name: 'Voltou a acontecer' }));
     expect(await screen.findByText('Foram feitas muitas tentativas. Aguarde alguns minutos e tente de novo.')).toBeInTheDocument();
-    vi.mocked(fetch).mockRejectedValueOnce(new TypeError('rede'));
+    respostas.push(async () => { throw new TypeError('rede'); });
     await user.click(screen.getByRole('button', { name: 'Voltou a acontecer' }));
     expect(await screen.findByText(/Não foi possível conectar/)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Seu caso foi resolvido' })).toBeInTheDocument();
@@ -150,13 +162,11 @@ describe('Acompanhar', () => {
     render(<Acompanhar codigoInicial="K7M2-9QXD" />);
     await screen.findByRole('heading', { name: 'Seu caso foi resolvido' });
     const envio = adiada(); const antiga = adiada(); const nova = adiada();
-    vi.mocked(fetch).mockImplementationOnce(() => envio.promessa);
-    vi.mocked(fetch).mockImplementationOnce(() => antiga.promessa);
-    vi.mocked(fetch).mockImplementationOnce(() => nova.promessa);
+    respostas.push(() => envio.promessa, () => antiga.promessa, () => nova.promessa);
     await user.click(screen.getByRole('button', { name: 'Melhorou' }));
     await user.click(screen.getByRole('button', { name: 'Atualizar conversa' }));
     envio.fim(resposta({ ok: true }, 201));
-    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(4));
+    await waitFor(() => expect(consultas()).toHaveLength(4));
     nova.fim(resposta({ ...resolvido, ultima_situacao: 'melhorou' }));
     expect(await screen.findByText('Você informou: Melhorou')).toBeInTheDocument();
     antiga.fim(resposta({ ...resolvido, ultima_situacao: null }));
@@ -168,7 +178,7 @@ describe('Acompanhar', () => {
     responder(resolvido);
     render(<Acompanhar codigoInicial="K7M2-9QXD" />);
     await screen.findByRole('heading', { name: 'Seu caso foi resolvido' });
-    vi.mocked(fetch).mockImplementationOnce(() => new Promise<Response>(() => {}));
+    respostas.push(() => new Promise<Response>(() => {}));
     await user.click(screen.getByRole('button', { name: 'Atualizar conversa' }));
     expect(screen.getByRole('button', { name: 'Melhorou' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Voltou a acontecer' })).toBeDisabled();
@@ -179,7 +189,7 @@ describe('Acompanhar', () => {
     render(<Acompanhar codigoInicial="K7M2-9QXD" />);
     await screen.findByRole('heading', { name: 'Seu caso foi resolvido' });
     responder({ ok: true }, 201);
-    vi.mocked(fetch).mockRejectedValueOnce(new TypeError('rede'));
+    respostas.push(async () => { throw new TypeError('rede'); });
     await user.click(screen.getByRole('button', { name: 'Melhorou' }));
     expect(await screen.findByText('Obrigado por contar. A equipe vai ver.')).toBeInTheDocument();
     expect(screen.getByText('Não foi possível atualizar agora. Use Atualizar conversa.')).toBeInTheDocument();
@@ -214,4 +224,24 @@ describe('Acompanhar', () => {
     await screen.findByRole('heading', { name: 'Seu caso foi resolvido' });
     expect(screen.queryByText('Esse caso ainda não foi resolvido.')).toBeNull();
   });
+});
+
+it('foca a conversa e registra somente os IDs vistos da coordenação', async () => {
+ responder({ ...base, status:'novo', mensagens:[{id:42,autor:'coordenacao',texto:'Recebemos seu pedido',criado_em:'2026-10-14T12:00:00Z'}] });
+ render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+ const titulo=await screen.findByRole('heading',{name:'Conversa com a coordenação'});
+ await waitFor(() => expect(titulo).toHaveFocus());
+ expect(screen.getByText('Mensagem nova')).toBeInTheDocument();
+ expect(JSON.parse(localStorage.getItem('tetra-guard.acessos.v1') || '[]')).toEqual([{codigo:'K7M2-9QXD',lastRead:42}]);
+});
+
+it('não registra mensagem como vista enquanto a página está oculta', async () => {
+ vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+ responder({ ...base,status:'novo',mensagens:[{id:50,autor:'coordenacao',texto:'Mensagem em segundo plano',criado_em:'2026-10-14T12:00:00Z'}] });
+ render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+ await screen.findByText('Mensagem em segundo plano');
+ expect(JSON.parse(localStorage.getItem('tetra-guard.acessos.v1') || '[]')).toEqual([{codigo:'K7M2-9QXD',lastRead:0}]);
+ vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+ document.dispatchEvent(new Event('visibilitychange'));
+ expect(JSON.parse(localStorage.getItem('tetra-guard.acessos.v1') || '[]')).toEqual([{codigo:'K7M2-9QXD',lastRead:50}]);
 });

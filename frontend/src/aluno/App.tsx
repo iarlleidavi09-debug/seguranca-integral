@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ResultadoDenuncia } from '../shared/api';
 import Inicio from './Inicio';
-import Denuncia from './Denuncia';
-import type { ExtrasEnvio } from './Denuncia';
+import Acolhimento from './Acolhimento';
+import { guardarAcesso } from './acessos';
+import Pedido from './Pedido';
+import type { ExtrasEnvioV3 as ExtrasEnvio } from './Pedido';
 import Confirmacao from './Confirmacao';
 import Acompanhar from './Acompanhar';
 
-type Tela = { nome: 'inicio' } | { nome: 'denuncia' } | { nome: 'confirmacao'; resultado: ResultadoDenuncia; extras?: ExtrasEnvio } | { nome: 'acompanhar'; codigo: string; consulta: number };
+type Tela = { nome: 'acolhimento' } | { nome: 'inicio' } | { nome: 'denuncia' } | { nome: 'confirmacao'; resultado: ResultadoDenuncia; extras?: ExtrasEnvio } | { nome: 'acompanhar'; codigo: string; consulta: number };
 
 export default function App() {
   const [tela, setTela] = useState<Tela>({ nome: 'inicio' });
@@ -34,7 +36,7 @@ export default function App() {
         <span className="marca-simbolo" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3 4.5 6v5.5c0 4.4 3.1 7.6 7.5 9.5 4.4-1.9 7.5-5.1 7.5-9.5V6L12 3Z" /><path d="m9 12 2.2 2.2L15.5 10" /></svg>
         </span>
-        Segurança Integral
+        TETRA-GUARD
       </button>
       <nav className="navegacao" aria-label="Principal">
         {item('Início', 'inicio', inicio)}
@@ -44,8 +46,9 @@ export default function App() {
     </div></header>
     <main id="conteudo" ref={main} tabIndex={-1} className="portal">
       {tela.nome !== 'inicio' && <button type="button" className="botao-texto" disabled={enviandoDenuncia} onClick={inicio}>Voltar ao início</button>}
-      {tela.nome === 'inicio' && <Inicio onAjuda={() => ir({ nome: 'denuncia' })} onAcompanhar={consultar} />}
-      {tela.nome === 'denuncia' && <Denuncia onEnviando={setEnviandoDenuncia} onEnviado={(resultado, extras) => setTela({ nome: 'confirmacao', resultado, extras })} />}
+      {tela.nome === 'inicio' && <Inicio onAjuda={() => ir({ nome: 'denuncia' })} onAcompanhar={consultar} onAcolhimento={() => ir({ nome: 'acolhimento' })} />}
+      {tela.nome === 'acolhimento' && <Acolhimento onEnviando={setEnviandoDenuncia} onCriado={consultar} />}
+      {tela.nome === 'denuncia' && <Pedido onEnviando={setEnviandoDenuncia} onEnviado={(resultado, extras) => { guardarAcesso(resultado.codigo); setTela({ nome: 'confirmacao', resultado, extras }); }} />}
       {tela.nome === 'confirmacao' && <Confirmacao resultado={tela.resultado} orientacao={tela.extras?.orientacao} respostasNaoEnviadas={tela.extras?.respostasNaoEnviadas} onAcompanhar={() => consultar(tela.resultado.codigo)} />}
       {tela.nome === 'acompanhar' && <Acompanhar key={tela.consulta} codigoInicial={tela.codigo} />}
     </main>

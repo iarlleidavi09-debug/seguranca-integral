@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { acompanhar, enviarMensagem, enviarSituacao, ErroApi, mensagemErro } from '../shared/api';
 import type { Caso, Situacao } from '../shared/api';
+import { guardarAcesso, lerAcessos, normalizarCodigo } from './acessos';
 import PosResolucao from './PosResolucao';
 import { dataLegivel, rotuloStatus } from './rotulos';
+import { useTempoReal } from '../shared/tempoReal';
 
 const etapas = ['Recebido', 'Em investigação', 'Resolvido'];
 
@@ -17,27 +19,40 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
   const [aviso, setAviso] = useState('');
   const [informando, setInformando] = useState(false);
   const [erroSituacao, setErroSituacao] = useState('');
+  const tituloConversa = useRef<HTMLHeadingElement>(null);
+  const focoInicial = useRef(false);
+  const [novas, setNovas] = useState<number[]>([]);
+  const [avisoStorage, setAvisoStorage] = useState('');
   const consulta = useRef(0);
   const responder = useRef(false);
   const montado = useRef(true);
   const consultado = useRef<string | null>(null);
   useEffect(() => { montado.current = true; return () => { montado.current = false; }; }, []);
+  async function buscar(codigoConsulta: string): Promise<boolean> {
+    const atual = ++consulta.current;
+    const dados = await acompanhar(codigoConsulta);
+    if (!montado.current || atual !== consulta.current) return false;
+    const ultimoLido = lerAcessos().find(a => a.codigo === normalizarCodigo(codigoConsulta))?.lastRead || 0;
+    setNovas(dados.mensagens.filter(m => m.autor === 'coordenacao' && typeof m.id === 'number' && m.id! > ultimoLido).map(m => m.id!));
+    if (!guardarAcesso(codigoConsulta)) setAvisoStorage('Não foi possível salvar o acesso neste navegador. Anote seu código para voltar.');
+    setCaso(dados);
+    return true;
+  }
   useEffect(() => {
     // no StrictMode o efeito roda duas vezes; a consulta inicial sai uma só vez por código
     if (!codigoInicial || consultado.current === codigoInicial) return;
     consultado.current = codigoInicial;
     setCarregando(true);
-    acompanhar(codigoInicial).then(dados => { if (montado.current) setCaso(dados); })
+    buscar(codigoInicial)
       .catch(falha => { if (montado.current) setErro(mensagemErro(falha)); })
       .finally(() => { if (montado.current) setCarregando(false); });
   }, [codigoInicial]);
   async function consultar() {
     if (!codigo.trim()) { setErro('Digite seu código para acompanhar.'); return; }
-    const atual = ++consulta.current;
+    const atual = consulta.current + 1;
     setCarregando(true); setErro(''); setErroSituacao(''); setCaso(null); setAviso('');
     try {
-      const dados = await acompanhar(codigo);
-      if (atual === consulta.current) { setCaso(dados); setCodigoAtivo(codigo); setCodigo(''); }
+      if (await buscar(codigo)) { setCodigoAtivo(codigo); setCodigo(''); }
     } catch (falha) { if (atual === consulta.current) setErro(mensagemErro(falha)); }
     finally { if (atual === consulta.current) setCarregando(false); }
   }
@@ -48,25 +63,26 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
     try {
       await enviarMensagem(codigoAtivo, texto.trim());
       setTexto(''); setAviso('Resposta enviada.');
-      try { setCaso(await acompanhar(codigoAtivo)); }
+      try { await buscar(codigoAtivo); }
       catch (falha) { setAviso(`Resposta enviada. ${mensagemErro(falha)} Use Atualizar conversa para ver as mensagens.`); }
     } catch (falha) { setErro(mensagemErro(falha)); }
     finally { setEnviando(false); responder.current = false; }
   }
   async function atualizar() {
-    const atual = ++consulta.current;
+    const atual = consulta.current + 1;
     setCarregando(true); setErro(''); setErroSituacao('');
-    try { const dados = await acompanhar(codigoAtivo); if (atual === consulta.current) { setCaso(dados); setAviso('Conversa atualizada.'); } }
+    try { if (await buscar(codigoAtivo)) setAviso('Conversa atualizada.'); }
     catch (falha) { if (atual === consulta.current) setErro(mensagemErro(falha)); }
     finally { if (atual === consulta.current) setCarregando(false); }
   }
-  // recarrega o caso; uma resposta mais antiga que outra consulta é descartada
+  // Uma leitura superada foi concluída; só erro de transporte/API é falha da recarga.
   async function recarregar(): Promise<boolean> {
-    const atual = ++consulta.current;
-    try { const dados = await acompanhar(codigoAtivo); if (atual === consulta.current) setCaso(dados); return true; }
+    const atual = consulta.current + 1;
+    try { await buscar(codigoAtivo); return true; }
     catch { return false; }
     finally { if (atual === consulta.current) setCarregando(false); }
   }
+  const conexao = useTempoReal('aluno', caso !== null && !!codigoAtivo, () => { void recarregar(); }, codigoAtivo);
   async function informarSituacao(situacao: Situacao) {
     setInformando(true); setErroSituacao('');
     try {
@@ -81,6 +97,17 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
     // o agradecimento não depende de a recarga dar certo
     if (!(await recarregar())) setAviso('Não foi possível atualizar agora. Use Atualizar conversa.');
   }
+  useEffect(() => {
+    if (!caso) return;
+    if (!focoInicial.current) { tituloConversa.current?.focus(); tituloConversa.current?.scrollIntoView?.({ block: 'start' }); focoInicial.current = true; }
+    const registrar = () => {
+      if (document.visibilityState !== 'visible') return;
+      const ids = caso.mensagens.filter(m => m.autor === 'coordenacao').map(m => m.id || 0);
+      if (!guardarAcesso(codigoAtivo, Math.max(0, ...ids))) setAvisoStorage('Não foi possível salvar o acesso neste navegador. Anote seu código para voltar.');
+    };
+    registrar(); document.addEventListener('visibilitychange', registrar);
+    return () => document.removeEventListener('visibilitychange', registrar);
+  }, [caso, codigoAtivo]);
   const atual = caso ? etapas.indexOf(rotuloStatus(caso.status)) : -1;
   const blocoVisivel = !!caso && caso.pos_resolucao && !!caso.resolucao;
   // uma resolução nova torna o erro de 409 antigo obsoleto
@@ -106,10 +133,15 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
       {atual < 0 && <p className="texto-pequeno">Status indisponível no momento.</p>}
       {erroSituacao && !blocoVisivel && <p role="alert" className="erro">{erroSituacao}</p>}
       <PosResolucao caso={caso} aoInformar={informarSituacao} ocupado={informando || carregando || enviando} />
-      <h2>Conversa com a coordenação</h2>
+      <p className="texto-pequeno">Código para voltar: <strong>{normalizarCodigo(codigoAtivo) || codigoAtivo}</strong>. Anote em um lugar seguro.</p>
+      <h2 ref={tituloConversa} tabIndex={-1}>Conversa com a coordenação</h2>
+      {novas.length > 0 && <p role="status">{novas.length === 1 ? "Uma mensagem nova da coordenação." : `${novas.length} mensagens novas da coordenação.`}</p>}
+      {avisoStorage && <p role="status">{avisoStorage}</p>}
+      <p className="texto-pequeno">{conexao === 'online' ? 'Atualizações ao vivo' : conexao === 'conectando' ? 'Conectando às atualizações' : 'Reconectando; atualização a cada 8 segundos'}</p>
       <div role="log" aria-live="polite" aria-label="Mensagens do caso" className="mensagens">
         {!caso.mensagens.length && <p className="vazio">Ainda não há mensagens. Você pode escrever para a coordenação por aqui.</p>}
         {caso.mensagens.map((mensagem, i) => <article key={`${mensagem.criado_em}-${i}`} className="mensagem" data-autor={mensagem.autor}>
+          {novas.includes(mensagem.id || 0) && <p className="texto-pequeno">Mensagem nova</p>}
           <h3>{mensagem.autor === 'aluno' ? 'Você' : 'Coordenação'}</h3>
           <p>{mensagem.texto}</p><time dateTime={mensagem.criado_em}>{dataLegivel(mensagem.criado_em)}</time>
         </article>)}

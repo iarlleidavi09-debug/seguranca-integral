@@ -1,50 +1,18 @@
-/* Portal do aluno. Usa as variáveis de ../shared/tema.css, redefinidas pelo tema ameixa e pêssego abaixo. */
-/* O tema vale só no portal do aluno; a coordenação e o tema.css não mudam. */
-/* :root:has(.aluno-app) leva os tokens ao html e ao body, para o fundo do tema aparecer também no overscroll. */
+/* Tema neobrutalista exclusivo do portal do aluno. */
 :root:has(.aluno-app), .aluno-app {
-  --fundo-base: #FFF9F4;
-  --fundo-superficie: #FFFFFF;
-  --fundo-superficie-2: #F8EDE6;
-  --texto-principal: #432741;
-  --texto-secundario: #725A6D;
-  --texto-sobre-primaria: #FFFFFF;
-  --texto-sobre-perigo: #FFFFFF;
-  --borda-suave: #E9D9DF;
-  --borda-forte: #8B6C83;
-  --primaria-base: #71385E;
-  --primaria-hover: #5A2C4B;
-  --primaria-suave: #F1DFED;
-  --foco-anel: #9D6B22;
-  --perigo-base: #9E342D;
-  --perigo-suave: #FAECE7;
-  --bilhete-fundo: #FFDDD0;
+ color-scheme: light;
+ --fundo-base: #F2EFE8; --fundo-superficie: #FFFCF5; --fundo-superficie-2: #E8E3D8;
+ --texto-principal: #101010; --texto-secundario: #38352F; --texto-sobre-primaria: #FFFFFF;
+ --texto-sobre-perigo: #FFFFFF; --borda-suave: #101010; --borda-forte: #101010;
+ --primaria-base: #101010; --primaria-hover: #30302A; --primaria-suave: #E1F200;
+ --foco-anel: #3434B5; --perigo-base: #A02319; --perigo-suave: #FFE0D6; --bilhete-fundo: #FF694F;
+ --desabilitado-fundo: #DED9CF; --desabilitado-texto: #615D55;
+ --raio-sm: 0px; --raio-md: 0px; --raio-lg: 0px; --raio-pill: 0px; --linha-fina: 2px;
 }
-@media (prefers-color-scheme: dark) {
-  :root:has(.aluno-app), .aluno-app {
-    --fundo-base: #1E1320;
-    --fundo-superficie: #2A1B2C;
-    --fundo-superficie-2: #35243A;
-    --texto-principal: #F8EBF3;
-    --texto-secundario: #CDB4C7;
-    --texto-sobre-primaria: #2B1126;
-    --texto-sobre-perigo: #2B0C09;
-    --borda-suave: #4A3550;
-    --borda-forte: #9C7F96;
-    --primaria-base: #E6AED2;
-    --primaria-hover: #F1C5E2;
-    --primaria-suave: #43283F;
-    --foco-anel: #EBBB68;
-    --perigo-base: #F5A59D;
-    --perigo-suave: #3F1E20;
-    --bilhete-fundo: #4B2B30;
-  }
-}
-/* fim dos tokens do tema */
-
 .aluno-app { min-height: 100dvh; background: var(--fundo-base); color: var(--texto-principal); }
 .aluno-app a, .aluno-app button { touch-action: manipulation; }
 .aluno-app ::selection { background: var(--primaria-suave); color: var(--texto-principal); }
-.aluno-app h1 { font-size: clamp(32px, 7vw, 52px); line-height: 1.08; letter-spacing: -1.5px; margin-bottom: var(--espaco-5); }
+.aluno-app h1 { font-size: 36px; line-height: 1.16; letter-spacing: -0.7px; margin-bottom: var(--espaco-5); }
 .aluno-app h2 { line-height: 1.2; letter-spacing: -0.4px; }
 
 /* Cabeçalho: marca e navegação */
@@ -124,6 +92,27 @@
 .aluno-app .situacao small { display: block; margin-top: var(--espaco-2); color: var(--texto-secundario); font-size: var(--texto-pequeno); line-height: 1.5; }
 .aluno-app .contador.excedido { color: var(--perigo-base); font-weight: 700; }
 .aluno-app .fim-etapa { border-top: var(--linha-fina) solid var(--borda-suave); padding-top: var(--espaco-6); }
+.aluno-app .pedido-v3 { max-width: 740px; margin-inline: auto; }
+.aluno-app .pedido-v3 h1 { font-size: 30px; line-height: 1.2; }
+.aluno-app .introducao-pedido { color: var(--texto-secundario); max-width: 65ch; margin-bottom: var(--espaco-6); }
+.aluno-app .grupos-v3 details { border-bottom: var(--linha-fina) solid var(--borda-suave); background: var(--fundo-superficie); }
+.aluno-app .grupos-v3 details:first-child { border-top: var(--linha-fina) solid var(--borda-suave); }
+.aluno-app .grupos-v3 summary { cursor: pointer; padding: var(--espaco-5) var(--espaco-4); min-height: var(--controle-altura); font-weight: 700; }
+.aluno-app .grupos-v3 summary:hover { background: var(--primaria-suave); }
+.aluno-app .contagem-grupo { display: block; font-size: var(--texto-pequeno); color: var(--texto-secundario); margin-left: var(--espaco-5); margin-top: var(--espaco-1); font-weight: 400; }
+.aluno-app .opcoes-grupo { display: grid; gap: var(--espaco-2); padding: 0 var(--espaco-4) var(--espaco-4); }
+.aluno-app .opcoes-grupo .opcao { border: 0; border-radius: var(--raio-sm); align-items: flex-start; padding: var(--espaco-3); }
+.aluno-app .opcoes-grupo input { margin-top: var(--espaco-1); }
+.aluno-app .selecao-v3 { color: var(--primaria-base); font-size: var(--texto-pequeno); margin-block: var(--espaco-4); font-variant-numeric: tabular-nums; }
+.aluno-app .revisao-v3 { border-bottom: var(--linha-fina) solid var(--borda-suave); padding-bottom: var(--espaco-4); }
+.aluno-app .revisao-v3 h2 { font-size: var(--texto-titulo-sm); }
+.aluno-app .revisao-v3 dl { margin-block: 0 var(--espaco-4); }
+.aluno-app .revisao-v3 dl > div + div { margin-top: var(--espaco-4); }
+.aluno-app .revisao-v3 dt { font-weight: 700; }
+.aluno-app .revisao-v3 dd { margin-left: 0; color: var(--texto-secundario); }
+.aluno-app .revisao-v3 .botao-texto { margin-bottom: 0; }
+.aluno-app .relato-revisao { white-space: pre-wrap; }
+@media (max-width: 480px) { .aluno-app h1 { font-size: 30px; } .aluno-app .pedido-v3 h1 { font-size: 28px; } }
 @media (min-width: 768px) {
   .aluno-app .situacoes { grid-template-columns: 1fr 1fr; }
 }
@@ -164,3 +153,58 @@
 .aluno-app .pergunta legend { font-weight: 700; }
 .aluno-app .pergunta legend:focus-visible { outline: var(--linha-foco) solid var(--foco-anel); outline-offset: var(--espaco-1); }
 .aluno-app .orientacao { margin-top: var(--espaco-4); border-left: var(--espaco-1) solid var(--primaria-base); }
+.aluno-app .turma-relator { margin-top: var(--espaco-5); }
+.aluno-app .turma-relator legend { font-weight: 700; }
+.aluno-app .turma-relator-campos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--espaco-4); }
+.aluno-app .turma-relator input, .aluno-app #local-mapa { width: 100%; min-width: 0; }
+@media (max-width: 480px) { .aluno-app .turma-relator-campos { grid-template-columns: 1fr; } }
+
+.aluno-app .cabecalho { border-bottom: 3px solid #101010; background: var(--fundo-base); }
+.aluno-app .cabecalho-conteudo { padding-block: 20px; }
+.aluno-app .marca-simbolo { background: #FF694F; border: 2px solid #101010; box-shadow: 3px 3px 0 #101010; color: #101010; }
+.aluno-app .navegacao { gap: 8px; }
+.aluno-app .navegacao button { border: 2px solid #101010; color: #101010; font-weight: 700; background: var(--fundo-superficie); }
+.aluno-app .navegacao button[aria-current='page'] { background: #E1F200; box-shadow: 3px 3px 0 #101010; }
+.aluno-app .portal { max-width: 1100px; }
+.aluno-app .abertura h1 { font-size: clamp(38px, 5.2vw, 68px); line-height: 1.02; letter-spacing: -0.035em; }
+.aluno-app .abertura h1 em { background: #E1F200; color: #101010; padding-inline: 5px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.aluno-app .abertura > p { margin-block: 24px; }
+.aluno-app .botao { border: 2px solid #101010; box-shadow: 4px 4px 0 #101010; }
+.aluno-app .principal { background: #FF694F; color: #101010; }
+.aluno-app .principal:hover:not(:disabled) { background: #FF826C; }
+.aluno-app .ajuda { min-width: 230px; font-size: 20px; }
+.aluno-app .secundario { background: #E1F200; color: #101010; }
+.aluno-app .botao:hover:not(:disabled) { transform: translate(-1px, -1px); box-shadow: 5px 5px 0 #101010; }
+.aluno-app .botao:active:not(:disabled) { transform: translate(3px, 3px); box-shadow: 1px 1px 0 #101010; }
+.aluno-app .bilhete { border: 3px solid #101010; box-shadow: 8px 8px 0 #101010; padding: 32px; }
+.aluno-app .bilhete-simbolo { width: 64px; height: 64px; background: #E1F200; color: #101010; border: 3px solid #101010; box-shadow: 4px 4px 0 #101010; }
+.aluno-app .bilhete h2 { font-size: 30px; line-height: 1.1; }
+.aluno-app .bilhete p, .aluno-app .bilhete p.bilhete-assinatura { color: #101010; }
+.aluno-app .bilhete-assinatura { border-top: 2px solid #101010; padding-top: 16px; }
+.aluno-app .acompanhamento-inicio { max-width: none; margin-top: 56px; border: 3px solid #101010; box-shadow: 6px 6px 0 #101010; }
+.aluno-app .acompanhamento-inicio h2 { display: inline-block; background: #E1F200; padding: 6px 10px; margin-bottom: 16px; }
+.aluno-app .consentimento { max-width: none; background: transparent; border: 0; border-top: 3px solid #101010; padding: 24px 0; }
+.aluno-app .consentimento h2 { font-size: 22px; }
+.aluno-app .cartao, .aluno-app .codigo-bloco, .aluno-app .pos-resolucao { border: 2px solid #101010; box-shadow: 4px 4px 0 #101010; }
+.aluno-app .grupos-v3 details { border: 2px solid #101010; margin-bottom: 12px; }
+.aluno-app .grupos-v3 details[open] summary { background: #E1F200; border-bottom: 2px solid #101010; }
+.aluno-app .opcoes-grupo { padding-top: 12px; }
+.aluno-app .opcoes-grupo .opcao { border: 2px solid transparent; }
+.aluno-app .opcao:has(input:checked), .aluno-app .situacao.selecionada { background: #E1F200; border-color: #101010; }
+.aluno-app input:not([type='checkbox'], [type='radio']), .aluno-app textarea, .aluno-app select { border: 2px solid #101010; border-radius: 0; background: var(--fundo-superficie); color: #101010; caret-color: #101010; }
+.aluno-app input::placeholder, .aluno-app textarea::placeholder { color: #615D55; opacity: 1; }
+.aluno-app input[type='checkbox'], .aluno-app input[type='radio'] { accent-color: #101010; }
+.aluno-app .rodape { border-top: 3px solid #101010; color: #101010; font-weight: 700; }
+.aluno-app .botao:disabled { background: var(--desabilitado-fundo); color: var(--desabilitado-texto); box-shadow: none; transform: none; }
+@media (max-width: 600px) {
+ .aluno-app .cabecalho-conteudo { gap: 20px; }
+ .aluno-app .navegacao { width: 100%; }
+ .aluno-app .navegacao button { flex: 1; padding-inline: 8px; }
+ .aluno-app .portal { padding-right: 22px; }
+ .aluno-app .bilhete { padding: 24px; }
+ .aluno-app .bilhete h2 { font-size: 26px; }
+ .aluno-app .acompanhamento-inicio { padding: 20px; }
+}
+@media (prefers-reduced-motion: reduce) {
+ .aluno-app .botao:hover:not(:disabled), .aluno-app .botao:active:not(:disabled) { transform: none; }
+}

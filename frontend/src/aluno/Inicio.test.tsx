@@ -29,11 +29,12 @@ describe('Início do aluno', () => {
     await user.click(screen.getByRole('button', { name: 'Acompanhar' }));
     expect(onAcompanhar).toHaveBeenCalledWith('k7m2 9qxd');
   });
-  it('o consentimento mantém o texto, avisa dos dados móveis e do prazo do rascunho', () => {
+  it('o consentimento explica uso na LAN, registros de rede e prazo do rascunho', () => {
     render(<Inicio onAjuda={() => {}} onAcompanhar={() => {}} />);
     const bloco = screen.getByRole('complementary', { name: 'Antes de contar' });
-    expect(bloco).toHaveTextContent('Ao enviar, a escola guarda seu relato, as imagens e as mensagens para cuidar do caso. Seu nome e sua turma só são enviados se você escolher se identificar.');
-    expect(bloco).toHaveTextContent('Para anonimato total, use dados móveis (4G), não o Wi-Fi da escola; o horário do envio pode ser cruzado com os registros de rede da escola.');
+    expect(bloco).toHaveTextContent('Ao enviar, a escola guarda seu relato, as imagens e as mensagens para cuidar do caso. Seu nome é opcional. Na denúncia, ano e sala são obrigatórios; no acolhimento anônimo, não pedimos nome, ano ou turma.');
+    expect(bloco).toHaveTextContent('Este canal funciona na rede local da escola. Mesmo sem informar seu nome, horários de acesso podem aparecer nos registros da rede.');
+    expect(bloco).not.toHaveTextContent('anonimato total');
     expect(bloco).toHaveTextContent('O texto do rascunho fica neste navegador por até 24 horas ou até o envio. As imagens não ficam no rascunho. Evite usar um aparelho compartilhado.');
   });
   it('não usa travessão longo', () => {
