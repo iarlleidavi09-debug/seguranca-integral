@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import Inicio from './Inicio';
@@ -16,22 +16,63 @@ describe('Início do aluno', () => {
     await user.click(screen.getByRole('button', { name: 'Preciso de ajuda' }));
     expect(onAjuda).toHaveBeenCalledTimes(1);
   });
-  it('acompanhar por código chama onAcompanhar e avisa quando vazio', async () => {
+  it('mostra as três ações com os rótulos novos', () => {
+    render(<Inicio onAjuda={() => {}} onAcompanhar={() => {}} onAcolhimento={() => {}} />);
+    expect(screen.getByRole('button', { name: 'Preciso de ajuda' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Conversar sem me identificar' })).toBeInTheDocument();
+    const cartao = screen.getByRole('heading', { name: 'Ver meu caso' }).closest('.acao-cartao') as HTMLElement;
+    expect(within(cartao).getByLabelText('Código de acompanhamento')).toBeInTheDocument();
+    expect(within(cartao).getByRole('button', { name: 'Acompanhar' })).toBeInTheDocument();
+  });
+  it('"Conversar sem me identificar" chama onAcolhimento', async () => {
+    const user = userEvent.setup();
+    const onAcolhimento = vi.fn();
+    render(<Inicio onAjuda={() => {}} onAcompanhar={() => {}} onAcolhimento={onAcolhimento} />);
+    await user.click(screen.getByRole('button', { name: 'Conversar sem me identificar' }));
+    expect(onAcolhimento).toHaveBeenCalledTimes(1);
+  });
+  it('não exibe os rótulos antigos', () => {
+    render(<Inicio onAjuda={() => {}} onAcompanhar={() => {}} onAcolhimento={() => {}} />);
+    expect(screen.queryByText(/Quero acolhimento anônimo/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Como usar este canal')).not.toBeInTheDocument();
+    expect(screen.queryByText('Já conversou com a gente?')).not.toBeInTheDocument();
+  });
+  it('abertura tem uma frase só', () => {
+    render(<Inicio onAjuda={() => {}} onAcompanhar={() => {}} />);
+    expect(screen.getByText('Se algo está te preocupando, na escola, na internet ou em casa, conte para a coordenação. No seu tempo e sem precisar dizer seu nome.')).toBeInTheDocument();
+    expect(screen.queryByText(/Para iniciar uma denúncia, toque em/)).not.toBeInTheDocument();
+  });
+  it('linha de privacidade sempre visível', () => {
+    render(<Inicio onAjuda={() => {}} onAcompanhar={() => {}} />);
+    const linha = screen.getByText('A escola guarda o que você enviar para cuidar do caso. O nome é opcional.');
+    expect(linha.closest('details')).toBeNull();
+  });
+  it('blocos recolhíveis ficam fechados por padrão e abrem ao clicar', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<Inicio onAjuda={() => {}} onAcompanhar={() => {}} />);
+    const blocos = Array.from(container.querySelectorAll('details.recolhivel'));
+    expect(blocos.map(b => b.querySelector('summary')?.textContent)).toEqual(['Como funciona', 'Seus dados e privacidade']);
+    for (const b of blocos) expect(b).not.toHaveAttribute('open');
+    await user.click(screen.getByText('Como funciona'));
+    expect(blocos[0]).toHaveAttribute('open');
+    await user.click(screen.getByText('Seus dados e privacidade'));
+    expect(blocos[1]).toHaveAttribute('open');
+  });
+  it('código vazio mostra erro e código preenchido chama onAcompanhar', async () => {
     const user = userEvent.setup();
     const onAcompanhar = vi.fn();
     render(<Inicio onAjuda={() => {}} onAcompanhar={onAcompanhar} />);
-    expect(screen.getByRole('heading', { name: 'Já conversou com a gente?' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Acompanhar' }));
     expect(screen.getByRole('alert')).toHaveTextContent('Digite seu código para acompanhar.');
     expect(onAcompanhar).not.toHaveBeenCalled();
-    await user.type(screen.getByLabelText('Acompanhar meu caso'), 'k7m2 9qxd');
+    await user.type(screen.getByLabelText('Código de acompanhamento'), 'k7m2 9qxd');
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Acompanhar' }));
     expect(onAcompanhar).toHaveBeenCalledWith('k7m2 9qxd');
   });
   it('o consentimento explica uso na LAN, registros de rede e prazo do rascunho', () => {
-    render(<Inicio onAjuda={() => {}} onAcompanhar={() => {}} />);
-    const bloco = screen.getByRole('complementary', { name: 'Antes de contar' });
+    const { container } = render(<Inicio onAjuda={() => {}} onAcompanhar={() => {}} />);
+    const bloco = container.querySelectorAll('details.recolhivel')[1] as HTMLElement;
     expect(bloco).toHaveTextContent('Ao enviar, a escola guarda seu relato, as imagens e as mensagens para cuidar do caso. Seu nome é opcional. Na denúncia, ano e sala são obrigatórios; no acolhimento anônimo, não pedimos nome, ano ou turma.');
     expect(bloco).toHaveTextContent('Este canal funciona na rede local da escola. Mesmo sem informar seu nome, horários de acesso podem aparecer nos registros da rede.');
     expect(bloco).not.toHaveTextContent('anonimato total');

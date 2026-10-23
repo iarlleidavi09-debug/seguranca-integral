@@ -41,6 +41,19 @@ describe('Casca do portal do aluno', () => {
     await user.click(navegacao().getByRole('button', { name: 'Início' }));
     expect(screen.getByRole('heading', { name: 'Você não precisa lidar com isso sozinho.' })).toBeInTheDocument();
   });
+  it('as três ações do Início levam às telas de antes', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: 'Preciso de ajuda' }));
+    expect(screen.getByRole('heading', { name: 'Qual é a situação?' })).toBeInTheDocument();
+    await user.click(navegacao().getByRole('button', { name: 'Início' }));
+    await user.click(screen.getByRole('button', { name: 'Conversar sem me identificar' }));
+    expect(screen.getByRole('heading', { name: 'Acolhimento anônimo' })).toBeInTheDocument();
+    await user.click(navegacao().getByRole('button', { name: 'Início' }));
+    await user.type(screen.getByLabelText('Código de acompanhamento'), 'invalido');
+    await user.click(within(screen.getByRole('main')).getByRole('button', { name: 'Acompanhar' }));
+    expect(screen.getByRole('heading', { name: 'Acompanhar meu caso' })).toBeInTheDocument();
+  });
   it('a marca leva ao início', async () => {
     const user = userEvent.setup();
     render(<App />);

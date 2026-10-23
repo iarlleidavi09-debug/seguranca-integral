@@ -12,13 +12,16 @@ export default function Inicio({ onAjuda, onAcompanhar, onAcolhimento }: { onAju
   const [codigo, setCodigo] = useState('');
   const [erro, setErro] = useState('');
   return <>
+    {acessos.length > 0 && <section className="continuar-caso acompanhamento-inicio" aria-labelledby="acessos-salvos">
+      <h2 id="acessos-salvos">Continuar meu caso</h2>
+      <ul>{acessos.map(a => <li key={a.codigo}><button className="botao-texto" onClick={() => onAcompanhar(a.codigo)}>Abrir caso {a.codigo}</button> <button className="botao-texto" onClick={() => remover(a.codigo)}>Apagar acesso {a.codigo}</button></li>)}</ul>
+      {acessos.length > 1 && <button className="botao secundario" onClick={() => remover()}>Apagar todos os acessos</button>}
+      {avisoStorage && <p role="status">{avisoStorage}</p>}
+    </section>}
     <section className="boas-vindas">
       <div className="abertura">
         <h1>Você não precisa lidar com isso <em>sozinho.</em></h1>
-        <p>Se algo está te preocupando, na escola, na internet ou em casa, conte para a coordenação. Vamos por partes, no seu tempo. Você pode enviar sem informar seu nome.</p>
-        <p>Para iniciar uma denúncia, toque em “Preciso de ajuda”. Escolha a situação, conte o que aconteceu e envie. No final, você receberá um código para conversar com a equipe.</p>
-        <button className="botao principal ajuda" onClick={onAjuda}>Preciso de ajuda</button>
-        {onAcolhimento && <p><button className="botao secundario" onClick={onAcolhimento}>Quero acolhimento anônimo</button><br />Converse sem questionário, nome, ano ou turma.</p>}
+        <p>Se algo está te preocupando, na escola, na internet ou em casa, conte para a coordenação. No seu tempo e sem precisar dizer seu nome.</p>
       </div>
       <aside className="bilhete">
         <span className="bilhete-simbolo"><Simbolo><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.5-4.6A8 8 0 1 1 21 12Z" /></Simbolo></span>
@@ -27,41 +30,51 @@ export default function Inicio({ onAjuda, onAcompanhar, onAcolhimento }: { onAju
         <p className="bilhete-assinatura">Um passo de cada vez.</p>
       </aside>
     </section>
-    <section className="acompanhamento-inicio" aria-labelledby="titulo-guia-uso">
-      <h2 id="titulo-guia-uso">Como usar este canal</h2>
+    <div className="inicio-acoes">
+      <section className="acao-cartao" aria-labelledby="acao-ajuda">
+        <h2 id="acao-ajuda">Contar o que aconteceu</h2>
+        <p>Escolha a situação, conte e envie.</p>
+        <button className="botao principal" onClick={onAjuda}>Preciso de ajuda</button>
+      </section>
+      {onAcolhimento && <section className="acao-cartao" aria-labelledby="acao-conversa">
+        <h2 id="acao-conversa">Só conversar</h2>
+        <p>Sem questionário, nome, ano ou turma.</p>
+        <button className="botao secundario" onClick={onAcolhimento}>Conversar sem me identificar</button>
+      </section>}
+      <section className="acao-cartao" aria-labelledby="acao-caso">
+        <h2 id="acao-caso">Ver meu caso</h2>
+        <form noValidate onSubmit={e => {
+          e.preventDefault();
+          if (!codigo.trim()) { setErro('Digite seu código para acompanhar.'); return; }
+          onAcompanhar(codigo);
+        }}>
+          <label htmlFor="codigo-inicio">Código de acompanhamento</label>
+          <div className="campo-acao">
+            <input id="codigo-inicio" value={codigo} onChange={e => { setCodigo(e.target.value); setErro(''); }} placeholder="Seu código" autoComplete="off" autoCapitalize="characters" spellCheck={false} aria-describedby="ajuda-codigo" />
+            <button className="botao secundario">Acompanhar</button>
+          </div>
+          <p id="ajuda-codigo" className="texto-pequeno">Pode usar letras minúsculas, espaços ou digitar sem hífen.</p>
+          {erro && <p role="alert" className="erro">{erro}</p>}
+        </form>
+      </section>
+    </div>
+    <p className="privacidade-linha">A escola guarda o que você enviar para cuidar do caso. O nome é opcional.</p>
+    <details className="recolhivel">
+      <summary>Como funciona</summary>
       <h3>Para fazer uma denúncia</h3>
-      <p>Toque em <strong>Preciso de ajuda</strong>, escolha a situação e conte o que aconteceu. As perguntas sobre a situação são opcionais. Você pode enviar sem informar seu nome, mas precisa informar seu ano e sua sala. Confira o relato e toque no botão de envio. A confirmação avisa quando o pedido chegou à coordenação.</p>
+      <p>Toque em <strong>Preciso de ajuda</strong>, escolha a situação e conte o que aconteceu. Informe seu ano e sua sala, confira o relato e envie; o nome é opcional.</p>
       <h3>Para conversar sem questionário</h3>
-      <p>Toque em <strong>Quero acolhimento anônimo</strong>, escreva sua primeira mensagem e envie. Você não precisa informar nome, ano ou turma. A conversa com a coordenação começa por ali.</p>
+      <p>Toque em <strong>Conversar sem me identificar</strong>, escreva sua primeira mensagem e envie. Você não precisa informar nome, ano ou turma.</p>
       <h3>Para acompanhar e ver respostas</h3>
-      <p>Guarde o código recebido. Digite esse código em <strong>Acompanhar meu caso</strong> ou abra um caso salvo abaixo. Você vai direto para a conversa: respostas ainda não vistas aparecem como <strong>Mensagem nova</strong>. Para responder, escreva em <strong>Sua resposta</strong>, toque em <strong>Enviar resposta</strong> e aguarde a confirmação de envio.</p>
+      <p>Digite o código recebido em <strong>Ver meu caso</strong> ou abra um caso salvo. Respostas ainda não vistas aparecem como <strong>Mensagem nova</strong>.</p>
       <h3>Para voltar ao seu caso depois</h3>
-      <p>Os acessos ficam em <strong>Casos salvos neste navegador</strong>. Toque em <strong>Abrir caso</strong> para continuar. Em outro aparelho ou navegador, use o código. Se o navegador não conseguir salvar, anote o código que aparece na conversa.</p>
-      <p>Em um aparelho compartilhado, use <strong>Apagar acesso</strong> ou <strong>Apagar todos os acessos</strong> ao terminar. Isso remove o atalho deste navegador; seu caso continua guardado na escola.</p>
-    </section>
-    <section className="acompanhamento-inicio" aria-labelledby="titulo-acompanhar">
-      <h2 id="titulo-acompanhar">Já conversou com a gente?</h2>
-      <p>Use o código que você recebeu para ver seu caso e continuar a conversa com a coordenação.</p>
-      <form noValidate onSubmit={e => {
-        e.preventDefault();
-        if (!codigo.trim()) { setErro('Digite seu código para acompanhar.'); return; }
-        onAcompanhar(codigo);
-      }}>
-        <label htmlFor="codigo-inicio">Acompanhar meu caso</label>
-        <div className="campo-acao">
-          <input id="codigo-inicio" value={codigo} onChange={e => { setCodigo(e.target.value); setErro(''); }} placeholder="Seu código de acompanhamento" autoComplete="off" autoCapitalize="characters" spellCheck={false} aria-describedby="ajuda-codigo" />
-          <button className="botao secundario">Acompanhar</button>
-        </div>
-        <p id="ajuda-codigo" className="texto-pequeno">Pode usar letras minúsculas, espaços ou digitar sem hífen.</p>
-        {erro && <p role="alert" className="erro">{erro}</p>}
-      </form>
-    </section>
-    <section className="acompanhamento-inicio" aria-labelledby="acessos-salvos"><h2 id="acessos-salvos">Casos salvos neste navegador</h2><p>Outras pessoas que usarem este navegador poderão reabrir seus casos. Em aparelhos compartilhados, apague os acessos ao terminar. Apagar o acesso não apaga o caso na escola.</p>{acessos.length ? <><ul>{acessos.map(a => <li key={a.codigo}><button className="botao-texto" onClick={() => onAcompanhar(a.codigo)}>Abrir caso {a.codigo}</button> <button className="botao-texto" onClick={() => remover(a.codigo)}>Apagar acesso {a.codigo}</button></li>)}</ul><button className="botao secundario" onClick={() => remover()}>Apagar todos os acessos</button></> : <p>Nenhum acesso salvo.</p>}{avisoStorage && <p role="status">{avisoStorage}</p>}</section>
-    <aside className="aviso consentimento" aria-labelledby="titulo-dados">
-      <h2 id="titulo-dados">Antes de contar</h2>
+      <p>Os acessos ficam salvos neste navegador; em outro aparelho, use o código. Em aparelho compartilhado, use <strong>Apagar acesso</strong> ao terminar: o caso continua guardado na escola.</p>
+    </details>
+    <details className="recolhivel">
+      <summary>Seus dados e privacidade</summary>
       <p>Ao enviar, a escola guarda seu relato, as imagens e as mensagens para cuidar do caso. Seu nome é opcional. Na denúncia, ano e sala são obrigatórios; no acolhimento anônimo, não pedimos nome, ano ou turma.</p>
       <p>Este canal funciona na rede local da escola. Mesmo sem informar seu nome, horários de acesso podem aparecer nos registros da rede.</p>
       <p>O texto do rascunho fica neste navegador por até 24 horas ou até o envio. As imagens não ficam no rascunho. Evite usar um aparelho compartilhado.</p>
-    </aside>
+    </details>
   </>;
 }
