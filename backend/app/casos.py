@@ -190,10 +190,16 @@ def alterar_mensagem(conn: sqlite3.Connection, caso_id: int, mensagem_id: int,
         return "sem_mudanca"
     agora = _agora()
     try:
+        # condicional: uma exclusão concorrente não pode ser sobrescrita
+        mudou = conn.execute(
+            "UPDATE mensagens SET texto = ?, editada_em = ? "
+            "WHERE id = ? AND apagada_em IS NULL",
+            (texto, agora, mensagem_id)).rowcount
+        if mudou == 0:
+            conn.rollback()
+            return "apagada"
         _guardar_versao(conn, caso_id, mensagem_id, msg["texto"], "edicao",
                         usuario_id, agora)
-        conn.execute("UPDATE mensagens SET texto = ?, editada_em = ? WHERE id = ?",
-                     (texto, agora, mensagem_id))
         # o detalhe nunca leva o texto da mensagem
         registrar_evento(conn, caso_id, "mensagem_editada", usuario_id,
                          f"mensagem {mensagem_id}", commit=False)
@@ -216,10 +222,14 @@ def apagar_mensagem(conn: sqlite3.Connection, caso_id: int, mensagem_id: int,
         return "ja_apagada"
     agora = _agora()
     try:
+        mudou = conn.execute(
+            "UPDATE mensagens SET texto = '', apagada_em = ? "
+            "WHERE id = ? AND apagada_em IS NULL", (agora, mensagem_id)).rowcount
+        if mudou == 0:
+            conn.rollback()
+            return "ja_apagada"
         _guardar_versao(conn, caso_id, mensagem_id, msg["texto"], "exclusao",
                         usuario_id, agora)
-        conn.execute("UPDATE mensagens SET texto = '', apagada_em = ? WHERE id = ?",
-                     (agora, mensagem_id))
         registrar_evento(conn, caso_id, "mensagem_apagada", usuario_id,
                          f"mensagem {mensagem_id}", commit=False)
         conn.commit()

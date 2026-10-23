@@ -241,3 +241,29 @@ def test_ultima_mensagem_apagada_nao_expoe_texto(conn, config):
     assert ultima['apagada_em']
     assert ultima['texto'] == ''
     assert 'Segredo' not in str(ultima)
+
+
+def _corrida(conn, monkeypatch, caso_id, msg_id):
+    """A leitura vê a mensagem viva, mas ela é apagada antes da escrita."""
+    antiga = casos._mensagem_do_caso(conn, caso_id, msg_id)
+    conn.execute("UPDATE mensagens SET texto='', apagada_em='2026-01-01T00:00:00Z' WHERE id=?", (msg_id,))
+    conn.commit()
+    monkeypatch.setattr(casos, '_mensagem_do_caso', lambda *a, **k: antiga)
+
+
+def test_edicao_em_corrida_com_exclusao_nao_grava_versao_nem_evento(conn, config, monkeypatch):
+    caso_id, msg_id, ana = cenario(conn, config)
+    _corrida(conn, monkeypatch, caso_id, msg_id)
+    assert casos.alterar_mensagem(conn, caso_id, msg_id, ana, 'coordenador', 'Novo') == 'apagada'
+    assert versoes(conn, msg_id) == []
+    assert eventos(conn, caso_id, 'mensagem_editada') == []
+    assert linha(conn, msg_id)['texto'] == ''
+    assert linha(conn, msg_id)['editada_em'] is None
+
+
+def test_exclusao_em_corrida_com_exclusao_nao_grava_versao_nem_evento(conn, config, monkeypatch):
+    caso_id, msg_id, ana = cenario(conn, config)
+    _corrida(conn, monkeypatch, caso_id, msg_id)
+    assert casos.apagar_mensagem(conn, caso_id, msg_id, ana, 'coordenador') == 'ja_apagada'
+    assert versoes(conn, msg_id) == []
+    assert eventos(conn, caso_id, 'mensagem_apagada') == []

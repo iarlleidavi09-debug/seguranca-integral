@@ -218,3 +218,18 @@ def test_exportacao_marca_editada_e_apagada(cenario, config):
     cliente.delete(_url(caso_id, mid), json={})
     html = cliente.get(f"/api/casos/{caso_id}/exportacao").get_data(as_text=True)
     assert "Mensagem apagada" in html and "Revisada." not in html
+
+
+def test_aluno_nao_recebe_texto_de_apagada_mesmo_com_invariante_quebrada(cenario, student_client, config):
+    _, caso_id, codigo, mid = cenario
+    c = connect(config)
+    try:
+        c.execute("UPDATE mensagens SET apagada_em='2026-01-01T00:00:00Z' WHERE id=?", (mid,))
+        c.commit()
+    finally:
+        c.close()
+    assert _consulta(config, "SELECT texto FROM mensagens WHERE id=?", (mid,))[0][0] == ORIGINAL
+    r = student_client.post("/api/acompanhar", json={"codigo": codigo})
+    msg = r.get_json()["mensagens"][0]
+    assert msg["texto"] == "" and msg["apagada"] is True
+    assert ORIGINAL not in r.get_data(as_text=True)
