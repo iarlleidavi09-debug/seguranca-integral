@@ -254,11 +254,11 @@
 .aluno-app .novas-divisor::before { flex: 0 0 var(--espaco-4); }
 .aluno-app .resposta-fixa { position: sticky; bottom: 0; z-index: 1; margin-top: var(--espaco-4); background: var(--fundo-base); border-top: 3px solid #101010; padding: var(--espaco-2) var(--espaco-4) calc(var(--espaco-2) + env(safe-area-inset-bottom)); }
 .aluno-app .resposta-fixa textarea { width: 100%; box-sizing: border-box; line-height: 1.5; resize: none; }
-.aluno-app .resposta-fixa .resposta-rodape { display: flex; align-items: center; justify-content: space-between; gap: var(--espaco-3); margin-top: var(--espaco-2); }
-.aluno-app .resposta-fixa p[id='limite-resposta'] { margin: 0; }
-.aluno-app .resposta-fixa .botao { min-height: 44px; margin: 0; }
-/* a última mensagem para de rolar acima do campo fixo (≈ 150px, folga até 3 x 64px); o separador vai para o topo */
-.aluno-app .mensagem { scroll-margin-bottom: calc(var(--espaco-16) * 3); }
+.aluno-app .resposta-fixa .resposta-rodape { display: flex; align-items: center; justify-content: space-between; gap: var(--espaco-3); margin-top: var(--espaco-1); }
+.aluno-app .resposta-fixa p[id='limite-resposta'] { margin: 0; flex: 1 1 auto; min-width: 0; }
+.aluno-app .resposta-fixa .botao { min-height: 44px; margin: 0; flex: none; white-space: nowrap; padding-inline: var(--espaco-4); }
+/* a última mensagem para de rolar acima do campo fixo (≈ 145px mais folga: 2 x 64 + 16 + 8 = 152px); o separador vai para o topo */
+.aluno-app .mensagem { scroll-margin-bottom: calc(var(--espaco-16) * 2 + var(--espaco-4) + var(--espaco-2)); }
 .aluno-app .novas-divisor { scroll-margin-top: var(--espaco-4); }
 
 /* Início: espaçamentos e cartões */
@@ -268,13 +268,14 @@
 .aluno-app .continuar-caso .botao-texto { font-weight: 700; margin-bottom: 0; }
 .aluno-app .acao-cartao { display: flex; flex-direction: column; }
 .aluno-app .acao-cartao > .botao { margin-top: auto; align-self: flex-start; }
+.aluno-app .acao-cartao > p { margin-bottom: var(--espaco-3); } /* folga mínima acima do botão no fim do cartão */
 .aluno-app .acao-cartao .campo-acao { flex-direction: column; align-items: stretch; }
 .aluno-app .acao-cartao .campo-acao input { width: 100%; box-sizing: border-box; flex: none; }
 .aluno-app .acao-cartao .campo-acao .botao { width: 100%; min-height: 44px; }
 @media (min-width: 768px) and (max-width: 1023px) {
   .aluno-app .inicio-acoes { grid-template-columns: 1fr; }
 }
-/* três colunas só a partir de 1024px; o conteúdo tem no máximo 760px, então o cartão fica com padding menor para o campo passar de 180px */
+/* três colunas só a partir de 1024px; o conteúdo da página tem no máximo 760px, então o cartão fica com padding menor para o campo passar de 180px */
 @media (min-width: 1024px) {
   .aluno-app .inicio-acoes { grid-template-columns: repeat(3, 1fr); }
   .aluno-app .inicio-acoes .acao-cartao { padding: var(--espaco-4); }

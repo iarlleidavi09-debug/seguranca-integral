@@ -72,6 +72,8 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
     try {
       await enviarMensagem(codigoAtivo, texto.trim());
       setTexto(''); setAviso('Resposta enviada.');
+      // responder equivale a ter lido tudo: o separador some, e só o que chegar depois volta a ser nova
+      if (caso && baseLida.current) baseLida.current = { ...baseLida.current, valor: Math.max(baseLida.current.valor, ...caso.mensagens.filter(m => m.autor === 'coordenacao').map(m => m.id || 0)) };
       const leitura = consulta.current + 1;
       deveRolar.current = true;
       try { if (!(await buscar(codigoAtivo))) deveRolar.current = false; }

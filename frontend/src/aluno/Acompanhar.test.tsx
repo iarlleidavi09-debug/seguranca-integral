@@ -706,3 +706,34 @@ describe('Acompanhar: campo de resposta compacto', () => {
     expect(campo).toHaveAttribute('aria-describedby', 'limite-resposta');
   });
 });
+
+describe('Acompanhar: responder equivale a ter lido', () => {
+  const t = '2026-10-14T12:00:00Z';
+  const msg = (id: number, autor: string, texto: string) => ({ id, autor, texto, criado_em: t, editada: false, apagada: false });
+  it('depois de enviar não há separador, rola a última mensagem e uma nova posterior volta a gerar separador', async () => {
+    const user = userEvent.setup();
+    eventos = 'controlado';
+    const rolagem = vi.fn();
+    Element.prototype.scrollIntoView = rolagem;
+    try {
+      responder({ ...base, status: 'em_investigacao', mensagens: [msg(1, 'coordenacao', 'pendente')] });
+      render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+      expect(await screen.findByRole('separator')).toBeInTheDocument();
+      await waitFor(() => expect(fluxo).not.toBeNull());
+      responder({ ok: true }, 201);
+      responder({ ...base, status: 'em_investigacao', mensagens: [msg(1, 'coordenacao', 'pendente'), msg(2, 'aluno', 'minha resposta')] });
+      await user.type(screen.getByLabelText('Sua resposta'), 'minha resposta');
+      await user.click(screen.getByRole('button', { name: 'Enviar resposta' }));
+      await screen.findByText('minha resposta');
+      expect(screen.queryByRole('separator')).not.toBeInTheDocument();
+      expect(screen.queryByText(/mensagens? nova/i)).not.toBeInTheDocument();
+      const artigos = screen.getByRole('log').querySelectorAll('article');
+      await waitFor(() => expect(rolagem.mock.contexts.at(-1)).toBe(artigos[1]));
+      expect(rolagem.mock.lastCall![0]).toEqual({ block: 'nearest' });
+      responder({ ...base, status: 'em_investigacao', mensagens: [msg(1, 'coordenacao', 'pendente'), msg(2, 'aluno', 'minha resposta'), msg(3, 'coordenacao', 'depois')] });
+      fluxo!.enqueue(new TextEncoder().encode('event: atualizar\n\n'));
+      expect(await screen.findByText('Uma mensagem nova da coordenação.')).toBeInTheDocument();
+      expect(screen.getByRole('separator').nextElementSibling).toHaveTextContent('depois');
+    } finally { delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView; }
+  });
+});
