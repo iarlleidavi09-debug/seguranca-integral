@@ -82,4 +82,22 @@ describe('Início do aluno', () => {
     const { container } = render(<Inicio onAjuda={() => {}} onAcompanhar={() => {}} />);
     expect(container.textContent).not.toMatch(/[—–]/);
   });
+  it('Como funciona orienta anotar o código se o navegador não salvar', () => {
+    const { container } = render(<Inicio onAjuda={() => {}} onAcompanhar={() => {}} />);
+    expect(container.querySelectorAll('details.recolhivel')[0]).toHaveTextContent('Se o navegador não conseguir salvar, anote o código que aparece na conversa.');
+  });
+  it('o cartão de conversa se chama "Conversar com a coordenação"', () => {
+    render(<Inicio onAjuda={() => {}} onAcompanhar={() => {}} onAcolhimento={() => {}} />);
+    expect(screen.getByRole('heading', { name: 'Conversar com a coordenação' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Só conversar' })).not.toBeInTheDocument();
+  });
+  it('ordem no DOM: abertura, ações, privacidade e depois o bilhete', () => {
+    const { container } = render(<Inicio onAjuda={() => {}} onAcompanhar={() => {}} onAcolhimento={() => {}} />);
+    const q = (c: string) => container.querySelector(c) as Element;
+    const antes = (a: Element, b: Element) => expect(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    antes(q('.abertura'), q('.inicio-acoes'));
+    antes(q('.inicio-acoes'), q('.privacidade-linha'));
+    antes(q('.privacidade-linha'), q('.bilhete'));
+    antes(q('.bilhete'), q('details.recolhivel'));
+  });
 });

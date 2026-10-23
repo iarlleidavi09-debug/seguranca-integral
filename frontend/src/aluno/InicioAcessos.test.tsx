@@ -35,3 +35,17 @@ it('cartão Continuar meu caso só aparece com acessos salvos', async () => {
  await user.click(screen.getByRole('button',{name:'Apagar acesso ABCD-2345'}));
  expect(screen.queryByText('Continuar meu caso')).not.toBeInTheDocument();
 });
+it('cartão Continuar meu caso avisa sobre aparelho compartilhado e que o caso fica na escola', () => {
+ guardarAcesso('K7M2-9QXD');
+ render(<Inicio onAjuda={() => {}} onAcompanhar={() => {}} />);
+ const secao = screen.getByRole('heading',{name:'Continuar meu caso'}).closest('section') as HTMLElement;
+ expect(secao).toHaveTextContent('Neste aparelho. Apagar o acesso não apaga o caso na escola.');
+ expect(secao).toHaveTextContent('Outras pessoas que usarem este navegador poderão reabrir seus casos. Em aparelhos compartilhados, apague os acessos ao terminar.');
+});
+it('Apagar todos os acessos limpa tudo e o cartão some', async () => {
+ guardarAcesso('K7M2-9QXD'); guardarAcesso('ABCD-2345'); const user=userEvent.setup();
+ render(<Inicio onAjuda={() => {}} onAcompanhar={() => {}} />);
+ await user.click(screen.getByRole('button',{name:'Apagar todos os acessos'}));
+ expect(lerAcessos()).toEqual([]);
+ expect(screen.queryByText('Continuar meu caso')).not.toBeInTheDocument();
+});

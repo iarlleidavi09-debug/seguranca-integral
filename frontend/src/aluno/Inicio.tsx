@@ -14,6 +14,7 @@ export default function Inicio({ onAjuda, onAcompanhar, onAcolhimento }: { onAju
   return <>
     {acessos.length > 0 && <section className="continuar-caso acompanhamento-inicio" aria-labelledby="acessos-salvos">
       <h2 id="acessos-salvos">Continuar meu caso</h2>
+      <p>Neste aparelho. Apagar o acesso não apaga o caso na escola. Outras pessoas que usarem este navegador poderão reabrir seus casos. Em aparelhos compartilhados, apague os acessos ao terminar.</p>
       <ul>{acessos.map(a => <li key={a.codigo}><button className="botao-texto" onClick={() => onAcompanhar(a.codigo)}>Abrir caso {a.codigo}</button> <button className="botao-texto" onClick={() => remover(a.codigo)}>Apagar acesso {a.codigo}</button></li>)}</ul>
       {acessos.length > 1 && <button className="botao secundario" onClick={() => remover()}>Apagar todos os acessos</button>}
       {avisoStorage && <p role="status">{avisoStorage}</p>}
@@ -23,21 +24,14 @@ export default function Inicio({ onAjuda, onAcompanhar, onAcolhimento }: { onAju
         <h1>Você não precisa lidar com isso <em>sozinho.</em></h1>
         <p>Se algo está te preocupando, na escola, na internet ou em casa, conte para a coordenação. No seu tempo e sem precisar dizer seu nome.</p>
       </div>
-      <aside className="bilhete">
-        <span className="bilhete-simbolo"><Simbolo><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.5-4.6A8 8 0 1 1 21 12Z" /></Simbolo></span>
-        <h2>Não precisa ter as palavras certas.</h2>
-        <p>Comece contando só o que conseguir. A coordenação lê seu pedido e conversa com você por aqui.</p>
-        <p className="bilhete-assinatura">Um passo de cada vez.</p>
-      </aside>
-    </section>
-    <div className="inicio-acoes">
+      <div className="inicio-acoes">
       <section className="acao-cartao" aria-labelledby="acao-ajuda">
         <h2 id="acao-ajuda">Contar o que aconteceu</h2>
         <p>Escolha a situação, conte e envie.</p>
         <button className="botao principal" onClick={onAjuda}>Preciso de ajuda</button>
       </section>
       {onAcolhimento && <section className="acao-cartao" aria-labelledby="acao-conversa">
-        <h2 id="acao-conversa">Só conversar</h2>
+        <h2 id="acao-conversa">Conversar com a coordenação</h2>
         <p>Sem questionário, nome, ano ou turma.</p>
         <button className="botao secundario" onClick={onAcolhimento}>Conversar sem me identificar</button>
       </section>}
@@ -58,7 +52,14 @@ export default function Inicio({ onAjuda, onAcompanhar, onAcolhimento }: { onAju
         </form>
       </section>
     </div>
-    <p className="privacidade-linha">A escola guarda o que você enviar para cuidar do caso. O nome é opcional.</p>
+      <p className="privacidade-linha">A escola guarda o que você enviar para cuidar do caso. O nome é opcional.</p>
+      <aside className="bilhete">
+        <span className="bilhete-simbolo"><Simbolo><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.5-4.6A8 8 0 1 1 21 12Z" /></Simbolo></span>
+        <h2>Não precisa ter as palavras certas.</h2>
+        <p>Comece contando só o que conseguir. A coordenação lê seu pedido e conversa com você por aqui.</p>
+        <p className="bilhete-assinatura">Um passo de cada vez.</p>
+      </aside>
+    </section>
     <details className="recolhivel">
       <summary>Como funciona</summary>
       <h3>Para fazer uma denúncia</h3>
@@ -68,7 +69,7 @@ export default function Inicio({ onAjuda, onAcompanhar, onAcolhimento }: { onAju
       <h3>Para acompanhar e ver respostas</h3>
       <p>Digite o código recebido em <strong>Ver meu caso</strong> ou abra um caso salvo. Respostas ainda não vistas aparecem como <strong>Mensagem nova</strong>.</p>
       <h3>Para voltar ao seu caso depois</h3>
-      <p>Os acessos ficam salvos neste navegador; em outro aparelho, use o código. Em aparelho compartilhado, use <strong>Apagar acesso</strong> ao terminar: o caso continua guardado na escola.</p>
+      <p>Os acessos ficam salvos neste navegador; em outro aparelho, use o código. Se o navegador não conseguir salvar, anote o código que aparece na conversa. Em aparelho compartilhado, use <strong>Apagar acesso</strong> ao terminar: o caso continua guardado na escola.</p>
     </details>
     <details className="recolhivel">
       <summary>Seus dados e privacidade</summary>

@@ -228,3 +228,13 @@
   .aluno-app .inicio-acoes { grid-template-columns: repeat(3, 1fr); }
   .aluno-app .acao-cartao { padding: var(--espaco-5); }
 }
+/* Bilhete depois das ações no celular; ao lado da abertura a partir de 900px */
+.aluno-app .boas-vindas { gap: var(--espaco-6); align-items: start; }
+.aluno-app .boas-vindas .inicio-acoes, .aluno-app .boas-vindas .privacidade-linha { margin-top: 0; }
+@media (min-width: 900px) {
+  .aluno-app .boas-vindas { grid-template-areas: "abertura bilhete" "acoes acoes" "privacidade privacidade"; }
+  .aluno-app .boas-vindas .abertura { grid-area: abertura; align-self: center; }
+  .aluno-app .boas-vindas .bilhete { grid-area: bilhete; align-self: center; }
+  .aluno-app .boas-vindas .inicio-acoes { grid-area: acoes; }
+  .aluno-app .boas-vindas .privacidade-linha { grid-area: privacidade; }
+}
