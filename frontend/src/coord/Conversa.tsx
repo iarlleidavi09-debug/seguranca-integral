@@ -30,6 +30,7 @@ function ItemMensagem({ item, aoEditar, aoExcluir, aoVerVersoes }: { item: Item 
   const botaoVersoes = useRef<HTMLButtonElement>(null);
   const botaoManter = useRef<HTMLButtonElement>(null);
   const devolverFoco = useRef<'editar' | 'excluir' | null>(null);
+  const excluiu = useRef(false); // exclusão confirmada: o foco espera o item virar "apagado"
   const id = item.id;
 
   useEffect(() => {
@@ -38,9 +39,16 @@ function ItemMensagem({ item, aoEditar, aoExcluir, aoVerVersoes }: { item: Item 
     else if (devolverFoco.current) {
       // o botão de origem pode ter sumido (mensagem apagada): cai no botão de versões ou no próprio item
       const origem = devolverFoco.current === 'editar' ? botaoEditar : botaoExcluir;
-      (origem.current ?? botaoVersoes.current ?? raiz.current)?.focus(); devolverFoco.current = null;
+      // após exclusão confirmada nunca se foca o botão Excluir (vai sumir): o item é o alvo até a prop apagada chegar
+      if (excluiu.current && item.apagada) { excluiu.current = false; (botaoVersoes.current ?? raiz.current)?.focus(); }
+      else (excluiu.current ? raiz.current : origem.current ?? botaoVersoes.current ?? raiz.current)?.focus();
+      devolverFoco.current = null;
     }
   }, [modo]);
+
+  useEffect(() => {
+    if (item.apagada && excluiu.current) { excluiu.current = false; (botaoVersoes.current ?? raiz.current)?.focus(); }
+  }, [item.apagada]);
 
   const fechar = () => { devolverFoco.current = modo === 'editar' ? 'editar' : 'excluir'; setErro(''); setModo('ver'); };
   const abrirEdicao = () => { setRascunho(item.texto); setErro(''); setModo('editar'); };
@@ -49,7 +57,7 @@ function ItemMensagem({ item, aoEditar, aoExcluir, aoVerVersoes }: { item: Item 
   async function executar(acao: () => Promise<void>) {
     if (trabalhando.current) return;
     trabalhando.current = true; setOcupado(true); setErro('');
-    try { await acao(); devolverFoco.current = modo === 'editar' ? 'editar' : 'excluir'; setModo('ver'); }
+    try { await acao(); excluiu.current = modo === 'excluir'; devolverFoco.current = modo === 'editar' ? 'editar' : 'excluir'; setModo('ver'); }
     catch (falha) { setErro(falha instanceof Error && falha.message ? falha.message : ERRO_ACAO); }
     finally { trabalhando.current = false; setOcupado(false); }
   }

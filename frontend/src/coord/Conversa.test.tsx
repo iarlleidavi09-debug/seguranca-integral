@@ -184,4 +184,19 @@ describe('Conversa: editar e excluir', () => {
     expect(within(lista).getByText('Texto que foi apagado')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Ocultar texto original' })).toBeInTheDocument();
   });
+
+  it('foco pós-exclusão vale mesmo quando o pai troca apagada só depois de aoExcluir resolver', async () => {
+    const user = userEvent.setup();
+    const Quadro = () => {
+      const [apagada, setApagada] = useState(false);
+      return <Conversa titulo="C" campo="c" rotulo="M" ajuda="a" botao="E" texto="" enviando={false} aoMudar={() => {}} aoEnviar={() => {}}
+        itens={[item({ apagada, podeAlterar: !apagada, texto: apagada ? '' : 'Texto original' })]} aoVerVersoes={async () => []}
+        aoEditar={async () => {}} aoExcluir={async () => { setTimeout(() => setApagada(true), 30); }} />;
+    };
+    render(<Quadro />);
+    await user.click(screen.getByRole('button', { name: 'Excluir' }));
+    await user.click(screen.getByRole('button', { name: 'Excluir' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Ver texto original' })).toHaveFocus());
+    expect(document.body).not.toHaveFocus();
+  });
 });
