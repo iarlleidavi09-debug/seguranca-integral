@@ -125,7 +125,7 @@
 
 /* Acompanhamento: linha do tempo de três etapas e área pós-resolução */
 .aluno-app .etapas { list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--espaco-2); margin: var(--espaco-4) 0 var(--espaco-4); padding: 0; }
-.aluno-app .etapa { display: grid; grid-template-columns: 1fr; justify-items: center; text-align: center; row-gap: var(--espaco-1); align-items: start; padding: var(--espaco-2); min-width: 0; border: var(--linha-fina) solid var(--borda-suave); border-radius: var(--raio-md); background: var(--fundo-superficie); color: var(--texto-secundario); }
+.aluno-app .etapa { display: grid; grid-template-columns: 1fr; justify-items: center; text-align: center; row-gap: var(--espaco-1); align-items: start; padding: var(--espaco-2); min-width: 0; position: relative; border: var(--linha-fina) solid var(--borda-suave); border-radius: var(--raio-md); background: var(--fundo-superficie); color: var(--texto-secundario); }
 .aluno-app .etapa-marca { display: grid; place-items: center; width: 28px; height: 28px; border-radius: var(--raio-pill); border: var(--linha-fina) solid var(--borda-forte); font-weight: 700; }
 .aluno-app .etapa-nome { font-weight: 700; font-size: var(--texto-pequeno); overflow-wrap: anywhere; }
 .aluno-app .etapa[data-estado='atual'] { background: var(--primaria-suave); border-color: var(--primaria-base); color: var(--texto-principal); }

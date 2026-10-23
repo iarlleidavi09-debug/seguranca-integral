@@ -158,6 +158,56 @@ describe('Acompanhar', () => {
     render(<Acompanhar codigoInicial="K7M2-9QXD" />);
     expect(await screen.findByRole('button', { name: 'Atualizar conversa' })).toBeInTheDocument();
   });
+  it('online: após enviar resposta com a releitura falhando, o botão aparece e some ao atualizar', async () => {
+    const user = userEvent.setup();
+    responder({ ...base, status: 'novo', mensagens: [] });
+    render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+    await screen.findByLabelText('Sua resposta');
+    responder({ ok: true }, 201);
+    respostas.push(async () => new Response('{}', { status: 500 }));
+    await user.type(screen.getByLabelText('Sua resposta'), 'oi');
+    await user.click(screen.getByRole('button', { name: 'Enviar resposta' }));
+    expect(await screen.findByText(/Use Atualizar conversa para ver/)).toBeInTheDocument();
+    const botao = screen.getByRole('button', { name: 'Atualizar conversa' });
+    responder({ ...base, status: 'novo', mensagens: [] });
+    await user.click(botao);
+    expect(await screen.findByText('Conversa atualizada.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Atualizar conversa' })).not.toBeInTheDocument();
+  });
+  it('online: após informar situação com a recarga falhando, o botão aparece', async () => {
+    const user = userEvent.setup();
+    responder(resolvido);
+    render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+    await screen.findByRole('heading', { name: 'Seu caso foi resolvido' });
+    responder({ ok: true }, 201);
+    respostas.push(async () => new Response('{}', { status: 500 }));
+    await user.click(screen.getByRole('button', { name: 'Melhorou' }));
+    await screen.findByText('Não foi possível atualizar agora. Use Atualizar conversa.');
+    expect(screen.getByRole('button', { name: 'Atualizar conversa' })).toBeInTheDocument();
+  });
+  it('online: após 409 com a recarga falhando, o botão aparece', async () => {
+    const user = userEvent.setup();
+    responder(resolvido);
+    render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+    await screen.findByRole('heading', { name: 'Seu caso foi resolvido' });
+    responder({ erro: 'x' }, 409);
+    respostas.push(async () => new Response('{}', { status: 500 }));
+    await user.click(screen.getByRole('button', { name: 'Melhorou' }));
+    expect(await screen.findByText('Esse caso ainda não foi resolvido.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Atualizar conversa' })).toBeInTheDocument();
+  });
+  it('online com leitura bem-sucedida: o botão continua ausente', async () => {
+    const user = userEvent.setup();
+    responder({ ...base, status: 'novo', mensagens: [] });
+    render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+    await screen.findByLabelText('Sua resposta');
+    responder({ ok: true }, 201);
+    responder({ ...base, status: 'novo', mensagens: [] });
+    await user.type(screen.getByLabelText('Sua resposta'), 'oi');
+    await user.click(screen.getByRole('button', { name: 'Enviar resposta' }));
+    await screen.findByText('Resposta enviada.');
+    expect(screen.queryByRole('button', { name: 'Atualizar conversa' })).not.toBeInTheDocument();
+  });
   it('status desconhecido não marca etapa nem quebra', async () => {
     responder({ ...base, status: 'inventado', mensagens: [] });
     render(<Acompanhar codigoInicial="K7M2-9QXD" />);
@@ -276,6 +326,7 @@ describe('Acompanhar', () => {
     await user.click(screen.getByRole('button', { name: 'Melhorou' }));
     expect(await screen.findByText('Obrigado por contar. A equipe vai ver.')).toBeInTheDocument();
     expect(screen.getByText('Não foi possível atualizar agora. Use Atualizar conversa.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Atualizar conversa' })).toBeInTheDocument();
   });
   it('o erro do 409 some ao atualizar a conversa', async () => {
     const user = userEvent.setup();

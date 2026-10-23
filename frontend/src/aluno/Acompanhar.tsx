@@ -23,6 +23,7 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
   const focoInicial = useRef(false);
   const [novas, setNovas] = useState<number[]>([]);
   const [avisoStorage, setAvisoStorage] = useState('');
+  const [falhaAtualizar, setFalhaAtualizar] = useState(false);
   const consulta = useRef(0);
   const responder = useRef(false);
   const montado = useRef(true);
@@ -36,6 +37,7 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
     setNovas(dados.mensagens.filter(m => m.autor === 'coordenacao' && !m.apagada && typeof m.id === 'number' && m.id! > ultimoLido).map(m => m.id!));
     if (!guardarAcesso(codigoConsulta)) setAvisoStorage('Não foi possível salvar o acesso neste navegador. Anote seu código para voltar.');
     setCaso(dados);
+    setFalhaAtualizar(false);
     return true;
   }
   useEffect(() => {
@@ -64,7 +66,7 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
       await enviarMensagem(codigoAtivo, texto.trim());
       setTexto(''); setAviso('Resposta enviada.');
       try { await buscar(codigoAtivo); }
-      catch (falha) { setAviso(`Resposta enviada. ${mensagemErro(falha)} Use Atualizar conversa para ver as mensagens.`); }
+      catch (falha) { setFalhaAtualizar(true); setAviso(`Resposta enviada. ${mensagemErro(falha)} Use Atualizar conversa para ver as mensagens.`); }
     } catch (falha) { setErro(mensagemErro(falha)); }
     finally { setEnviando(false); responder.current = false; }
   }
@@ -72,14 +74,14 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
     const atual = consulta.current + 1;
     setCarregando(true); setErro(''); setErroSituacao('');
     try { if (await buscar(codigoAtivo)) setAviso('Conversa atualizada.'); }
-    catch (falha) { if (atual === consulta.current) setErro(mensagemErro(falha)); }
+    catch (falha) { if (atual === consulta.current) { setErro(mensagemErro(falha)); setFalhaAtualizar(true); } }
     finally { if (atual === consulta.current) setCarregando(false); }
   }
   // Uma leitura superada foi concluída; só erro de transporte/API é falha da recarga.
   async function recarregar(): Promise<boolean> {
     const atual = consulta.current + 1;
     try { await buscar(codigoAtivo); return true; }
-    catch { return false; }
+    catch { setFalhaAtualizar(true); return false; }
     finally { if (atual === consulta.current) setCarregando(false); }
   }
   const conexao = useTempoReal('aluno', caso !== null && !!codigoAtivo, () => { void recarregar(); }, codigoAtivo);
@@ -152,7 +154,7 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
             : <><p>{mensagem.texto}</p><time dateTime={mensagem.criado_em}>{dataLegivel(mensagem.criado_em)}</time>{mensagem.editada && <span className="texto-pequeno"> (editada)</span>}</>}
         </article>)}
       </div>
-      {foraDoAr && <button type="button" className="botao secundario atualizar" disabled={carregando || enviando} onClick={() => void atualizar()}>Atualizar conversa</button>}
+      {(foraDoAr || falhaAtualizar) && <button type="button" className="botao secundario atualizar" disabled={carregando || enviando} onClick={() => void atualizar()}>Atualizar conversa</button>}
       <form noValidate onSubmit={e => { e.preventDefault(); void enviar(); }} aria-busy={enviando} className="resposta">
         <label htmlFor="resposta">Sua resposta</label>
         <textarea id="resposta" rows={4} maxLength={2000} value={texto} disabled={enviando} onChange={e => setTexto(e.target.value)} aria-describedby="limite-resposta" />
