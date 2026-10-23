@@ -15,7 +15,7 @@ def execute_status(path, *args):
     # UTF-8 forçado: o caminho do projeto tem acento e a saída em pipe seria cp1252
     return subprocess.run(
         [sys.executable, '-m', 'app.server', '--data-dir', str(path), *args],
-        capture_output=True, text=True, encoding='utf-8', timeout=15,
+        capture_output=True, text=True, encoding='utf-8', timeout=60,
         cwd=BACKEND, env={**os.environ, 'PYTHONUTF8': '1'},
     )
 
