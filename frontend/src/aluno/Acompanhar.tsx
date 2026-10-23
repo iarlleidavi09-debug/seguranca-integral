@@ -83,6 +83,7 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
     finally { if (atual === consulta.current) setCarregando(false); }
   }
   const conexao = useTempoReal('aluno', caso !== null && !!codigoAtivo, () => { void recarregar(); }, codigoAtivo);
+  const foraDoAr = conexao !== 'online' && conexao !== 'conectando';
   async function informarSituacao(situacao: Situacao) {
     setInformando(true); setErroSituacao('');
     try {
@@ -127,17 +128,20 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
         {etapas.map((nome, i) => <li key={nome} className="etapa" data-estado={i < atual ? 'feita' : i === atual ? 'atual' : 'proxima'} aria-current={i === atual ? 'step' : undefined}>
           <span className="etapa-marca" aria-hidden="true">{i < atual ? '✓' : i + 1}</span>
           <span className="etapa-nome">{nome}</span>
-          <span className="etapa-estado">{i < atual ? 'Concluída' : i === atual ? 'Etapa atual' : 'Próxima'}</span>
+          <span className="etapa-estado so-leitor">{i < atual ? 'Concluída' : i === atual ? 'Etapa atual' : 'Próxima'}</span>
         </li>)}
       </ol>
       {atual < 0 && <p className="texto-pequeno">Status indisponível no momento.</p>}
       {erroSituacao && !blocoVisivel && <p role="alert" className="erro">{erroSituacao}</p>}
       <PosResolucao caso={caso} aoInformar={informarSituacao} ocupado={informando || carregando || enviando} />
-      <p className="texto-pequeno">Código para voltar: <strong>{normalizarCodigo(codigoAtivo) || codigoAtivo}</strong>. Anote em um lugar seguro.</p>
+      <details className="recolhivel codigo-caso">
+        <summary>Seu código</summary>
+        <p>Código para voltar: <strong>{normalizarCodigo(codigoAtivo) || codigoAtivo}</strong>. Anote em um lugar seguro.</p>
+      </details>
       <h2 ref={tituloConversa} tabIndex={-1}>Conversa com a coordenação</h2>
       {novas.length > 0 && <p role="status">{novas.length === 1 ? "Uma mensagem nova da coordenação." : `${novas.length} mensagens novas da coordenação.`}</p>}
       {avisoStorage && <p role="status">{avisoStorage}</p>}
-      <p className="texto-pequeno">{conexao === 'online' ? 'Atualizações ao vivo' : conexao === 'conectando' ? 'Conectando às atualizações' : 'Reconectando; atualização a cada 8 segundos'}</p>
+      {foraDoAr && <p className="texto-pequeno linha-conexao">Reconectando; atualização a cada 8 segundos</p>}
       <div role="log" aria-live="polite" aria-label="Mensagens do caso" className="mensagens">
         {!caso.mensagens.length && <p className="vazio">Ainda não há mensagens. Você pode escrever para a coordenação por aqui.</p>}
         {caso.mensagens.map((mensagem, i) => <article key={`${mensagem.criado_em}-${i}`} className="mensagem" data-autor={mensagem.autor}>
@@ -148,7 +152,7 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
             : <><p>{mensagem.texto}</p><time dateTime={mensagem.criado_em}>{dataLegivel(mensagem.criado_em)}</time>{mensagem.editada && <span className="texto-pequeno"> (editada)</span>}</>}
         </article>)}
       </div>
-      <button type="button" className="botao secundario atualizar" disabled={carregando || enviando} onClick={() => void atualizar()}>Atualizar conversa</button>
+      {foraDoAr && <button type="button" className="botao secundario atualizar" disabled={carregando || enviando} onClick={() => void atualizar()}>Atualizar conversa</button>}
       <form noValidate onSubmit={e => { e.preventDefault(); void enviar(); }} aria-busy={enviando} className="resposta">
         <label htmlFor="resposta">Sua resposta</label>
         <textarea id="resposta" rows={4} maxLength={2000} value={texto} disabled={enviando} onChange={e => setTexto(e.target.value)} aria-describedby="limite-resposta" />

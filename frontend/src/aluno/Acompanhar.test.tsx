@@ -1,15 +1,19 @@
 import { StrictMode } from 'react';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import Acompanhar from './Acompanhar';
 
 let respostas: Array<() => Promise<Response>> = [];
+let eventos: 'online' | 'conectando' | 'queda' = 'online';
 beforeEach(() => {
   respostas = [];
+  eventos = 'online';
   localStorage.clear();
   vi.mocked(fetch).mockImplementation(async url => {
+    if (url === '/api/acompanhar/eventos' && eventos === 'queda') throw new TypeError('rede');
+    if (url === '/api/acompanhar/eventos' && eventos === 'conectando') return new Promise<Response>(() => {});
     if (url === '/api/acompanhar/eventos') return new Response(new ReadableStream(), { headers: { 'Content-Type': 'text/event-stream' } });
     const proxima = respostas.shift();
     if (!proxima) throw new Error('Resposta HTTP não preparada no teste');
@@ -26,8 +30,9 @@ describe('Acompanhar', () => {
     const user = userEvent.setup();
     const storage = vi.spyOn(Storage.prototype, 'setItem');
     render(<App />);
+    await user.click(within(screen.getByRole('navigation', { name: 'Principal' })).getByRole('button', { name: 'Acompanhar' }));
     responder({ ...base, status: 'em_investigacao', mensagens: [{ autor: 'coordenacao', texto: '<img src=x onerror=alert(1)>', criado_em: '2026-10-14T12:00:00Z' }] });
-    await user.type(screen.getByLabelText('Acompanhar meu caso'), ' k7m2 9qxd ');
+    await user.type(screen.getByLabelText('Código de acompanhamento'), ' k7m2 9qxd ');
     await user.click(within(screen.getByRole('main')).getByRole('button', { name: 'Acompanhar' }));
     expect(await screen.findByText('<img src=x onerror=alert(1)>')).toBeInTheDocument();
     expect(document.querySelector('img')).toBeNull();
@@ -46,8 +51,9 @@ describe('Acompanhar', () => {
   it('usa o texto de 404 de mensagemErro para código inexistente', async () => {
     const user = userEvent.setup();
     render(<App />);
+    await user.click(within(screen.getByRole('navigation', { name: 'Principal' })).getByRole('button', { name: 'Acompanhar' }));
     responder({ erro: 'detalhe privado' }, 404);
-    await user.type(screen.getByLabelText('Acompanhar meu caso'), 'invalido');
+    await user.type(screen.getByLabelText('Código de acompanhamento'), 'invalido');
     await user.click(within(screen.getByRole('main')).getByRole('button', { name: 'Acompanhar' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível encontrar o caso. Confira o código e tente de novo.');
     expect(screen.queryByText('detalhe privado')).not.toBeInTheDocument();
@@ -77,7 +83,80 @@ describe('Acompanhar', () => {
     const correntes = itens.filter(i => i.getAttribute('aria-current') === 'step');
     expect(correntes).toHaveLength(1);
     expect(correntes[0]).toHaveTextContent(atual);
-    expect(correntes[0]).toHaveTextContent('Etapa atual');
+    expect(correntes[0].querySelector('.so-leitor')).toHaveTextContent('Etapa atual');
+  });
+  it('etapas ficam em uma linha com o estado só para leitor de tela', async () => {
+    responder({ ...base, status: 'em_investigacao', mensagens: [] });
+    render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+    const lista = await screen.findByRole('list', { name: 'Etapas do caso' });
+    expect(within(lista).getAllByRole('listitem')).toHaveLength(3);
+    expect(lista.querySelector('[aria-current="step"]')).not.toBeNull();
+    expect(within(lista).getByText('Etapa atual')).toHaveClass('so-leitor');
+  });
+  it('código fica em Seu código, fechado por padrão', async () => {
+    responder({ ...base, status: 'novo', mensagens: [] });
+    render(<Acompanhar codigoInicial="k7m2 9qxd" />);
+    const resumo = await screen.findByText('Seu código', { selector: 'summary' });
+    const bloco = resumo.closest('details')!;
+    expect(bloco).toHaveClass('codigo-caso');
+    expect(bloco).not.toHaveAttribute('open');
+    expect(bloco).toHaveTextContent('K7M2-9QXD');
+    expect(bloco).toHaveTextContent('Anote em um lugar seguro.');
+  });
+  it('o aviso de armazenamento aparece fora do bloco fechado do código', async () => {
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('cheio'); });
+    responder({ ...base, status: 'novo', mensagens: [] });
+    render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+    const aviso = await screen.findByText(/Não foi possível salvar o acesso/);
+    expect(aviso.closest('details')).toBeNull();
+  });
+  it('foco inicial continua no título Conversa com a coordenação', async () => {
+    responder({ ...base, status: 'novo', mensagens: [] });
+    render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+    const titulo = await screen.findByRole('heading', { name: 'Conversa com a coordenação' });
+    await waitFor(() => expect(titulo).toHaveFocus());
+  });
+  it('não mostra Atualizações ao vivo nem o botão quando online', async () => {
+    responder({ ...base, status: 'novo', mensagens: [] });
+    render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+    await screen.findByLabelText('Sua resposta');
+    await waitFor(() => expect(vi.mocked(fetch).mock.calls.some(([url]) => url === '/api/acompanhar/eventos')).toBe(true));
+    await act(async () => { await new Promise(r => setTimeout(r, 30)); });
+    expect(screen.queryByText('Atualizações ao vivo')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Reconectando/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Atualizar conversa' })).not.toBeInTheDocument();
+  });
+  it('conectando não mostra o botão', async () => {
+    eventos = 'conectando';
+    responder({ ...base, status: 'novo', mensagens: [] });
+    render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+    await screen.findByLabelText('Sua resposta');
+    await act(async () => { await new Promise(r => setTimeout(r, 30)); });
+    expect(screen.queryByRole('button', { name: 'Atualizar conversa' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Conectando às atualizações/)).not.toBeInTheDocument();
+  });
+  it('fora do ar mostra a linha e o botão, que atualiza a conversa', async () => {
+    eventos = 'queda';
+    const user = userEvent.setup();
+    responder({ ...base, status: 'novo', mensagens: [] });
+    render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+    expect(await screen.findByText('Reconectando; atualização a cada 8 segundos')).toBeInTheDocument();
+    const antes = consultas().length;
+    responder({ ...base, status: 'novo', mensagens: [] });
+    await user.click(screen.getByRole('button', { name: 'Atualizar conversa' }));
+    expect(await screen.findByText('Conversa atualizada.')).toBeInTheDocument();
+    expect(consultas().length).toBe(antes + 1);
+  });
+  it('sem transmissão em tempo real (resposta que não é event-stream) o botão continua alcançável', async () => {
+    vi.mocked(fetch).mockImplementation(async url => {
+      if (url === '/api/acompanhar/eventos') return new Response('{}', { headers: { 'Content-Type': 'application/json' } });
+      const proxima = respostas.shift();
+      if (!proxima) throw new Error('Resposta HTTP não preparada no teste');
+      return proxima();
+    });
+    responder({ ...base, status: 'novo', mensagens: [] });
+    render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+    expect(await screen.findByRole('button', { name: 'Atualizar conversa' })).toBeInTheDocument();
   });
   it('status desconhecido não marca etapa nem quebra', async () => {
     responder({ ...base, status: 'inventado', mensagens: [] });
@@ -87,11 +166,12 @@ describe('Acompanhar', () => {
   });
   it('Atualizar conversa recarrega as mensagens', async () => {
     const user = userEvent.setup();
+    eventos = 'queda';
     responder({ ...base, status: 'novo', mensagens: [] });
     render(<Acompanhar codigoInicial="K7M2-9QXD" />);
     await screen.findByText(/Ainda não há mensagens/);
     responder({ ...base, status: 'novo', mensagens: [{ autor: 'coordenacao', texto: 'Chegou', criado_em: '2026-10-14T12:00:00Z' }] });
-    await user.click(screen.getByRole('button', { name: 'Atualizar conversa' }));
+    await user.click(await screen.findByRole('button', { name: 'Atualizar conversa' }));
     expect(await screen.findByText('Chegou')).toBeInTheDocument();
   });
   it('recusa resposta vazia sem enviar', async () => {
@@ -104,11 +184,12 @@ describe('Acompanhar', () => {
     expect(consultas()).toHaveLength(1);
   });
   it('com o caso resolvido mantém a conversa e mostra o bloco pós-resolução', async () => {
+    eventos = 'queda';
     responder(resolvido);
     render(<Acompanhar codigoInicial="K7M2-9QXD" />);
     expect(await screen.findByRole('heading', { name: 'Seu caso foi resolvido' })).toBeInTheDocument();
     expect(screen.getByLabelText('Sua resposta')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Atualizar conversa' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Atualizar conversa' })).toBeInTheDocument();
   });
   it('não mostra o bloco com pos_resolucao falso (caso reaberto)', async () => {
     responder({ ...resolvido, pos_resolucao: false, resolucao: null, status: 'em_investigacao' });
@@ -156,6 +237,7 @@ describe('Acompanhar', () => {
   });
   it('uma atualização lenta não sobrescreve a recarga posterior ao informar a situação', async () => {
     const user = userEvent.setup();
+    eventos = 'queda';
     const adiada = () => { let fim!: (r: Response) => void; const promessa = new Promise<Response>(r => { fim = r; }); return { promessa, fim }; };
     const resposta = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
     responder(resolvido);
@@ -164,7 +246,7 @@ describe('Acompanhar', () => {
     const envio = adiada(); const antiga = adiada(); const nova = adiada();
     respostas.push(() => envio.promessa, () => antiga.promessa, () => nova.promessa);
     await user.click(screen.getByRole('button', { name: 'Melhorou' }));
-    await user.click(screen.getByRole('button', { name: 'Atualizar conversa' }));
+    await user.click(await screen.findByRole('button', { name: 'Atualizar conversa' }));
     envio.fim(resposta({ ok: true }, 201));
     await waitFor(() => expect(consultas()).toHaveLength(4));
     nova.fim(resposta({ ...resolvido, ultima_situacao: 'melhorou' }));
@@ -175,11 +257,12 @@ describe('Acompanhar', () => {
   });
   it('desabilita as respostas da situação enquanto a conversa recarrega', async () => {
     const user = userEvent.setup();
+    eventos = 'queda';
     responder(resolvido);
     render(<Acompanhar codigoInicial="K7M2-9QXD" />);
     await screen.findByRole('heading', { name: 'Seu caso foi resolvido' });
     respostas.push(() => new Promise<Response>(() => {}));
-    await user.click(screen.getByRole('button', { name: 'Atualizar conversa' }));
+    await user.click(await screen.findByRole('button', { name: 'Atualizar conversa' }));
     expect(screen.getByRole('button', { name: 'Melhorou' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Voltou a acontecer' })).toBeDisabled();
   });
@@ -196,6 +279,7 @@ describe('Acompanhar', () => {
   });
   it('o erro do 409 some ao atualizar a conversa', async () => {
     const user = userEvent.setup();
+    eventos = 'queda';
     responder(resolvido);
     render(<Acompanhar codigoInicial="K7M2-9QXD" />);
     await screen.findByRole('heading', { name: 'Seu caso foi resolvido' });
@@ -204,7 +288,7 @@ describe('Acompanhar', () => {
     await user.click(screen.getByRole('button', { name: 'Melhorou' }));
     expect(await screen.findByText('Esse caso ainda não foi resolvido.')).toBeInTheDocument();
     responder({ ...resolvido, status: 'em_investigacao', pos_resolucao: false, resolucao: null });
-    await user.click(screen.getByRole('button', { name: 'Atualizar conversa' }));
+    await user.click(await screen.findByRole('button', { name: 'Atualizar conversa' }));
     await waitFor(() => expect(screen.queryByText('Esse caso ainda não foi resolvido.')).toBeNull());
   });
   it('o erro do 409 some quando o caso é resolvido de novo', async () => {
