@@ -508,6 +508,7 @@ describe('Acompanhar: conversa em formato de chat', () => {
     try {
       await abrir([aluno(1, 'oi'), coord(2, 'nova')]);
       await waitFor(() => expect(rolagem.mock.contexts.at(-1)).toBe(screen.getByRole('separator')));
+      expect(rolagem.mock.lastCall![0]).toEqual({ block: 'start' });
       expect(screen.getByRole('heading', { name: 'Conversa com a coordenação' })).toHaveFocus();
     } finally { delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView; }
   });
@@ -519,6 +520,7 @@ describe('Acompanhar: conversa em formato de chat', () => {
       await abrir([aluno(1, 'oi'), coord(2, 'ultima')]);
       const artigos = screen.getByRole('log').querySelectorAll('article');
       await waitFor(() => expect(rolagem.mock.contexts.at(-1)).toBe(artigos[1]));
+      expect(rolagem.mock.lastCall![0]).toEqual({ block: 'nearest' });
       expect(screen.getByRole('heading', { name: 'Conversa com a coordenação' })).toHaveFocus();
     } finally { delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView; }
   });
@@ -648,5 +650,59 @@ describe('Acompanhar: quando a conversa rola', () => {
     expect(await screen.findByText(/Use Atualizar conversa para ver/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Atualizar conversa' })).toBeInTheDocument();
     fimRefresh(new Response('{}', { status: 500 }));
+  });
+});
+
+describe('Acompanhar: novas relativas à abertura da conversa', () => {
+  const t = '2026-10-14T12:00:00Z';
+  const coord = (id: number, texto: string) => ({ id, autor: 'coordenacao', texto, criado_em: t, editada: false, apagada: false });
+  const avisar = () => fluxo!.enqueue(new TextEncoder().encode('event: atualizar\n\n'));
+  it('uma segunda leitura do tempo real mantém separador e contagem', async () => {
+    eventos = 'controlado';
+    responder({ ...base, status: 'em_investigacao', mensagens: [coord(1, 'a'), coord(2, 'b')] });
+    render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+    await screen.findByText('2 mensagens novas da coordenação.');
+    await waitFor(() => expect(JSON.parse(localStorage.getItem('tetra-guard.acessos.v1') || '[]')[0].lastRead).toBe(2));
+    await waitFor(() => expect(fluxo).not.toBeNull());
+    responder({ ...base, status: 'em_investigacao', mensagens: [coord(1, 'a'), coord(2, 'b')] });
+    avisar(); await waitFor(() => expect(consultas()).toHaveLength(2));
+    await act(async () => { await new Promise(r => setTimeout(r, 30)); });
+    expect(screen.getByRole('separator')).toHaveTextContent('Novas mensagens');
+    expect(screen.getByText('2 mensagens novas da coordenação.')).toBeInTheDocument();
+  });
+  it('mensagem que chega depois entra na contagem e o separador fica antes da primeira original', async () => {
+    eventos = 'controlado';
+    responder({ ...base, status: 'em_investigacao', mensagens: [coord(1, 'a')] });
+    render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+    await screen.findByText('Uma mensagem nova da coordenação.');
+    await waitFor(() => expect(fluxo).not.toBeNull());
+    responder({ ...base, status: 'em_investigacao', mensagens: [coord(1, 'a'), coord(2, 'b')] });
+    avisar();
+    expect(await screen.findByText('2 mensagens novas da coordenação.')).toBeInTheDocument();
+    expect(screen.getAllByRole('separator')).toHaveLength(1);
+    expect(screen.getByRole('separator').nextElementSibling).toHaveTextContent('a');
+  });
+  it('reabrir o caso com o lastRead avançado não mostra separador', async () => {
+    responder({ ...base, status: 'em_investigacao', mensagens: [coord(1, 'a')] });
+    const { unmount } = render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+    await screen.findByRole('separator');
+    unmount();
+    responder({ ...base, status: 'em_investigacao', mensagens: [coord(1, 'a')] });
+    render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+    await screen.findByText('a');
+    expect(screen.queryByRole('separator')).not.toBeInTheDocument();
+  });
+});
+
+describe('Acompanhar: campo de resposta compacto', () => {
+  it('rótulo só para leitor de tela e contador e botão na mesma linha', async () => {
+    responder({ ...base, status: 'em_investigacao', mensagens: [] });
+    render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+    const campo = await screen.findByLabelText('Sua resposta');
+    expect(document.querySelector('label[for="resposta"]')).toHaveClass('so-leitor');
+    const rodape = campo.closest('form')!.querySelector('.resposta-rodape')!;
+    expect(rodape).toContainElement(screen.getByText('0 de 2000 caracteres'));
+    expect(rodape).toContainElement(screen.getByRole('button', { name: 'Enviar resposta' }));
+    expect(campo).toHaveAttribute('aria-describedby', 'limite-resposta');
   });
 });

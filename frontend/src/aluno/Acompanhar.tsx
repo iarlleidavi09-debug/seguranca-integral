@@ -27,6 +27,7 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
   const alvoRolagem = useRef<HTMLElement | null>(null);
   const areaResposta = useRef<HTMLTextAreaElement>(null);
   const deveRolar = useRef(true); // só ao abrir e depois de enviar; tempo real e Atualizar não rolam
+  const baseLida = useRef<{ codigo: string | null; valor: number } | null>(null); // lastRead da abertura: as novas são relativas a ele
   const consulta = useRef(0);
   const responder = useRef(false);
   const montado = useRef(true);
@@ -36,7 +37,10 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
     const atual = ++consulta.current;
     const dados = await acompanhar(codigoConsulta);
     if (!montado.current || atual !== consulta.current) return false;
-    const ultimoLido = lerAcessos().find(a => a.codigo === normalizarCodigo(codigoConsulta))?.lastRead || 0;
+    const chave = normalizarCodigo(codigoConsulta);
+    const base = baseLida.current?.codigo === chave ? baseLida.current : { codigo: chave, valor: lerAcessos().find(a => a.codigo === chave)?.lastRead || 0 };
+    baseLida.current = base;
+    const ultimoLido = base.valor;
     setNovas(dados.mensagens.filter(m => m.autor === 'coordenacao' && !m.apagada && typeof m.id === 'number' && m.id! > ultimoLido).map(m => m.id!));
     if (!guardarAcesso(codigoConsulta)) setAvisoStorage('Não foi possível salvar o acesso neste navegador. Anote seu código para voltar.');
     setCaso(dados);
@@ -55,7 +59,7 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
   async function consultar() {
     if (!codigo.trim()) { setErro('Digite seu código para acompanhar.'); return; }
     const atual = consulta.current + 1;
-    setCarregando(true); setErro(''); setErroSituacao(''); setCaso(null); setAviso('');
+    setCarregando(true); setErro(''); setErroSituacao(''); setCaso(null); setAviso(''); baseLida.current = null;
     try {
       if (await buscar(codigo)) { setCodigoAtivo(codigo); setCodigo(''); }
     } catch (falha) { if (atual === consulta.current) setErro(mensagemErro(falha)); }
@@ -120,7 +124,9 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
   useEffect(() => {
     if (!caso || !deveRolar.current) return;
     deveRolar.current = false;
-    alvoRolagem.current?.scrollIntoView?.({ block: 'nearest' });
+    const alvo = alvoRolagem.current;
+    // com separador, ele vai para o topo para as novas aparecerem abaixo; sem, a última mensagem fica visível
+    alvo?.scrollIntoView?.({ block: alvo.getAttribute('role') === 'separator' ? 'start' : 'nearest' });
   }, [caso]);
   // o campo cresce com o texto, de 2 a 6 linhas
   useLayoutEffect(() => {
@@ -185,10 +191,12 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
       </div>
       {(foraDoAr || falhaAtualizar) && <button type="button" className="botao secundario atualizar" disabled={carregando || enviando} onClick={() => void atualizar()}>Atualizar conversa</button>}
       <form noValidate onSubmit={e => { e.preventDefault(); void enviar(); }} aria-busy={enviando} className="resposta resposta-fixa">
-        <label htmlFor="resposta">Sua resposta</label>
+        <label htmlFor="resposta" className="so-leitor">Sua resposta</label>
         <textarea id="resposta" ref={areaResposta} rows={2} maxLength={2000} value={texto} disabled={enviando} onChange={e => setTexto(e.target.value)} aria-describedby="limite-resposta" />
-        <p id="limite-resposta" className="texto-pequeno">{texto.length} de 2000 caracteres</p>
-        <button className="botao principal" disabled={enviando || carregando}>{enviando ? 'Enviando resposta…' : 'Enviar resposta'}</button>
+        <div className="resposta-rodape">
+          <p id="limite-resposta" className="texto-pequeno">{texto.length} de 2000 caracteres</p>
+          <button className="botao principal" disabled={enviando || carregando}>{enviando ? 'Enviando resposta…' : 'Enviar resposta'}</button>
+        </div>
       </form>
       <p role="status">{aviso}</p>
     </>}

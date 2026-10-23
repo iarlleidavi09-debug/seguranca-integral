@@ -252,8 +252,30 @@
 .aluno-app .novas-divisor { display: flex; align-items: center; gap: var(--espaco-3); margin: var(--espaco-4) 0 var(--espaco-2); font-size: var(--texto-pequeno); font-weight: 700; color: var(--texto-principal); }
 .aluno-app .novas-divisor::before, .aluno-app .novas-divisor::after { content: ''; flex: 1; border-top: 2px solid #101010; }
 .aluno-app .novas-divisor::before { flex: 0 0 var(--espaco-4); }
-.aluno-app .resposta-fixa { position: sticky; bottom: 0; z-index: 1; margin-top: var(--espaco-4); background: var(--fundo-base); border-top: 3px solid #101010; padding: var(--espaco-3) var(--espaco-4) calc(var(--espaco-3) + env(safe-area-inset-bottom)); }
+.aluno-app .resposta-fixa { position: sticky; bottom: 0; z-index: 1; margin-top: var(--espaco-4); background: var(--fundo-base); border-top: 3px solid #101010; padding: var(--espaco-2) var(--espaco-4) calc(var(--espaco-2) + env(safe-area-inset-bottom)); }
 .aluno-app .resposta-fixa textarea { width: 100%; box-sizing: border-box; line-height: 1.5; resize: none; }
-.aluno-app .resposta-fixa p[id='limite-resposta'] { margin-bottom: var(--espaco-2); }
-/* a rolagem para a última mensagem ou o separador deixa espaço para o campo fixo (≈ 4 x 64px) */
-.aluno-app .mensagem, .aluno-app .novas-divisor { scroll-margin-bottom: calc(var(--espaco-16) * 4); }
+.aluno-app .resposta-fixa .resposta-rodape { display: flex; align-items: center; justify-content: space-between; gap: var(--espaco-3); margin-top: var(--espaco-2); }
+.aluno-app .resposta-fixa p[id='limite-resposta'] { margin: 0; }
+.aluno-app .resposta-fixa .botao { min-height: 44px; margin: 0; }
+/* a última mensagem para de rolar acima do campo fixo (≈ 150px, folga até 3 x 64px); o separador vai para o topo */
+.aluno-app .mensagem { scroll-margin-bottom: calc(var(--espaco-16) * 3); }
+.aluno-app .novas-divisor { scroll-margin-top: var(--espaco-4); }
+
+/* Início: espaçamentos e cartões */
+.aluno-app .codigo-caso { margin-bottom: var(--espaco-6); }
+.aluno-app .continuar-caso ul { list-style: none; padding: 0; display: grid; gap: var(--espaco-2); }
+.aluno-app .continuar-caso li { display: flex; flex-wrap: wrap; gap: var(--espaco-2) var(--espaco-4); }
+.aluno-app .continuar-caso .botao-texto { font-weight: 700; margin-bottom: 0; }
+.aluno-app .acao-cartao { display: flex; flex-direction: column; }
+.aluno-app .acao-cartao > .botao { margin-top: auto; align-self: flex-start; }
+.aluno-app .acao-cartao .campo-acao { flex-direction: column; align-items: stretch; }
+.aluno-app .acao-cartao .campo-acao input { width: 100%; box-sizing: border-box; flex: none; }
+.aluno-app .acao-cartao .campo-acao .botao { width: 100%; min-height: 44px; }
+@media (min-width: 768px) and (max-width: 1023px) {
+  .aluno-app .inicio-acoes { grid-template-columns: 1fr; }
+}
+/* três colunas só a partir de 1024px; o conteúdo tem no máximo 760px, então o cartão fica com padding menor para o campo passar de 180px */
+@media (min-width: 1024px) {
+  .aluno-app .inicio-acoes { grid-template-columns: repeat(3, 1fr); }
+  .aluno-app .inicio-acoes .acao-cartao { padding: var(--espaco-4); }
+}
