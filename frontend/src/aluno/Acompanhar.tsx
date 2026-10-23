@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { acompanhar, enviarMensagem, enviarSituacao, ErroApi, mensagemErro } from '../shared/api';
 import type { Caso, Situacao } from '../shared/api';
 import { guardarAcesso, lerAcessos, normalizarCodigo } from './acessos';
@@ -24,6 +24,9 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
   const [novas, setNovas] = useState<number[]>([]);
   const [avisoStorage, setAvisoStorage] = useState('');
   const [falhaAtualizar, setFalhaAtualizar] = useState(false);
+  const alvoRolagem = useRef<HTMLElement | null>(null);
+  const areaResposta = useRef<HTMLTextAreaElement>(null);
+  const totalVisto = useRef(0);
   const consulta = useRef(0);
   const responder = useRef(false);
   const montado = useRef(true);
@@ -62,11 +65,12 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
     if (responder.current) return;
     if (!texto.trim() || texto.trim().length > 2000) { setErro('Escreva uma resposta de 1 a 2000 caracteres.'); return; }
     responder.current = true; setEnviando(true); setErro(''); setAviso('');
+    const leitura = consulta.current + 1;
     try {
       await enviarMensagem(codigoAtivo, texto.trim());
       setTexto(''); setAviso('Resposta enviada.');
       try { await buscar(codigoAtivo); }
-      catch (falha) { setFalhaAtualizar(true); setAviso(`Resposta enviada. ${mensagemErro(falha)} Use Atualizar conversa para ver as mensagens.`); }
+      catch (falha) { if (leitura === consulta.current) setFalhaAtualizar(true); setAviso(`Resposta enviada. ${mensagemErro(falha)} Use Atualizar conversa para ver as mensagens.`); }
     } catch (falha) { setErro(mensagemErro(falha)); }
     finally { setEnviando(false); responder.current = false; }
   }
@@ -81,7 +85,7 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
   async function recarregar(): Promise<boolean> {
     const atual = consulta.current + 1;
     try { await buscar(codigoAtivo); return true; }
-    catch { setFalhaAtualizar(true); return false; }
+    catch { if (atual === consulta.current) setFalhaAtualizar(true); return false; }
     finally { if (atual === consulta.current) setCarregando(false); }
   }
   const conexao = useTempoReal('aluno', caso !== null && !!codigoAtivo, () => { void recarregar(); }, codigoAtivo);
@@ -111,7 +115,24 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
     registrar(); document.addEventListener('visibilitychange', registrar);
     return () => document.removeEventListener('visibilitychange', registrar);
   }, [caso, codigoAtivo]);
+  // rola até o separador (ou a última mensagem) quando chegam mensagens; o foco não sai do título
+  useEffect(() => {
+    if (!caso || caso.mensagens.length === totalVisto.current) return;
+    totalVisto.current = caso.mensagens.length;
+    alvoRolagem.current?.scrollIntoView?.({ block: 'nearest' });
+  }, [caso]);
+  // o campo cresce com o texto, de 2 a 6 linhas
+  useLayoutEffect(() => {
+    const campo = areaResposta.current;
+    if (!campo) return;
+    campo.rows = 2;
+    const estilo = getComputedStyle(campo);
+    const linha = parseFloat(estilo.lineHeight) || 24;
+    const folga = (parseFloat(estilo.paddingTop) || 0) + (parseFloat(estilo.paddingBottom) || 0) + (parseFloat(estilo.borderTopWidth) || 0) + (parseFloat(estilo.borderBottomWidth) || 0);
+    campo.rows = Math.min(6, Math.max(2, Math.ceil((campo.scrollHeight - folga) / linha)));
+  }, [texto, caso !== null]);
   const atual = caso ? etapas.indexOf(rotuloStatus(caso.status)) : -1;
+  const primeiraNova = caso ? caso.mensagens.findIndex(m => m.autor === 'coordenacao' && !m.apagada && novas.includes(m.id || 0)) : -1;
   const blocoVisivel = !!caso && caso.pos_resolucao && !!caso.resolucao;
   // uma resolução nova torna o erro de 409 antigo obsoleto
   useEffect(() => { if (blocoVisivel) setErroSituacao(''); }, [blocoVisivel]);
@@ -146,18 +167,25 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
       {foraDoAr && <p className="texto-pequeno linha-conexao">Reconectando; atualização a cada 8 segundos</p>}
       <div role="log" aria-live="polite" aria-label="Mensagens do caso" className="mensagens">
         {!caso.mensagens.length && <p className="vazio">Ainda não há mensagens. Você pode escrever para a coordenação por aqui.</p>}
-        {caso.mensagens.map((mensagem, i) => <article key={`${mensagem.criado_em}-${i}`} className="mensagem" data-autor={mensagem.autor}>
-          {!mensagem.apagada && novas.includes(mensagem.id || 0) && <p className="texto-pequeno">Mensagem nova</p>}
-          <h3>{mensagem.autor === 'aluno' ? 'Você' : 'Coordenação'}</h3>
-          {mensagem.apagada
-            ? <p className="texto-pequeno">Mensagem apagada</p>
-            : <><p>{mensagem.texto}</p><time dateTime={mensagem.criado_em}>{dataLegivel(mensagem.criado_em)}</time>{mensagem.editada && <span className="texto-pequeno"> (editada)</span>}</>}
-        </article>)}
+        {caso.mensagens.map((mensagem, i) => {
+          const autor = mensagem.autor === 'aluno' ? 'Você' : 'Coordenação';
+          const inicioGrupo = i === 0 || i === primeiraNova || caso.mensagens[i - 1].autor !== mensagem.autor;
+          const ultimaSemNovas = primeiraNova < 0 && i === caso.mensagens.length - 1;
+          return <Fragment key={`${mensagem.criado_em}-${i}`}>
+            {i === primeiraNova && <div role="separator" className="novas-divisor" ref={el => { alvoRolagem.current = el; }}>Novas mensagens</div>}
+            <article className="mensagem" data-autor={mensagem.autor} data-inicio={inicioGrupo || undefined} aria-label={autor} ref={ultimaSemNovas ? el => { alvoRolagem.current = el; } : undefined}>
+              {inicioGrupo && <h3>{autor}</h3>}
+              {mensagem.apagada
+                ? <p className="texto-pequeno">Mensagem apagada</p>
+                : <><p>{mensagem.texto}</p><time dateTime={mensagem.criado_em}>{dataLegivel(mensagem.criado_em)}</time>{mensagem.editada && <span className="texto-pequeno"> (editada)</span>}</>}
+            </article>
+          </Fragment>;
+        })}
       </div>
       {(foraDoAr || falhaAtualizar) && <button type="button" className="botao secundario atualizar" disabled={carregando || enviando} onClick={() => void atualizar()}>Atualizar conversa</button>}
-      <form noValidate onSubmit={e => { e.preventDefault(); void enviar(); }} aria-busy={enviando} className="resposta">
+      <form noValidate onSubmit={e => { e.preventDefault(); void enviar(); }} aria-busy={enviando} className="resposta resposta-fixa">
         <label htmlFor="resposta">Sua resposta</label>
-        <textarea id="resposta" rows={4} maxLength={2000} value={texto} disabled={enviando} onChange={e => setTexto(e.target.value)} aria-describedby="limite-resposta" />
+        <textarea id="resposta" ref={areaResposta} rows={2} maxLength={2000} value={texto} disabled={enviando} onChange={e => setTexto(e.target.value)} aria-describedby="limite-resposta" />
         <p id="limite-resposta" className="texto-pequeno">{texto.length} de 2000 caracteres</p>
         <button className="botao principal" disabled={enviando || carregando}>{enviando ? 'Enviando resposta…' : 'Enviar resposta'}</button>
       </form>

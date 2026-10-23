@@ -240,3 +240,18 @@
   .aluno-app .boas-vindas .inicio-acoes { grid-area: acoes; }
   .aluno-app .boas-vindas .privacidade-linha { grid-area: privacidade; }
 }
+
+/* Conversa em formato de chat: balões leves, separador de novas e resposta fixa */
+.aluno-app .mensagens { display: grid; gap: var(--espaco-1); margin-top: var(--espaco-4); }
+.aluno-app .mensagens .vazio { margin: 0; }
+.aluno-app .mensagem { padding: var(--espaco-2) var(--espaco-3); }
+.aluno-app .mensagem[data-inicio] { margin-top: var(--espaco-3); }
+.aluno-app .mensagem:first-child { margin-top: 0; }
+.aluno-app .mensagem h3 { margin: 0; font-size: var(--texto-pequeno); line-height: 1.4; font-weight: 700; color: var(--texto-secundario); }
+.aluno-app .mensagem p { margin: var(--espaco-1) 0; }
+.aluno-app .novas-divisor { display: flex; align-items: center; gap: var(--espaco-3); margin: var(--espaco-4) 0 var(--espaco-2); font-size: var(--texto-pequeno); font-weight: 700; color: var(--texto-principal); }
+.aluno-app .novas-divisor::before, .aluno-app .novas-divisor::after { content: ''; flex: 1; border-top: 2px solid #101010; }
+.aluno-app .novas-divisor::before { flex: 0 0 var(--espaco-4); }
+.aluno-app .resposta-fixa { position: sticky; bottom: 0; z-index: 1; margin-top: var(--espaco-4); background: var(--fundo-base); border-top: 3px solid #101010; padding: var(--espaco-3) var(--espaco-4) calc(var(--espaco-3) + env(safe-area-inset-bottom)); }
+.aluno-app .resposta-fixa textarea { width: 100%; box-sizing: border-box; line-height: 1.5; resize: none; }
+.aluno-app .resposta-fixa p[id='limite-resposta'] { margin-bottom: var(--espaco-2); }

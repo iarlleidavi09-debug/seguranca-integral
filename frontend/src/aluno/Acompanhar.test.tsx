@@ -6,14 +6,16 @@ import App from './App';
 import Acompanhar from './Acompanhar';
 
 let respostas: Array<() => Promise<Response>> = [];
-let eventos: 'online' | 'conectando' | 'queda' = 'online';
+let eventos: 'online' | 'conectando' | 'queda' | 'controlado' = 'online';
+let fluxo: ReadableStreamDefaultController<Uint8Array> | null = null;
 beforeEach(() => {
   respostas = [];
-  eventos = 'online';
+  eventos = 'online'; fluxo = null;
   localStorage.clear();
   vi.mocked(fetch).mockImplementation(async url => {
     if (url === '/api/acompanhar/eventos' && eventos === 'queda') throw new TypeError('rede');
     if (url === '/api/acompanhar/eventos' && eventos === 'conectando') return new Promise<Response>(() => {});
+    if (url === '/api/acompanhar/eventos' && eventos === 'controlado') return new Response(new ReadableStream<Uint8Array>({ start(c) { fluxo = c; } }), { headers: { 'Content-Type': 'text/event-stream' } });
     if (url === '/api/acompanhar/eventos') return new Response(new ReadableStream(), { headers: { 'Content-Type': 'text/event-stream' } });
     const proxima = respostas.shift();
     if (!proxima) throw new Error('Resposta HTTP não preparada no teste');
@@ -366,7 +368,8 @@ it('foca a conversa e registra somente os IDs vistos da coordenação', async ()
  render(<Acompanhar codigoInicial="K7M2-9QXD" />);
  const titulo=await screen.findByRole('heading',{name:'Conversa com a coordenação'});
  await waitFor(() => expect(titulo).toHaveFocus());
- expect(screen.getByText('Mensagem nova')).toBeInTheDocument();
+ expect(screen.getByRole('separator')).toHaveTextContent('Novas mensagens');
+ expect(screen.getByText('Uma mensagem nova da coordenação.')).toHaveAttribute('role', 'status');
  expect(JSON.parse(localStorage.getItem('tetra-guard.acessos.v1') || '[]')).toEqual([{codigo:'K7M2-9QXD',lastRead:42}]);
 });
 
@@ -411,7 +414,152 @@ describe('Acompanhar: mensagens editadas e apagadas', () => {
     responder({ ...base, status: 'em_investigacao', mensagens: [{ ...coord, id: 5, texto: '', editada: false, apagada: true }] });
     render(<Acompanhar codigoInicial="K7M2-9QXD" />);
     await screen.findByText('Mensagem apagada');
-    expect(screen.queryByText('Mensagem nova')).not.toBeInTheDocument();
+    expect(screen.queryByRole('separator')).not.toBeInTheDocument();
     expect(screen.queryByText(/mensagens? nova/i)).not.toBeInTheDocument();
+  });
+});
+
+describe('Acompanhar: conversa em formato de chat', () => {
+  const t = '2026-10-14T12:00:00Z';
+  const coord = (id: number, texto: string, extra = {}) => ({ id, autor: 'coordenacao', texto, criado_em: t, editada: false, apagada: false, ...extra });
+  const aluno = (id: number, texto: string) => ({ id, autor: 'aluno', texto, criado_em: t, editada: false, apagada: false });
+  const abrir = async (mensagens: unknown[]) => {
+    responder({ ...base, status: 'em_investigacao', mensagens });
+    render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+    await screen.findByRole('log', { name: 'Mensagens do caso' });
+  };
+  it('nome do autor só na primeira mensagem do grupo', async () => {
+    await abrir([aluno(1, 'um'), aluno(2, 'dois'), coord(3, 'três')]);
+    const log = screen.getByRole('log');
+    expect(within(log).getAllByRole('heading', { level: 3 }).map(h => h.textContent)).toEqual(['Você', 'Coordenação']);
+    expect([...log.querySelectorAll('article')].map(a => a.getAttribute('aria-label'))).toEqual(['Você', 'Você', 'Coordenação']);
+  });
+  it('separador único Novas mensagens antes da primeira nova', async () => {
+    await abrir([aluno(1, 'oi'), coord(2, 'nova a'), coord(3, 'nova b')]);
+    const separadores = screen.getAllByRole('separator');
+    expect(separadores).toHaveLength(1);
+    expect(separadores[0]).toHaveTextContent('Novas mensagens');
+    expect(separadores[0].nextElementSibling).toHaveTextContent('nova a');
+    expect(separadores[0].previousElementSibling).toHaveTextContent('oi');
+    expect(screen.queryByText('Mensagem nova')).not.toBeInTheDocument();
+    expect(screen.getByText('2 mensagens novas da coordenação.')).toHaveAttribute('role', 'status');
+  });
+  it('sem mensagens novas não há separador', async () => {
+    localStorage.setItem('tetra-guard.acessos.v1', JSON.stringify([{ codigo: 'K7M2-9QXD', lastRead: 9 }]));
+    await abrir([coord(2, 'velha')]);
+    expect(screen.queryByRole('separator')).not.toBeInTheDocument();
+  });
+  it('mensagem nova apagada não gera separador, mas a nova seguinte sim', async () => {
+    await abrir([coord(2, '', { apagada: true }), coord(3, 'valida')]);
+    const sep = screen.getByRole('separator');
+    expect(sep.nextElementSibling).toHaveTextContent('valida');
+    expect(sep.previousElementSibling).toHaveTextContent('Mensagem apagada');
+  });
+  it('contagem de novas continua em role status', async () => {
+    await abrir([coord(2, 'a')]);
+    expect(screen.getByText('Uma mensagem nova da coordenação.')).toHaveAttribute('role', 'status');
+  });
+  it('campo de resposta fica depois do log e tem a classe resposta-fixa', async () => {
+    await abrir([]);
+    const campo = screen.getByLabelText('Sua resposta') as HTMLTextAreaElement;
+    const form = campo.closest('form')!;
+    expect(form).toHaveClass('resposta', 'resposta-fixa');
+    expect(screen.getByRole('log').compareDocumentPosition(form) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(campo.rows).toBe(2);
+    expect(screen.getByText('0 de 2000 caracteres')).toBeInTheDocument();
+  });
+  it('o campo cresce com o texto até 6 linhas', async () => {
+    const user = userEvent.setup();
+    const alturaSpy = vi.spyOn(HTMLTextAreaElement.prototype, 'scrollHeight', 'get');
+    await abrir([]);
+    const campo = screen.getByLabelText('Sua resposta') as HTMLTextAreaElement;
+    alturaSpy.mockReturnValue(72); await user.type(campo, 'a');
+    expect(campo.rows).toBe(3);
+    alturaSpy.mockReturnValue(900); await user.type(campo, 'b');
+    expect(campo.rows).toBe(6);
+    alturaSpy.mockRestore();
+  });
+  it('digitar não se perde ao receber mensagens', async () => {
+    const user = userEvent.setup();
+    eventos = 'controlado';
+    await abrir([]);
+    await user.type(screen.getByLabelText('Sua resposta'), 'rascunho');
+    responder({ ...base, status: 'em_investigacao', mensagens: [coord(7, 'chegou')] });
+    await waitFor(() => expect(fluxo).not.toBeNull());
+    fluxo!.enqueue(new TextEncoder().encode('event: atualizar\n\n'));
+    expect(await screen.findByText('chegou')).toBeInTheDocument();
+    expect(screen.getByLabelText('Sua resposta')).toHaveValue('rascunho');
+  });
+  it('enviar continua igual', async () => {
+    const user = userEvent.setup();
+    await abrir([]);
+    await user.click(screen.getByRole('button', { name: 'Enviar resposta' }));
+    expect(screen.getByRole('alert')).toHaveTextContent('Escreva uma resposta de 1 a 2000 caracteres.');
+    responder({ ok: true }, 201);
+    responder({ ...base, status: 'em_investigacao', mensagens: [aluno(1, 'olá')] });
+    await user.type(screen.getByLabelText('Sua resposta'), 'olá');
+    await user.click(screen.getByRole('button', { name: 'Enviar resposta' }));
+    expect(await screen.findByText('Resposta enviada.')).toBeInTheDocument();
+    expect(consultas()).toHaveLength(3);
+  });
+  it('rola até o separador sem mover o foco', async () => {
+    const rolagem = vi.fn();
+    Element.prototype.scrollIntoView = rolagem;
+    try {
+      await abrir([aluno(1, 'oi'), coord(2, 'nova')]);
+      await waitFor(() => expect(rolagem.mock.contexts.at(-1)).toBe(screen.getByRole('separator')));
+      expect(screen.getByRole('heading', { name: 'Conversa com a coordenação' })).toHaveFocus();
+    } finally { delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView; }
+  });
+  it('sem novas rola a última mensagem sem mover o foco', async () => {
+    const rolagem = vi.fn();
+    Element.prototype.scrollIntoView = rolagem;
+    localStorage.setItem('tetra-guard.acessos.v1', JSON.stringify([{ codigo: 'K7M2-9QXD', lastRead: 9 }]));
+    try {
+      await abrir([aluno(1, 'oi'), coord(2, 'ultima')]);
+      const artigos = screen.getByRole('log').querySelectorAll('article');
+      await waitFor(() => expect(rolagem.mock.contexts.at(-1)).toBe(artigos[1]));
+      expect(screen.getByRole('heading', { name: 'Conversa com a coordenação' })).toHaveFocus();
+    } finally { delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView; }
+  });
+});
+
+describe('Acompanhar: leitura superada que falha não liga o botão', () => {
+  const adiada = () => { let fim!: (r: Response) => void; const promessa = new Promise<Response>(r => { fim = r; }); return { promessa, fim }; };
+  const ok = () => new Response(JSON.stringify({ ...base, status: 'novo', mensagens: [] }), { status: 200 });
+  const avisar = () => fluxo!.enqueue(new TextEncoder().encode('event: atualizar\n\n'));
+  it('recarregar: falha antiga depois de uma leitura nova bem-sucedida', async () => {
+    eventos = 'controlado';
+    responder({ ...base, status: 'novo', mensagens: [] });
+    render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+    await screen.findByLabelText('Sua resposta');
+    await waitFor(() => expect(fluxo).not.toBeNull());
+    const antiga = adiada(); const nova = adiada();
+    respostas.push(() => antiga.promessa, () => nova.promessa);
+    avisar(); await waitFor(() => expect(consultas()).toHaveLength(2));
+    avisar(); await waitFor(() => expect(consultas()).toHaveLength(3));
+    nova.fim(ok());
+    antiga.fim(new Response('{}', { status: 500 }));
+    await act(async () => { await new Promise(r => setTimeout(r, 20)); });
+    expect(screen.queryByRole('button', { name: 'Atualizar conversa' })).not.toBeInTheDocument();
+  });
+  it('enviar: falha antiga da releitura depois de uma leitura nova bem-sucedida', async () => {
+    const user = userEvent.setup();
+    eventos = 'controlado';
+    responder({ ...base, status: 'novo', mensagens: [] });
+    render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+    await screen.findByLabelText('Sua resposta');
+    await waitFor(() => expect(fluxo).not.toBeNull());
+    const antiga = adiada(); const nova = adiada();
+    responder({ ok: true }, 201);
+    respostas.push(() => antiga.promessa, () => nova.promessa);
+    await user.type(screen.getByLabelText('Sua resposta'), 'oi');
+    await user.click(screen.getByRole('button', { name: 'Enviar resposta' }));
+    await waitFor(() => expect(consultas()).toHaveLength(3));
+    avisar(); await waitFor(() => expect(consultas()).toHaveLength(4));
+    nova.fim(ok());
+    antiga.fim(new Response('{}', { status: 500 }));
+    await act(async () => { await new Promise(r => setTimeout(r, 20)); });
+    expect(screen.queryByRole('button', { name: 'Atualizar conversa' })).not.toBeInTheDocument();
   });
 });
