@@ -572,6 +572,9 @@ describe('Acompanhar: quando a conversa rola', () => {
     Element.prototype.scrollIntoView = rolagem;
     try { await corpo(rolagem); } finally { delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView; }
   };
+  // só conta rolagens do alvo (artigo do log ou separador); a do título não interessa
+  const alvos = (rolagem: ReturnType<typeof vi.fn>) => (rolagem.mock.contexts as Element[]).filter(c => c.tagName === 'ARTICLE' || c.getAttribute('role') === 'separator');
+  const estabilizar = () => act(async () => { await new Promise(r => setTimeout(r, 30)); });
   it('mensagem que chega por tempo real depois da abertura não rola de novo', async () => {
     eventos = 'controlado';
     await comRolagem(async rolagem => {
@@ -580,12 +583,14 @@ describe('Acompanhar: quando a conversa rola', () => {
       await screen.findByText('primeira');
       await waitFor(() => expect(fluxo).not.toBeNull());
       await waitFor(() => expect(rolagem.mock.contexts.at(-1)).toBe(screen.getByRole('separator')));
-      const antes = rolagem.mock.calls.length;
+      await estabilizar();
+      const antes = alvos(rolagem).length;
+      expect(antes).toBe(1);
       responder({ ...base, status: 'em_investigacao', mensagens: [msg(1, 'coordenacao', 'primeira'), msg(2, 'coordenacao', 'segunda')] });
       fluxo!.enqueue(new TextEncoder().encode('event: atualizar\n\n'));
       expect(await screen.findByText('segunda')).toBeInTheDocument();
-      await act(async () => { await new Promise(r => setTimeout(r, 20)); });
-      expect(rolagem.mock.calls).toHaveLength(antes);
+      await estabilizar();
+      expect(alvos(rolagem)).toHaveLength(antes);
       expect(screen.getByRole('heading', { name: 'Conversa com a coordenação' })).toHaveFocus();
     });
   });
@@ -596,11 +601,13 @@ describe('Acompanhar: quando a conversa rola', () => {
       responder({ ...base, status: 'em_investigacao', mensagens: [msg(1, 'aluno', 'um')] });
       render(<Acompanhar codigoInicial="K7M2-9QXD" />);
       await screen.findByText('um');
-      const antes = rolagem.mock.calls.length;
+      await waitFor(() => expect(alvos(rolagem)).toHaveLength(1));
+      await estabilizar();
       responder({ ...base, status: 'em_investigacao', mensagens: [msg(1, 'aluno', 'um'), msg(2, 'aluno', 'dois')] });
       await user.click(await screen.findByRole('button', { name: 'Atualizar conversa' }));
       await screen.findByText('dois');
-      expect(rolagem.mock.calls).toHaveLength(antes);
+      await estabilizar();
+      expect(alvos(rolagem)).toHaveLength(1);
     });
   });
   it('enviar resposta rola até a última mensagem', async () => {
@@ -609,15 +616,17 @@ describe('Acompanhar: quando a conversa rola', () => {
       responder({ ...base, status: 'em_investigacao', mensagens: [msg(1, 'aluno', 'um')] });
       render(<Acompanhar codigoInicial="K7M2-9QXD" />);
       await screen.findByText('um');
-      const antes = rolagem.mock.calls.length;
+      await waitFor(() => expect(alvos(rolagem)).toHaveLength(1));
+      await estabilizar();
       responder({ ok: true }, 201);
       responder({ ...base, status: 'em_investigacao', mensagens: [msg(1, 'aluno', 'um'), msg(2, 'aluno', 'dois')] });
       await user.type(screen.getByLabelText('Sua resposta'), 'dois');
       await user.click(screen.getByRole('button', { name: 'Enviar resposta' }));
       await screen.findByText('Resposta enviada.');
       const artigos = screen.getByRole('log').querySelectorAll('article');
-      await waitFor(() => expect(rolagem.mock.contexts.at(-1)).toBe(artigos[1]));
-      expect(rolagem.mock.calls.length).toBe(antes + 1);
+      await waitFor(() => expect(alvos(rolagem).at(-1)).toBe(artigos[1]));
+      await estabilizar();
+      expect(alvos(rolagem)).toHaveLength(2);
     });
   });
   it('falha da releitura de enviar liga o botão mesmo com refresh de tempo real iniciado durante o POST', async () => {
