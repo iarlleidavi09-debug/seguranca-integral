@@ -86,6 +86,12 @@ describe('Início do aluno', () => {
     const { container } = render(<Inicio onAjuda={() => {}} onAcompanhar={() => {}} />);
     expect(container.querySelectorAll('details.recolhivel')[0]).toHaveTextContent('Se o navegador não conseguir salvar, anote o código que aparece na conversa.');
   });
+  it('Como funciona cita o separador "Novas mensagens"', () => {
+    const { container } = render(<Inicio onAjuda={() => {}} onAcompanhar={() => {}} />);
+    const bloco = container.querySelectorAll('details.recolhivel')[0] as HTMLElement;
+    expect(bloco).toHaveTextContent('Novas mensagens');
+    expect(bloco).not.toHaveTextContent('Mensagem nova');
+  });
   it('o cartão de conversa se chama "Conversar com a coordenação"', () => {
     render(<Inicio onAjuda={() => {}} onAcompanhar={() => {}} onAcolhimento={() => {}} />);
     expect(screen.getByRole('heading', { name: 'Conversar com a coordenação' })).toBeInTheDocument();

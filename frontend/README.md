@@ -4,7 +4,7 @@ React, Vite e TypeScript. API em mesma origem, com código de acompanhamento som
 
 ### Acolhimento e conversas (20/10/2026)
 
-O início oferece acolhimento anônimo direto, sem questionário ou dados escolares. A primeira mensagem abre o atendimento por `POST /api/acolhimento`. Os acessos criados/consultados ficam no histórico local `tetra-guard.acessos.v1` (somente código e marcador de leitura), com remoção individual ou de todos. Esse histórico é separado do rascunho.
+O início oferece "Conversar sem me identificar" (acolhimento anônimo direto), sem questionário ou dados escolares. A primeira mensagem abre o atendimento por `POST /api/acolhimento`. Os acessos criados/consultados ficam no histórico local `tetra-guard.acessos.v1` (somente código e marcador de leitura), com remoção individual ou de todos. Esse histórico é separado do rascunho.
 
 O acompanhamento foca a conversa e destaca respostas novas. A coordenação pode filtrar estados de conversa, ver prévias e exportar um relatório de apoio ao preenchimento manual do ROE. A leitura da equipe é por usuário e registrada apenas na aba Conversa visível. Veja o [guia de uso](../docs/acolhimento-e-conversas.md) e a [validação](../docs/validacao-acolhimento-frontend.md).
 
@@ -23,10 +23,10 @@ O tema segue `docs/design/tokens.md` e `prefers-color-scheme`. A fonte é empaco
 
 ### Telas e passos v3
 
-1. **Início**: acolhimento, entrada do pedido e consulta por código. O consentimento explica o funcionamento na LAN e os registros da rede, sem prometer anonimato total.
+1. **Início**: abertura curta e três cartões de ação (Preciso de ajuda, Conversar sem me identificar, Ver meu caso com o campo Código de acompanhamento), linha de privacidade, bilhete e blocos recolhíveis "Como funciona" e "Seus dados e privacidade". Com acessos salvos, aparece antes o cartão "Continuar meu caso". O consentimento explica o funcionamento na LAN e os registros da rede, sem prometer anonimato total.
 2. **Pedido**: oito grupos colapsáveis, seleção múltipla entre grupos e contagens; perguntas comuns e relacionadas, uma por tela; relato; revisão editável, provas opcionais e identificação.
 3. **Confirmação**: código de acompanhamento para guardar e copiar.
-4. **Acompanhar**: conversa, resolução e pós-resolução. O aluno nunca recebe prioridade, autoria da equipe ou notas internas.
+4. **Acompanhar**: conversa em formato de chat (separador único "Novas mensagens", código recolhido em "Seu código", botão "Atualizar conversa" só quando a conexão cai ou a leitura falha, resposta fixa no rodapé), resolução e pós-resolução. O aluno nunca recebe prioridade, autoria da equipe ou notas internas.
 
 O App principal usa `src/aluno/Pedido.tsx` e a definição pública `GET /api/v3/questionario`, com tempo limite de 8 segundos. Falha ou definição malformada permite seguir só com o relato. `fluxoV3.ts` une perguntas por ID: perguntas citadas nas opções são raízes diretas; `mostrar_se` usa OU entre alternativas alcançadas; `mostrar_se_todas` exige todas as alternativas. `para_opcoes` limita raízes e descendentes aos temas selecionados. Ao fechar um ramo, suas respostas são eliminadas.
 

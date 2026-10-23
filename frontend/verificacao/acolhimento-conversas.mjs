@@ -29,7 +29,7 @@ try {
     await page.goto('http://127.0.0.1:15173/', { waitUntil: 'domcontentloaded', timeout: 90000 });
     await expect(page.getByText('Para iniciar uma denúncia', { exact: false })).toBeVisible();
     await page.screenshot({ path: fileURLToPath(new URL(`aluno-inicio-${largura}.png`, pasta)), fullPage: true });
-    await page.getByRole('button', { name: 'Quero acolhimento anônimo' }).click();
+    await page.getByRole('button', { name: 'Conversar sem me identificar' }).click();
     await expect(page.getByRole('textbox')).toHaveCount(1);
     await page.getByLabel('Sua primeira mensagem').fill('Quero conversar com alguém.');
     await page.getByRole('button', { name: 'Iniciar conversa anônima' }).click();

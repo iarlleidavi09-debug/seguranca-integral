@@ -2,13 +2,15 @@
 
 ## Portal do aluno
 
-Na página inicial, **Preciso de ajuda** inicia a denúncia com orientações. **Quero acolhimento anônimo** abre um campo de mensagem sem questionário, nome, ano ou turma. O atendimento nasce quando a primeira mensagem é enviada.
+Na página inicial, **Preciso de ajuda** inicia a denúncia com orientações. **Conversar sem me identificar** abre um campo de mensagem sem questionário, nome, ano ou turma. O atendimento nasce quando a primeira mensagem é enviada.
 
-Casos criados ou consultados com sucesso ficam em **Casos salvos neste navegador**. O histórico contém o código e o marcador de leitura, sem copiar o relato ou a conversa. Pode-se abrir, apagar um acesso ou apagar todos. Apagar um acesso não apaga o atendimento na escola. Navegadores e aparelhos diferentes possuem históricos separados.
+O início tem três cartões de ação: **Preciso de ajuda**, **Conversar sem me identificar** e **Ver meu caso**, onde o aluno digita o **Código de acompanhamento** e toca em **Acompanhar**. Abaixo ficam a linha de privacidade, o bilhete e os blocos recolhíveis **Como funciona** e **Seus dados e privacidade**.
+
+Casos criados ou consultados com sucesso ficam em **Continuar meu caso**. O histórico contém o código e o marcador de leitura, sem copiar o relato ou a conversa. Pode-se abrir, apagar um acesso ou apagar todos. Apagar um acesso não apaga o atendimento na escola. Navegadores e aparelhos diferentes possuem históricos separados.
 
 O código permite reabrir o caso; quem usa o mesmo navegador pode usar o acesso salvo. Quando o armazenamento está bloqueado, o atendimento continua funcionando e o aluno pode anotar o código exibido na conversa.
 
-Ao acompanhar, a tela leva o foco para **Conversa com a coordenação**, destaca respostas novas e confirma o envio das mensagens. A página oculta não avança o marcador de leitura.
+Ao acompanhar, a tela leva o foco para **Conversa com a coordenação**, mostra a conversa em formato de chat, com um único separador **Novas mensagens** antes das respostas ainda não vistas (não há mais o rótulo **Mensagem nova** em cada balão) e confirma o envio das mensagens. O código fica em **Seu código**, recolhido. O botão **Atualizar conversa** só aparece quando a conexão cai ou a leitura falha. A resposta fica fixa no rodapé. A página oculta não avança o marcador de leitura.
 
 ## Coordenação
 

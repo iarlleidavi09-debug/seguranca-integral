@@ -124,11 +124,11 @@ try {
       await expect(pagina.getByText('Conversa atualizada.', { exact: true })).toBeVisible();
       await capturar('acompanhar');
       await pagina.getByRole('button', { name: 'Voltar ao início' }).click();
-      await pagina.getByLabel('Acompanhar meu caso', { exact: true }).fill(' k7m2 9qxd ');
+      await pagina.getByLabel('Código de acompanhamento', { exact: true }).fill(' k7m2 9qxd ');
       await pagina.getByRole('button', { name: 'Acompanhar', exact: true }).click();
       await expect(pagina.getByText('Em análise', { exact: true })).toBeVisible();
       await pagina.getByRole('button', { name: 'Voltar ao início' }).click();
-      await pagina.getByLabel('Acompanhar meu caso', { exact: true }).fill('inexistente');
+      await pagina.getByLabel('Código de acompanhamento', { exact: true }).fill('inexistente');
       await pagina.getByRole('button', { name: 'Acompanhar', exact: true }).click();
       await expect(pagina.getByRole('alert')).toHaveText('Não foi possível encontrar o caso. Confira o código e tente de novo.');
       await capturar('erro-codigo');

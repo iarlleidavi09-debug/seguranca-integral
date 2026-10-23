@@ -38,7 +38,7 @@ flowchart TD
 
 | ID | Interface | Gatilho para chegar | Condição | Componente |
 | --- | --- | --- | --- | --- |
-| A01 | Início: “Você não precisa lidar com isso sozinho.” | Abrir o portal ou clicar em **Voltar ao início** | Não exige API; traz o bilhete, o campo de código e o aviso “Antes de contar” | `src/aluno/Inicio.tsx` |
+| A01 | Início: “Você não precisa lidar com isso sozinho.” | Abrir o portal ou clicar em **Voltar ao início** | Não exige API; traz três cartões (Preciso de ajuda, Conversar sem me identificar, Ver meu caso com “Código de acompanhamento”), o cartão “Continuar meu caso” quando há acessos salvos, o bilhete e os blocos recolhíveis “Como funciona” e “Seus dados e privacidade” | `src/aluno/Inicio.tsx` |
 | A02 | Passo 1: “Qual é a situação?” | A01 → **Preciso de ajuda** | Seis situações mais Outros; escolha obrigatória | `src/aluno/Denuncia.tsx` |
 | A03 | Passo 2: “O que está acontecendo?” (opções) | A02 → situação → **Continuar** | Opções vindas de `GET /api/questionario`; pelo menos uma opção. Se a definição falhar, o passo é pulado com aviso; se demorar, aparece “Carregando as perguntas…” e **Continuar só com o relato** (saída automática em 8 s) | `src/aluno/Denuncia.tsx` |
 | A03a | Passo 2: perguntas encadeadas | A03 → **Continuar** | Uma pergunta por tela, com “Pergunta N de M” e foco na pergunta; nenhuma é obrigatória; responder pode abrir outras perguntas e mudar a resposta fecha as dependentes | `src/aluno/Denuncia.tsx`, `src/aluno/fluxo.ts` |
@@ -50,7 +50,7 @@ flowchart TD
 | A06 | Confirmação: “Você deu o primeiro passo.” | A05 → **Enviar pedido de ajuda** | Sucesso de `POST /api/denuncias`; mostra o código uma única vez | `src/aluno/Confirmacao.tsx` |
 | A07 | Acompanhamento | A01 → código → **Acompanhar**, ou A06 → **Acompanhar meu caso** | Sucesso de `POST /api/acompanhar` | `src/aluno/Acompanhar.tsx` |
 | A07a | Linha do tempo de três etapas | A07 | Recebido, Em investigação, Resolvido; cada etapa diz “Concluída”, “Etapa atual” ou “Próxima” | `src/aluno/Acompanhar.tsx` |
-| A07b | Conversa com a coordenação | A07 | Mensagens do caso e campo de resposta | `src/aluno/Acompanhar.tsx` |
+| A07b | Conversa com a coordenação | A07 | Mensagens em formato de chat, separador “Novas mensagens”, código em “Seu código” (recolhido) e resposta fixa no rodapé | `src/aluno/Acompanhar.tsx` |
 | A08 | “Seu caso foi resolvido” | A07 com `pos_resolucao` verdadeiro e resolução presente | Mostra desfecho, providências e resultado como texto; pergunta “Como você está agora?” | `src/aluno/PosResolucao.tsx` |
 
 ### Retornos e ações internas do aluno

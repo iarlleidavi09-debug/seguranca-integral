@@ -67,7 +67,7 @@ export default function Inicio({ onAjuda, onAcompanhar, onAcolhimento }: { onAju
       <h3>Para conversar sem questionário</h3>
       <p>Toque em <strong>Conversar sem me identificar</strong>, escreva sua primeira mensagem e envie. Você não precisa informar nome, ano ou turma.</p>
       <h3>Para acompanhar e ver respostas</h3>
-      <p>Digite o código recebido em <strong>Ver meu caso</strong> ou abra um caso salvo. Respostas ainda não vistas aparecem como <strong>Mensagem nova</strong>.</p>
+      <p>Digite o código recebido em <strong>Ver meu caso</strong> ou abra um caso salvo. Respostas ainda não vistas aparecem depois do aviso <strong>Novas mensagens</strong>.</p>
       <h3>Para voltar ao seu caso depois</h3>
       <p>Os acessos ficam salvos neste navegador; em outro aparelho, use o código. Se o navegador não conseguir salvar, anote o código que aparece na conversa. Em aparelho compartilhado, use <strong>Apagar acesso</strong> ao terminar: o caso continua guardado na escola.</p>
     </details>

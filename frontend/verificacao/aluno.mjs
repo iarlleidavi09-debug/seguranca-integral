@@ -385,8 +385,8 @@ try {
         await foto('acompanhar-recebido'); await medir('acompanhar-recebido'); await cortes('acompanhar-recebido');
         await pagina.reload();
         await pagina.getByRole('heading', { level: 1, name: /Você não precisa lidar/ }).waitFor();
-        await pagina.getByLabel('Acompanhar meu caso').fill(` ${codigo.toLowerCase().replace('-', ' ')} `);
-        await pagina.locator('.acompanhamento-inicio').getByRole('button', { name: 'Acompanhar' }).click();
+        await pagina.getByLabel('Código de acompanhamento').fill(` ${codigo.toLowerCase().replace('-', ' ')} `);
+        await pagina.locator('.acao-cartao', { has: pagina.getByRole('heading', { name: 'Ver meu caso' }) }).getByRole('button', { name: 'Acompanhar', exact: true }).click();
         await ok('acompanhar por código minúsculo com espaço', () => pagina.getByRole('heading', { name: 'Conversa com a coordenação' }).waitFor());
         await ok('código não vai para a URL', async () => { if (/[?#]/.test(new URL(pagina.url()).search + new URL(pagina.url()).hash)) throw new Error(pagina.url()); });
         await pagina.getByLabel('Sua resposta').fill('Obrigado, estou aguardando.');
@@ -441,8 +441,8 @@ try {
 
         // ---- Código inválido
         await pagina.reload();
-        await pagina.getByLabel('Acompanhar meu caso').fill('ZZZZ-ZZZZ');
-        await pagina.locator('.acompanhamento-inicio').getByRole('button', { name: 'Acompanhar' }).click();
+        await pagina.getByLabel('Código de acompanhamento').fill('ZZZZ-ZZZZ');
+        await pagina.locator('.acao-cartao', { has: pagina.getByRole('heading', { name: 'Ver meu caso' }) }).getByRole('button', { name: 'Acompanhar', exact: true }).click();
         await ok('código inexistente mostra a mensagem de 404', () => pagina.getByRole('alert').filter({ hasText: 'Não foi possível encontrar o caso' }).waitFor());
         await foto('codigo-invalido'); await medir('codigo-invalido');
         await rolarAoTopo();
