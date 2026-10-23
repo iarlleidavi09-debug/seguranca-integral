@@ -255,3 +255,5 @@
 .aluno-app .resposta-fixa { position: sticky; bottom: 0; z-index: 1; margin-top: var(--espaco-4); background: var(--fundo-base); border-top: 3px solid #101010; padding: var(--espaco-3) var(--espaco-4) calc(var(--espaco-3) + env(safe-area-inset-bottom)); }
 .aluno-app .resposta-fixa textarea { width: 100%; box-sizing: border-box; line-height: 1.5; resize: none; }
 .aluno-app .resposta-fixa p[id='limite-resposta'] { margin-bottom: var(--espaco-2); }
+/* a rolagem para a última mensagem ou o separador deixa espaço para o campo fixo (≈ 4 x 64px) */
+.aluno-app .mensagem, .aluno-app .novas-divisor { scroll-margin-bottom: calc(var(--espaco-16) * 4); }

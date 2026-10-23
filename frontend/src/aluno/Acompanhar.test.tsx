@@ -563,3 +563,81 @@ describe('Acompanhar: leitura superada que falha não liga o botão', () => {
     expect(screen.queryByRole('button', { name: 'Atualizar conversa' })).not.toBeInTheDocument();
   });
 });
+
+describe('Acompanhar: quando a conversa rola', () => {
+  const t = '2026-10-14T12:00:00Z';
+  const msg = (id: number, autor: string, texto: string) => ({ id, autor, texto, criado_em: t, editada: false, apagada: false });
+  const comRolagem = async (corpo: (rolagem: ReturnType<typeof vi.fn>) => Promise<void>) => {
+    const rolagem = vi.fn();
+    Element.prototype.scrollIntoView = rolagem;
+    try { await corpo(rolagem); } finally { delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView; }
+  };
+  it('mensagem que chega por tempo real depois da abertura não rola de novo', async () => {
+    eventos = 'controlado';
+    await comRolagem(async rolagem => {
+      responder({ ...base, status: 'em_investigacao', mensagens: [msg(1, 'coordenacao', 'primeira')] });
+      render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+      await screen.findByText('primeira');
+      await waitFor(() => expect(fluxo).not.toBeNull());
+      await waitFor(() => expect(rolagem.mock.contexts.at(-1)).toBe(screen.getByRole('separator')));
+      const antes = rolagem.mock.calls.length;
+      responder({ ...base, status: 'em_investigacao', mensagens: [msg(1, 'coordenacao', 'primeira'), msg(2, 'coordenacao', 'segunda')] });
+      fluxo!.enqueue(new TextEncoder().encode('event: atualizar\n\n'));
+      expect(await screen.findByText('segunda')).toBeInTheDocument();
+      await act(async () => { await new Promise(r => setTimeout(r, 20)); });
+      expect(rolagem.mock.calls).toHaveLength(antes);
+      expect(screen.getByRole('heading', { name: 'Conversa com a coordenação' })).toHaveFocus();
+    });
+  });
+  it('Atualizar conversa não rola', async () => {
+    const user = userEvent.setup();
+    eventos = 'queda';
+    await comRolagem(async rolagem => {
+      responder({ ...base, status: 'em_investigacao', mensagens: [msg(1, 'aluno', 'um')] });
+      render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+      await screen.findByText('um');
+      const antes = rolagem.mock.calls.length;
+      responder({ ...base, status: 'em_investigacao', mensagens: [msg(1, 'aluno', 'um'), msg(2, 'aluno', 'dois')] });
+      await user.click(await screen.findByRole('button', { name: 'Atualizar conversa' }));
+      await screen.findByText('dois');
+      expect(rolagem.mock.calls).toHaveLength(antes);
+    });
+  });
+  it('enviar resposta rola até a última mensagem', async () => {
+    const user = userEvent.setup();
+    await comRolagem(async rolagem => {
+      responder({ ...base, status: 'em_investigacao', mensagens: [msg(1, 'aluno', 'um')] });
+      render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+      await screen.findByText('um');
+      const antes = rolagem.mock.calls.length;
+      responder({ ok: true }, 201);
+      responder({ ...base, status: 'em_investigacao', mensagens: [msg(1, 'aluno', 'um'), msg(2, 'aluno', 'dois')] });
+      await user.type(screen.getByLabelText('Sua resposta'), 'dois');
+      await user.click(screen.getByRole('button', { name: 'Enviar resposta' }));
+      await screen.findByText('Resposta enviada.');
+      const artigos = screen.getByRole('log').querySelectorAll('article');
+      await waitFor(() => expect(rolagem.mock.contexts.at(-1)).toBe(artigos[1]));
+      expect(rolagem.mock.calls.length).toBe(antes + 1);
+    });
+  });
+  it('falha da releitura de enviar liga o botão mesmo com refresh de tempo real iniciado durante o POST', async () => {
+    const user = userEvent.setup();
+    eventos = 'controlado';
+    responder({ ...base, status: 'novo', mensagens: [] });
+    render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+    await screen.findByLabelText('Sua resposta');
+    await waitFor(() => expect(fluxo).not.toBeNull());
+    let fimPost!: (r: Response) => void; let fimRefresh!: (r: Response) => void;
+    respostas.push(() => new Promise<Response>(r => { fimPost = r; }), () => new Promise<Response>(r => { fimRefresh = r; }));
+    respostas.push(async () => new Response('{}', { status: 500 }));
+    await user.type(screen.getByLabelText('Sua resposta'), 'oi');
+    await user.click(screen.getByRole('button', { name: 'Enviar resposta' }));
+    await waitFor(() => expect(consultas()).toHaveLength(2));
+    fluxo!.enqueue(new TextEncoder().encode('event: atualizar\n\n'));
+    await waitFor(() => expect(consultas()).toHaveLength(3));
+    fimPost(new Response(JSON.stringify({ ok: true }), { status: 201 }));
+    expect(await screen.findByText(/Use Atualizar conversa para ver/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Atualizar conversa' })).toBeInTheDocument();
+    fimRefresh(new Response('{}', { status: 500 }));
+  });
+});

@@ -26,7 +26,7 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
   const [falhaAtualizar, setFalhaAtualizar] = useState(false);
   const alvoRolagem = useRef<HTMLElement | null>(null);
   const areaResposta = useRef<HTMLTextAreaElement>(null);
-  const totalVisto = useRef(0);
+  const deveRolar = useRef(true); // só ao abrir e depois de enviar; tempo real e Atualizar não rolam
   const consulta = useRef(0);
   const responder = useRef(false);
   const montado = useRef(true);
@@ -65,12 +65,13 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
     if (responder.current) return;
     if (!texto.trim() || texto.trim().length > 2000) { setErro('Escreva uma resposta de 1 a 2000 caracteres.'); return; }
     responder.current = true; setEnviando(true); setErro(''); setAviso('');
-    const leitura = consulta.current + 1;
     try {
       await enviarMensagem(codigoAtivo, texto.trim());
       setTexto(''); setAviso('Resposta enviada.');
-      try { await buscar(codigoAtivo); }
-      catch (falha) { if (leitura === consulta.current) setFalhaAtualizar(true); setAviso(`Resposta enviada. ${mensagemErro(falha)} Use Atualizar conversa para ver as mensagens.`); }
+      const leitura = consulta.current + 1;
+      deveRolar.current = true;
+      try { if (!(await buscar(codigoAtivo))) deveRolar.current = false; }
+      catch (falha) { deveRolar.current = false; if (leitura === consulta.current) setFalhaAtualizar(true); setAviso(`Resposta enviada. ${mensagemErro(falha)} Use Atualizar conversa para ver as mensagens.`); }
     } catch (falha) { setErro(mensagemErro(falha)); }
     finally { setEnviando(false); responder.current = false; }
   }
@@ -115,10 +116,10 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
     registrar(); document.addEventListener('visibilitychange', registrar);
     return () => document.removeEventListener('visibilitychange', registrar);
   }, [caso, codigoAtivo]);
-  // rola até o separador (ou a última mensagem) quando chegam mensagens; o foco não sai do título
+  // rola até o separador (ou a última mensagem) ao abrir e ao enviar; o foco não sai do título
   useEffect(() => {
-    if (!caso || caso.mensagens.length === totalVisto.current) return;
-    totalVisto.current = caso.mensagens.length;
+    if (!caso || !deveRolar.current) return;
+    deveRolar.current = false;
     alvoRolagem.current?.scrollIntoView?.({ block: 'nearest' });
   }, [caso]);
   // o campo cresce com o texto, de 2 a 6 linhas
