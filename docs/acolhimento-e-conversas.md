@@ -29,6 +29,19 @@ O relatório contém dados disponíveis do caso, relato, providências, desfecho
 
 Não é um arquivo de importação oficial. A compatibilidade com ROE depende de obter e validar o modelo exigido pela escola.
 
+## Editar e excluir mensagens enviadas ao aluno
+
+Em cada mensagem que a coordenação enviou, quem a escreveu (e o administrador) vê **Editar** e **Excluir**. Não há limite de tempo.
+
+- Editar troca o texto no lugar. O aluno passa a ver o texto novo com "(editada)". O texto anterior fica guardado apenas para a coordenação, em **Ver versões**.
+- Excluir pede confirmação na própria mensagem. O aluno e a equipe passam a ver "Mensagem apagada" no lugar do texto; o texto original fica guardado só para a coordenação, em **Ver texto original**.
+- Mensagens do aluno não podem ser alteradas. Outro coordenador não altera mensagens alheias.
+- Cada edição ou exclusão aparece no histórico do caso ("Mensagem editada por X", "Mensagem apagada por X"), sem repetir o texto.
+- O aluno nunca recebe o horário da edição, quem editou, as versões nem o texto apagado.
+- Uma mensagem apagada da coordenação ainda conta como resposta da equipe na fila de atendimento, porque a equipe de fato respondeu.
+
+A inicialização normal do backend acrescenta as colunas e a tabela de versões ao banco existente, sem perder mensagens. Reinicie o serviço para carregar as novas rotas. Verificação: `docs/verificacao-editar-excluir-mensagens.md`.
+
 ## Instalação
 
 Os dois portais foram recompilados. A inicialização normal do backend cria a tabela de leituras e acrescenta o canal aos casos existentes, preservando seus códigos e mensagens. Reinicie o serviço para carregar as novas rotas e a migração. O instalador executável ainda precisa ser reconstruído se a distribuição ocorrer por esse formato.
