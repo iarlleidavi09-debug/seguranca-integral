@@ -154,7 +154,7 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
       <button className="botao principal">Acompanhar</button>
     </form>}
     {carregando && <p role="status">Buscando seu caso…</p>}
-    {erro && <p role="alert" className="erro">{erro}</p>}
+    {erro && !caso && <p role="alert" className="erro">{erro}</p>}
     {caso && <>
       <ol className="etapas" aria-label="Etapas do caso">
         {etapas.map((nome, i) => <li key={nome} className="etapa" data-estado={i < atual ? 'feita' : i === atual ? 'atual' : 'proxima'} aria-current={i === atual ? 'step' : undefined}>
@@ -166,7 +166,7 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
       {atual < 0 && <p className="texto-pequeno">Status indisponível no momento.</p>}
       {erroSituacao && !blocoVisivel && <p role="alert" className="erro">{erroSituacao}</p>}
       <PosResolucao caso={caso} aoInformar={informarSituacao} ocupado={informando || carregando || enviando} />
-      <details className="recolhivel codigo-caso">
+      <details className="recolhivel codigo-caso" open={avisoStorage ? true : undefined}>
         <summary>Seu código</summary>
         <p>Código para voltar: <strong>{normalizarCodigo(codigoAtivo) || codigoAtivo}</strong>. Anote em um lugar seguro.</p>
       </details>
@@ -181,7 +181,7 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
           const inicioGrupo = i === 0 || i === primeiraNova || caso.mensagens[i - 1].autor !== mensagem.autor;
           const ultimaSemNovas = primeiraNova < 0 && i === caso.mensagens.length - 1;
           return <Fragment key={`${mensagem.criado_em}-${i}`}>
-            {i === primeiraNova && <div role="separator" className="novas-divisor" ref={el => { alvoRolagem.current = el; }}>Novas mensagens</div>}
+            {i === primeiraNova && <div role="separator" aria-label="Novas mensagens" className="novas-divisor" ref={el => { alvoRolagem.current = el; }}>Novas mensagens</div>}
             <article className="mensagem" data-autor={mensagem.autor} data-inicio={inicioGrupo || undefined} aria-label={autor} ref={ultimaSemNovas ? el => { alvoRolagem.current = el; } : undefined}>
               {inicioGrupo && <h3>{autor}</h3>}
               {mensagem.apagada
@@ -191,8 +191,10 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
           </Fragment>;
         })}
       </div>
-      {(foraDoAr || falhaAtualizar) && <button type="button" className="botao secundario atualizar" disabled={carregando || enviando} onClick={() => void atualizar()}>Atualizar conversa</button>}
       <form noValidate onSubmit={e => { e.preventDefault(); void enviar(); }} aria-busy={enviando} className="resposta resposta-fixa">
+        {erro && <p role="alert" className="erro">{erro}</p>}
+        <p role="status" className="aviso-resposta">{aviso}</p>
+        {(foraDoAr || falhaAtualizar) && <button type="button" className="botao secundario atualizar" disabled={carregando || enviando} onClick={() => void atualizar()}>Atualizar conversa</button>}
         <label htmlFor="resposta" className="so-leitor">Sua resposta</label>
         <textarea id="resposta" ref={areaResposta} rows={2} maxLength={2000} value={texto} disabled={enviando} onChange={e => setTexto(e.target.value)} aria-describedby="limite-resposta" />
         <div className="resposta-rodape">
@@ -200,7 +202,6 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
           <button className="botao principal" disabled={enviando || carregando}>{enviando ? 'Enviando resposta…' : 'Enviar resposta'}</button>
         </div>
       </form>
-      <p role="status">{aviso}</p>
     </>}
   </section>;
 }

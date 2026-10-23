@@ -275,8 +275,18 @@
 @media (min-width: 768px) and (max-width: 1023px) {
   .aluno-app .inicio-acoes { grid-template-columns: 1fr; }
 }
-/* três colunas só a partir de 1024px; o conteúdo da página tem no máximo 760px, então o cartão fica com padding menor para o campo passar de 180px */
+/* três colunas só a partir de 1024px; o conteúdo da página chega a 1100px (regra .portal sem media query), mas o grid de 3 colunas fica estreito, então o cartão fica com padding menor para o campo passar de 180px */
 @media (min-width: 1024px) {
   .aluno-app .inicio-acoes { grid-template-columns: repeat(3, 1fr); }
   .aluno-app .inicio-acoes .acao-cartao { padding: var(--espaco-4); }
 }
+
+/* indicador de abrir e fechar nos blocos recolhíveis */
+.aluno-app .recolhivel > summary { justify-content: space-between; gap: var(--espaco-3); }
+.aluno-app .recolhivel > summary::after { content: '+'; font-size: 22px; line-height: 1; flex: none; }
+.aluno-app .recolhivel[open] > summary::after { content: '-'; }
+/* aviso, erro e botão Atualizar ficam dentro do campo fixo, só quando há conteúdo */
+.aluno-app .resposta-fixa .aviso-resposta { margin: 0; }
+.aluno-app .resposta-fixa .aviso-resposta:not(:empty) { margin-bottom: var(--espaco-2); }
+.aluno-app .resposta-fixa .erro { margin: 0 0 var(--espaco-2); }
+.aluno-app .resposta-fixa .atualizar { width: 100%; margin: 0 0 var(--espaco-2); min-height: 44px; }

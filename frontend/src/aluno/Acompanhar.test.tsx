@@ -111,6 +111,8 @@ describe('Acompanhar', () => {
     render(<Acompanhar codigoInicial="K7M2-9QXD" />);
     const aviso = await screen.findByText(/Não foi possível salvar o acesso/);
     expect(aviso.closest('details')).toBeNull();
+    // sem armazenamento, o código precisa estar à vista
+    expect(document.querySelector('details.codigo-caso')).toHaveAttribute('open');
   });
   it('foco inicial continua no título Conversa com a coordenação', async () => {
     responder({ ...base, status: 'novo', mensagens: [] });
@@ -735,5 +737,46 @@ describe('Acompanhar: responder equivale a ter lido', () => {
       expect(await screen.findByText('Uma mensagem nova da coordenação.')).toBeInTheDocument();
       expect(screen.getByRole('separator').nextElementSibling).toHaveTextContent('depois');
     } finally { delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView; }
+  });
+});
+
+describe('Acompanhar: avisos e erros ficam junto do campo fixo', () => {
+  it('aviso e botão Atualizar conversa dentro do campo depois de enviar com releitura falhando', async () => {
+    const user = userEvent.setup();
+    responder({ ...base, status: 'novo', mensagens: [] });
+    render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+    await screen.findByLabelText('Sua resposta');
+    responder({ ok: true }, 201);
+    respostas.push(async () => new Response('{}', { status: 500 }));
+    await user.type(screen.getByLabelText('Sua resposta'), 'oi');
+    await user.click(screen.getByRole('button', { name: 'Enviar resposta' }));
+    const aviso = await screen.findByText(/Use Atualizar conversa para ver/);
+    const campo = document.querySelector('form.resposta-fixa')!;
+    expect(campo).toContainElement(aviso);
+    expect(campo).toContainElement(screen.getByRole('button', { name: 'Atualizar conversa' }));
+  });
+  it('erro de envio fica dentro do campo e preserva o texto', async () => {
+    const user = userEvent.setup();
+    responder({ ...base, status: 'novo', mensagens: [] });
+    render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+    await screen.findByLabelText('Sua resposta');
+    responder({}, 429);
+    await user.type(screen.getByLabelText('Sua resposta'), 'rascunho');
+    await user.click(screen.getByRole('button', { name: 'Enviar resposta' }));
+    const alerta = await screen.findByRole('alert');
+    expect(document.querySelector('form.resposta-fixa')).toContainElement(alerta);
+    expect(screen.getByLabelText('Sua resposta')).toHaveValue('rascunho');
+  });
+  it('erro da consulta inicial continua fora do campo', async () => {
+    const user = userEvent.setup();
+    render(<Acompanhar />);
+    await user.click(screen.getByRole('button', { name: 'Acompanhar' }));
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+    expect(document.querySelector('form.resposta-fixa')).toBeNull();
+  });
+  it('o separador tem nome acessível', async () => {
+    responder({ ...base, status: 'novo', mensagens: [{ id: 1, autor: 'coordenacao', texto: 'x', criado_em: '2026-10-14T12:00:00Z' }] });
+    render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+    expect(await screen.findByRole('separator', { name: 'Novas mensagens' })).toBeInTheDocument();
   });
 });

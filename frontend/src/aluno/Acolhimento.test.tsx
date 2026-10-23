@@ -19,3 +19,8 @@ it('envia apenas texto e recibo e mantém recibo ao tentar novamente', async () 
  expect(JSON.parse(String(vi.mocked(fetch).mock.calls[1][1]?.body))).toEqual(primeiro);
  expect(lerAcessos()).toEqual([{codigo:'K7M2-9QXD',lastRead:0}]);
 });
+
+it('avisa que a rede da escola pode registrar os horários de acesso', () => {
+ render(<Acolhimento onCriado={() => {}} onEnviando={() => {}} />);
+ expect(screen.getByText(/rede escolar pode registrar os horários de acesso/)).toHaveClass('texto-pequeno');
+});
