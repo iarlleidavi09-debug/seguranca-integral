@@ -38,6 +38,8 @@ class Config:
     allowed_hosts: tuple[str, ...] = ()
     # vazio = limites padrão do código; ver _limites() para o formato
     limites: dict = field(default_factory=dict)
+    # implantação secundária: habilita a limpeza dos dados de teste (config.json)
+    implantacao_secundaria: bool = False
 
     @property
     def db_path(self) -> Path:
@@ -204,5 +206,10 @@ def _ler_config_json(arquivo: Path) -> dict:
     coord = _porta(dados, "coord_port", 4000)
     if aluno == coord:
         raise ValueError("config.json: student_port e coord_port precisam ser diferentes")
+    # só o booleano de verdade vale: "true", 1 e null são rejeitados
+    implantacao = dados.get("implantacao_secundaria", False)
+    if type(implantacao) is not bool:
+        raise ValueError("config.json: implantacao_secundaria precisa ser true ou false")
     return {"host": host, "allowed_hosts": tuple(hosts), "student_port": aluno,
-            "coord_port": coord, "limites": _limites(dados)}
+            "coord_port": coord, "limites": _limites(dados),
+            "implantacao_secundaria": implantacao}

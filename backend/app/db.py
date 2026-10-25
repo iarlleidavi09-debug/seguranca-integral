@@ -175,6 +175,7 @@ def init_db(config: Config) -> None:
         conn.commit()
         _migrar_v4(conn)
         _migrar_atendimento(conn)
+        _migrar_limpezas_implantacao(conn)
     finally:
         conn.close()
 
@@ -188,6 +189,21 @@ def _migrar_atendimento(conn: sqlite3.Connection) -> None:
                            ('canal', "TEXT NOT NULL DEFAULT 'relato'")):
             if name not in columns:
                 conn.execute(f'ALTER TABLE casos ADD COLUMN {name} {kind}')
+
+
+def _migrar_limpezas_implantacao(conn: sqlite3.Connection) -> None:
+    """Registro das limpezas da implantação secundária: só contagens, sem texto."""
+    with conn:
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS limpezas_implantacao ("
+            "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+            "usuario_id INTEGER REFERENCES usuarios(id), "
+            "criado_em TEXT NOT NULL, "
+            "casos INTEGER NOT NULL, "
+            "mensagens INTEGER NOT NULL, "
+            "anexos INTEGER NOT NULL, "
+            "backups INTEGER NOT NULL)"
+        )
 
 
 def _backup_pre_mapa_l(conn: sqlite3.Connection, config: Config) -> None:

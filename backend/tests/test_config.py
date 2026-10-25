@@ -257,3 +257,22 @@ def test_host_invalido_levanta_valueerror(tmp_path, host):
     _escrever(tmp_path, {"host": host})
     with pytest.raises(ValueError):
         load_config(tmp_path)
+
+
+def test_implantacao_secundaria_padrao_e_falso(tmp_path):
+    assert load_config(tmp_path).implantacao_secundaria is False
+
+
+@pytest.mark.parametrize("valor", [True, False])
+def test_implantacao_secundaria_aceita_booleano(tmp_path, valor):
+    _escrever(tmp_path, {"implantacao_secundaria": valor})
+    assert load_config(tmp_path).implantacao_secundaria is valor
+
+
+@pytest.mark.parametrize("valor", ["true", 1, None])
+def test_implantacao_secundaria_rejeita_nao_booleano(tmp_path, valor):
+    _escrever(tmp_path, {"implantacao_secundaria": valor})
+    with pytest.raises(
+            ValueError,
+            match="config.json: implantacao_secundaria precisa ser true ou false"):
+        load_config(tmp_path)
