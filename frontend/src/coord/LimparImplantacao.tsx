@@ -1,14 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { ErroApi, limparImplantacao, obterImplantacao } from '../shared/api';
+import { ErroCoord, limparImplantacao, mensagemErroCoord, obterImplantacao } from '../shared/api';
+import { dataLegivel } from './rotulos';
 import type { Removidos, ResumoImplantacao } from '../shared/api';
 import { limparRascunhosAtendimento } from './rascunhosAtendimento';
 
 const FRASE = 'APAGAR TUDO';
 const contagem = (r: Removidos) => `${r.casos} casos, ${r.mensagens} mensagens, ${r.anexos} anexos, ${r.backups} cópias de segurança`;
-const quando = (iso: string) => {
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? iso : d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
-};
 
 export default function LimparImplantacao({ aoLimpar }: { aoLimpar: () => void }) {
   const [dados, setDados] = useState<ResumoImplantacao | null>(null);
@@ -63,11 +60,12 @@ export default function LimparImplantacao({ aoLimpar }: { aoLimpar: () => void }
       setFocarTitulo(true);
     } catch (falha) {
       if (!montado.current) return;
-      const status = falha instanceof ErroApi ? falha.status : 0;
-      setErro(status === 403 ? 'A senha está incorreta.'
-        : status === 400 ? `Confirme digitando exatamente ${FRASE}.`
-          : status === 0 ? 'Não foi possível conectar. Confira a conexão e tente de novo.'
-            : 'Não foi possível apagar agora. Tente de novo.');
+      const detalhe = falha instanceof ErroCoord ? falha.detalhe : '';
+      const status = falha instanceof ErroCoord ? falha.status : 0;
+      setErro(status === 403 && detalhe === 'sem permissao' ? 'Sem permissão para apagar os dados.'
+        : status === 403 && detalhe === 'senha incorreta' ? 'A senha está incorreta.'
+          : status === 400 ? `Confirme digitando exatamente ${FRASE}.`
+            : mensagemErroCoord(falha));
       setOcupado(false); trabalhando.current = false;
     }
   }
@@ -76,14 +74,18 @@ export default function LimparImplantacao({ aoLimpar }: { aoLimpar: () => void }
   return <section className="zona-risco" aria-labelledby="titulo-zona-risco">
     <h2 id="titulo-zona-risco" ref={titulo} tabIndex={-1}>Implantação secundária: apagar todos os dados</h2>
     <p>Hoje: {contagem(dados.resumo)}.</p>
-    {ultima && <p className="texto-pequeno">Última limpeza: {quando(ultima.em)}{ultima.por ? `, por ${ultima.por}` : ''}, {ultima.casos} casos.</p>}
-    <div role="status" aria-live="polite" className="resultado-acao">{ocupado ? 'Apagando…' : aviso}</div>
-    {avisos.length > 0 && <ul className="texto-pequeno">{avisos.map(a => <li key={a}>{a}</li>)}</ul>}
+    <p>Apaga casos, conversas, anexos e, se marcado, as cópias de segurança. Mantém usuários e o mapa. Não há como desfazer.</p>
+    {ultima && <p className="texto-pequeno">Última limpeza: em {dataLegivel(ultima.em).replace(', ', ' ')}{ultima.por ? ` por ${ultima.por}` : ''} ({ultima.casos} casos).</p>}
+    <div role="status" aria-live="polite" className={ocupado ? 'texto-pequeno' : 'resultado-acao'}>
+      {ocupado ? 'Apagando…' : aviso}
+      {!ocupado && avisos.length > 0 && <>
+        <p>Atenção: alguns arquivos não foram removidos.</p>
+        <ul>{avisos.map(a => <li key={a}>{a}</li>)}</ul></>}
+    </div>
     <button type="button" ref={abrir} className="botao secundario" aria-expanded={aberto} disabled={ocupado}
       onClick={() => { setAviso(''); setAvisos([]); setAberto(true); }}>Apagar todos os dados…</button>
     {aberto && <form className="zona-risco-painel" onSubmit={apagar} noValidate
       onKeyDown={e => { if (e.key === 'Escape' && !ocupado) { e.stopPropagation(); fechar(); } }}>
-      <p>Isto apaga casos, mensagens e anexos desta implantação e não pode ser desfeito.</p>
       <div className="campos">
         <div><label htmlFor="zona-senha">Senha</label>
           <input id="zona-senha" ref={campoSenha} type="password" autoComplete="current-password" maxLength={256}

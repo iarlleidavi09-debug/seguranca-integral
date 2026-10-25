@@ -40,7 +40,8 @@ describe('LimparImplantacao', () => {
     render(<LimparImplantacao aoLimpar={vi.fn()} />);
     expect(await screen.findByRole('heading', { name: TITULO })).toBeInTheDocument();
     expect(screen.getByText(/12 casos, 48 mensagens, 5 anexos, 3 cópias de segurança/)).toBeInTheDocument();
-    expect(screen.getByText(/Última limpeza:.*Marina/)).toBeInTheDocument();
+    expect(screen.getByText(/^Última limpeza: em 20\/10\/2026 \d\d:\d\d por Marina \(4 casos\)\.$/)).toBeInTheDocument();
+    expect(screen.getByText('Apaga casos, conversas, anexos e, se marcado, as cópias de segurança. Mantém usuários e o mapa. Não há como desfazer.')).toBeInTheDocument();
   });
 
   it('abre o painel com foco na senha, exige frase e senha, e fecha com Esc e Cancelar devolvendo o foco', async () => {
@@ -108,6 +109,47 @@ describe('LimparImplantacao', () => {
     expect(screen.getByLabelText('Senha')).toHaveValue('');
     expect(screen.getByLabelText('Senha')).toHaveFocus();
     expect(screen.getByRole('button', { name: 'Apagar tudo' })).toBeDisabled();
+  });
+
+  it.each([
+    [403, { erro: 'sem permissao' }, 'Sem permissão para apagar os dados.'],
+    [429, {}, 'Muitas tentativas. Aguarde alguns minutos e tente de novo.'],
+    [500, {}, 'Não foi possível concluir agora. Tente de novo.'],
+  ])('erro %i usa a mensagem própria e limpa a senha', async (status, corpo, texto) => {
+    servidor({ 'GET /api/implantacao': () => ({ corpo: resumo }), 'POST /api/implantacao/limpar': () => ({ status, corpo }) });
+    const { u } = await abrir();
+    await preencher(u);
+    await u.click(screen.getByRole('button', { name: 'Apagar tudo' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(texto);
+    expect(screen.getByLabelText('Senha')).toHaveValue('');
+  });
+
+  it('erro de rede mostra mensagem de conexão e limpa a senha', async () => {
+    servidor({ 'GET /api/implantacao': () => ({ corpo: resumo }) });
+    const { u } = await abrir();
+    vi.mocked(fetch).mockRejectedValue(new TypeError('falhou'));
+    await preencher(u);
+    await u.click(screen.getByRole('button', { name: 'Apagar tudo' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível conectar.');
+    expect(screen.getByLabelText('Senha')).toHaveValue('');
+  });
+
+  it('Enter com o botão desabilitado não envia', async () => {
+    servidor({ 'GET /api/implantacao': () => ({ corpo: resumo }), 'POST /api/implantacao/limpar': ok });
+    const { u } = await abrir();
+    await u.type(screen.getByLabelText('Senha'), 'segredo{Enter}');
+    expect(chamadasA('POST', '/api/implantacao/limpar')).toHaveLength(0);
+  });
+
+  it('avisos do sucesso ficam na região de status até abrir o painel de novo', async () => {
+    servidor({ 'GET /api/implantacao': () => ({ corpo: resumo }), 'POST /api/implantacao/limpar': () => ({ corpo: { ok: true, removidos, avisos: ['a.png nao removido'] } }) });
+    const { u, botao } = await abrir();
+    await preencher(u);
+    await u.click(screen.getByRole('button', { name: 'Apagar tudo' }));
+    const item = await screen.findByText('a.png nao removido');
+    expect(item.closest('[role="status"]')).toHaveTextContent('Atenção: alguns arquivos não foram removidos.');
+    await u.click(botao);
+    expect(screen.queryByText('a.png nao removido')).not.toBeInTheDocument();
   });
 
   it('sucesso: avisa, zera contagens, limpa rascunhos, fecha o painel e foca o título', async () => {
