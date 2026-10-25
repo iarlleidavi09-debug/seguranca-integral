@@ -48,3 +48,10 @@ export function faixaTexto(a: Ambiente): { y: number; altura: number } {
  const altura = a.altura * (a.espessura ?? .35);
  return { y: (a.rotacao ?? 0) >= 180 ? a.y + a.altura - altura : a.y, altura };
 }
+
+/** Posição vertical dos rótulos de um ambiente para o tamanho de fonte `fs` (unidades da planta).
+ * Com fs = 20 reproduz os valores históricos (26, 52; limiares 32 e 60). Linha que não cabe vira null. */
+export function layoutRotulos(a: Ambiente, fs: number, comContagem: boolean): { nome: number | null; contagem: number | null } {
+ const f = faixaTexto(a);
+ return { nome: f.altura >= 1.6 * fs ? f.y + 1.3 * fs : null, contagem: comContagem && f.altura >= 3 * fs ? f.y + 2.6 * fs : null };
+}

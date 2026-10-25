@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import Mapa from './Mapa';
-import { agregarAmbiente, ajustar, distribuicaoAmbiente, pontosL } from './modelo';
+import { agregarAmbiente, ajustar, distribuicaoAmbiente, layoutRotulos, pontosL } from './modelo';
 import { servidor } from '../testes/servidor';
 
 const vazio = { revisao: 0, ambientes: [] };
@@ -121,6 +121,36 @@ describe('Mapa escolar', () => {
   expect(screen.getByText('Este nível ainda não tem ambientes.')).toBeInTheDocument();
   expect(screen.queryByText('A planta ainda está vazia')).toBeNull();
   expect(screen.getByRole('navigation', { name: 'Níveis da planta' })).toHaveClass('mapa-niveis-destaque');
+ });
+ it('layout dos rótulos: fs = 20 reproduz os valores históricos e fs grande esconde linhas que não cabem', () => {
+  const a = (altura: number) => ({ id: 'a', nome: 'A', tipo: 'sala' as const, pai_id: null, x: 0, y: 100, largura: 300, altura });
+  expect(layoutRotulos(a(200), 20, true)).toEqual({ nome: 126, contagem: 152 });
+  expect(layoutRotulos(a(31), 20, true)).toEqual({ nome: null, contagem: null });
+  expect(layoutRotulos(a(59), 20, true)).toEqual({ nome: 126, contagem: null });
+  expect(layoutRotulos(a(200), 20, false).contagem).toBeNull();
+  const g = layoutRotulos(a(100), 52.5, true);
+  expect(g.contagem).toBeNull();
+  expect(g.nome).toBeLessThan(100 + 100);
+  expect(layoutRotulos(a(60), 52.5, true)).toEqual({ nome: null, contagem: null });
+  const alto = layoutRotulos(a(300), 52.5, true);
+  expect(alto.contagem).toBeLessThan(100 + 300);
+ });
+ it('em 320 px de largura escala fonte e posições dos rótulos e esconde linhas que não cabem', async () => {
+  const original = Element.prototype.getBoundingClientRect;
+  Element.prototype.getBoundingClientRect = function () { return { width: 320, height: 200, top: 0, left: 0, right: 320, bottom: 200, x: 0, y: 0, toJSON() {} } as DOMRect; };
+  const sala = (id: string, nome: string, altura: number, y: number) => ({ id, nome, tipo: 'sala', pai_id: null, x: 80, y, largura: 600, altura });
+  servidor({ 'GET /api/mapa': () => ({ corpo: { revisao: 1, ambientes: [sala('g', 'Grande', 300, 80), sala('m', 'Media', 100, 400), sala('p', 'Pequena', 60, 520)] } }),
+   'GET /api/mapa/resumo': () => ({ corpo: { ...resumo, ambientes: [] } }) });
+  try {
+   render(<Mapa />);
+   const planta = await screen.findByRole('group', { name: 'Planta esquemática do nível atual' });
+   await waitFor(() => expect(planta.querySelector('[data-ambiente="g"] text')).toHaveStyle({ fontSize: '52.5px' }));
+   const textos = (id: string) => [...planta.querySelectorAll(`[data-ambiente="${id}"] text`)];
+   expect(textos('g').map(t => t.getAttribute('y'))).toEqual(['148.25', '216.5']);
+   expect(textos('m').map(t => t.getAttribute('y'))).toEqual(['468.25']);
+   expect(textos('p')).toHaveLength(0);
+   expect(screen.getByRole('button', { name: /Pequena/ })).toBeInTheDocument();
+  } finally { Element.prototype.getBoundingClientRect = original; }
  });
  it('preserva o rascunho quando há conflito de revisão', async () => {
   montar(true); const user = await criar();
