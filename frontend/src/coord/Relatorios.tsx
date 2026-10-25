@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { mensagemErroCoord, obterRelatorio } from '../shared/api';
 import type { Relatorio } from '../shared/api';
 import { usePolling } from './polling';
@@ -14,7 +14,22 @@ const LINHAS_PRIORIDADE = [
   { campo: 'baixa', nome: 'Baixa', cor: '#115ea3', traco: '12 4 3 4' },
 ] as const;
 
+const CONSULTA_ESTREITA = '(max-width: 599px)';
+function useTelaEstreita() {
+  const [estreita, setEstreita] = useState(() => window.matchMedia?.(CONSULTA_ESTREITA)?.matches ?? false);
+  useEffect(() => {
+    const consulta = window.matchMedia?.(CONSULTA_ESTREITA);
+    if (!consulta) return;
+    const atualizar = () => setEstreita(consulta.matches);
+    atualizar();
+    consulta.addEventListener?.('change', atualizar);
+    return () => consulta.removeEventListener?.('change', atualizar);
+  }, []);
+  return estreita;
+}
+
 export default function Relatorios() {
+  const telaEstreita = useTelaEstreita();
   const [periodo, setPeriodo] = useState(() => ({ inicio: dataLocal(new Date(Date.now() - 29 * 86400000)), fim: dataLocal(new Date()) }));
   const [filtro, setFiltro] = useState(periodo);
   const [dados, setDados] = useState<Relatorio | null>(null);
@@ -39,6 +54,7 @@ export default function Relatorios() {
   const maximo = Math.ceil(Math.max(1, ...linhas.flatMap(l => l.valores)) / 2) * 2;
   const pontos = (valores: number[]) => valores.map((n, i) =>
     `${48 + i * 800 / Math.max(1, valores.length - 1)},${210 - n * 170 / maximo}`).join(' ');
+  const diasComDados = (linhas[0]?.valores ?? []).filter((_, i) => linhas.some(l => l.valores[i] > 0)).length;
   const tituloGrafico = visualizacao === 'prioridade' ? 'Evolução diária por prioridade' : visualizacao === 'acumulado' ? 'Recebidos e resolvidos acumulados' : 'Recebidos e resolvidos por dia';
   const prioridades = dados && <>
     {dados.prioridades.length === 0 ? <p>Sem pedidos no período.</p> : dados.prioridades.map(p => <div className="prioridade-barra" key={p.prioridade}>
@@ -46,6 +62,8 @@ export default function Relatorios() {
       <progress max={dados.recebidos || 1} value={p.quantidade} aria-label={`Prioridade ${p.prioridade}`} />
     </div>)}
   </>;
+  const linhasTabela = visualizacao === 'prioridade' ? seriePrioridades : serie;
+  const legendaTabela = visualizacao === 'acumulado' ? 'Totais acumulados a partir do início do período' : visualizacao === 'prioridade' ? 'Pedidos por dia e prioridade atual' : 'Totais diários do período selecionado';
   const pronto = dados?.inicio === periodo.inicio && dados?.fim === periodo.fim;
   return <section className="relatorios" aria-labelledby="titulo-relatorios">
     <div className="relatorio-cabecalho"><div><h1 id="titulo-relatorios">Evolução do atendimento</h1>
@@ -86,12 +104,16 @@ export default function Relatorios() {
             {l.valores.length === 1 && <circle cx="48" cy={210 - l.valores[0] * 170 / maximo} r="4" fill={l.cor} />}</g>)}
           <text x="48" y="245">{rotulo(dados.inicio)}</text><text x="848" y="245" textAnchor="end">{rotulo(dados.fim)}</text>
         </svg></div>
+        {diasComDados > 0 && diasComDados < 3 && <p className="relatorio-pouco-historico">Ainda há pouco histórico: só existem dados em {diasComDados} {diasComDados === 1 ? 'dia' : 'dias'} neste período.</p>}
         {!dados.recebidos && !dados.resolvidos && <p className="vazio">Nenhum pedido recebido ou primeira resolução neste período. Escolha outras datas para consultar o histórico.</p>}
       </section>
       <div className="relatorio-detalhes">{visualizacao !== 'prioridade' && <section className="relatorio-prioridades"><h2>Prioridade dos pedidos recebidos</h2>{prioridades}</section>}
       <details className="relatorio-tabela"><summary>{visualizacao === 'acumulado' ? 'Consultar os dados acumulados' : 'Consultar os dados por dia'}</summary>
-        <div className="relatorio-tabela-scroll"><table><caption>{visualizacao === 'acumulado' ? 'Totais acumulados a partir do início do período' : visualizacao === 'prioridade' ? 'Pedidos por dia e prioridade atual' : 'Totais diários do período selecionado'}</caption><thead><tr><th>Data</th>{linhas.map(l => <th key={l.campo}>{l.nome}</th>)}</tr></thead>
-          <tbody>{(visualizacao === 'prioridade' ? seriePrioridades : serie).map((d, i) => <tr key={d.data}><td>{d.data.split('-').reverse().join('/')}</td>{linhas.map(l => <td key={l.campo}>{l.valores[i]}</td>)}</tr>)}</tbody></table></div>
+        {telaEstreita ? <ul className="relatorio-lista" aria-label={legendaTabela}>{linhasTabela.map((d, i) => <li key={d.data}>
+          <div><span>Data:</span> <strong>{d.data.split('-').reverse().join('/')}</strong></div>
+          {linhas.map(l => <div key={l.campo}><span>{l.nome}:</span> <strong>{l.valores[i]}</strong></div>)}</li>)}</ul>
+        : <div className="relatorio-tabela-scroll"><table><caption>{legendaTabela}</caption><thead><tr><th>Data</th>{linhas.map(l => <th key={l.campo}>{l.nome}</th>)}</tr></thead>
+          <tbody>{linhasTabela.map((d, i) => <tr key={d.data}><td>{d.data.split('-').reverse().join('/')}</td>{linhas.map(l => <td key={l.campo}>{l.valores[i]}</td>)}</tr>)}</tbody></table></div>}
       </details></div>
       <p className="relatorio-nota">Horário de Brasília. Simulações não entram nos indicadores. As resoluções consideram a primeira finalização de cada caso, inclusive pedidos recebidos antes do período. O CSV contém os totais diários; use Imprimir / PDF para salvar este relatório.</p>
     </>}

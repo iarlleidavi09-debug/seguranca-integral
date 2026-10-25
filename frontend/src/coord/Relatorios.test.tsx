@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import { expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { afterEach, expect, it, vi } from 'vitest';
 import Relatorios from './Relatorios';
 import { servidor } from './testes/servidor';
 
@@ -55,4 +56,71 @@ it('alterna entre dados diários, acumulados e distribuição por prioridade', a
   expect(within(screen.getByRole('table')).getByRole('columnheader', { name: 'Alta' })).toBeInTheDocument();
   expect(within(screen.getByRole('table')).getByText('3')).toBeInTheDocument();
   expect(screen.getByRole('link', { name: 'Exportar CSV / Excel' })).toHaveAttribute('href', exportacao);
+});
+
+function relatorio(evolucao: { data: string; recebidos: number; resolvidos: number }[]) {
+  servidor({ 'GET /api/relatorios': (_corpo, url) => ({ corpo: {
+    inicio: url.searchParams.get('inicio'), fim: url.searchParams.get('fim'),
+    recebidos: evolucao.reduce((t, d) => t + d.recebidos, 0), resolvidos: evolucao.reduce((t, d) => t + d.resolvidos, 0),
+    evolucao, prioridades: [], evolucao_prioridades: [],
+  } }) });
+}
+function larguraEstreita(estreita: boolean) {
+  window.matchMedia = ((consulta: string) => ({ matches: estreita && consulta === '(max-width: 599px)', media: consulta,
+    addEventListener: () => {}, removeEventListener: () => {}, addListener: () => {}, removeListener: () => {}, onchange: null, dispatchEvent: () => false })) as typeof window.matchMedia;
+}
+afterEach(() => { delete (window as { matchMedia?: unknown }).matchMedia; });
+
+it('em tela estreita troca a tabela por uma lista empilhada com os mesmos valores', async () => {
+  larguraEstreita(true);
+  relatorio([{ data: '2026-10-01', recebidos: 2, resolvidos: 0 }, { data: '2026-10-02', recebidos: 3, resolvidos: 1 }]);
+  const { container } = render(<Relatorios />);
+  fireEvent.click(await screen.findByText('Consultar os dados por dia'));
+  expect(screen.queryByRole('table')).toBeNull();
+  const lista = container.querySelector('.relatorio-lista') as HTMLElement;
+  const itens = within(lista).getAllByRole('listitem');
+  expect(itens).toHaveLength(2);
+  expect(itens[1]).toHaveTextContent('Data: 02/10/2026');
+  expect(itens[1]).toHaveTextContent('Recebidos: 3');
+  expect(itens[1]).toHaveTextContent('Primeira resolução: 1');
+  expect(itens[0]).toHaveTextContent('Recebidos: 2');
+});
+
+it('em tela larga mantém a tabela, e sem matchMedia também', async () => {
+  larguraEstreita(false);
+  relatorio([{ data: '2026-10-01', recebidos: 2, resolvidos: 0 }]);
+  const { container, unmount } = render(<Relatorios />);
+  fireEvent.click(await screen.findByText('Consultar os dados por dia'));
+  expect(screen.getByRole('table')).toBeInTheDocument();
+  expect(container.querySelector('.relatorio-lista')).toBeNull();
+  unmount();
+  delete (window as { matchMedia?: unknown }).matchMedia;
+  render(<Relatorios />);
+  fireEvent.click(await screen.findByText('Consultar os dados por dia'));
+  expect(screen.getByRole('table')).toBeInTheDocument();
+});
+
+it('avisa que há pouco histórico com menos de 3 dias de dados e usa o singular', async () => {
+  const dias = Array.from({ length: 30 }, (_, i) => ({ data: `2026-09-${String(i + 1).padStart(2, '0')}`, recebidos: i === 4 ? 2 : 0, resolvidos: 0 }));
+  relatorio(dias);
+  render(<Relatorios />);
+  expect(await screen.findByText('Ainda há pouco histórico: só existem dados em 1 dia neste período.')).toBeInTheDocument();
+});
+
+it('usa o plural com 2 dias e esconde a nota com 3 ou mais dias de dados', async () => {
+  relatorio([{ data: '2026-10-01', recebidos: 1, resolvidos: 0 }, { data: '2026-10-02', recebidos: 0, resolvidos: 1 }]);
+  const { unmount } = render(<Relatorios />);
+  expect(await screen.findByText('Ainda há pouco histórico: só existem dados em 2 dias neste período.')).toBeInTheDocument();
+  unmount();
+  relatorio([1, 2, 3].map(n => ({ data: `2026-10-0${n}`, recebidos: n, resolvidos: 0 })));
+  render(<Relatorios />);
+  await screen.findByRole('link', { name: 'Exportar CSV / Excel' });
+  expect(screen.queryByText(/Ainda há pouco histórico/)).toBeNull();
+});
+
+it('mantém os rótulos do gráfico com pelo menos 12 px', () => {
+  const css = readFileSync('src/coord/fluent.css', 'utf8');
+  const regra = css.match(/\.relatorio-grafico svg text\s*\{[^}]*font:\s*(\d+)px/);
+  expect(regra).not.toBeNull();
+  expect(Number(regra![1])).toBeGreaterThanOrEqual(12);
 });
