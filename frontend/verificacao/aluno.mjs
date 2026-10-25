@@ -397,7 +397,7 @@ try {
         // ---- Coordenação responde e investiga
         await api('POST', `/api/casos/${caso.id}/mensagens`, { texto: 'Recebemos o seu pedido. Vamos conversar com cuidado.' });
         await api('POST', `/api/casos/${caso.id}/status`, { status: 'em_investigacao' });
-        await pagina.getByRole('button', { name: 'Atualizar conversa' }).click();
+        // com o stream online o botão Atualizar conversa não existe: a atualização chega sozinha e o ok() abaixo espera por ela
         await ok('mensagem da coordenação e etapa "Em investigação"', async () => {
           await pagina.locator('.mensagem[data-autor="coordenacao"]').waitFor();
           await pagina.locator('.etapa[data-estado="atual"]', { hasText: 'Em investigação' }).waitFor();
@@ -407,7 +407,7 @@ try {
 
         // ---- Resolução com marcação HTML, para provar o texto literal
         await api('POST', `/api/casos/${caso.id}/resolucao`, { desfecho: 'intervencao_realizada', providencias: 'Conversamos com a turma e com a família. <b>teste</b> de marcação.', resultado: 'Situação encerrada. <i>teste</i> de resultado.' });
-        await pagina.getByRole('button', { name: 'Atualizar conversa' }).click();
+        // com o stream online o botão Atualizar conversa não existe: a atualização chega sozinha e o ok() abaixo espera por ela
         await ok('área pós-resolução aparece com a resolução', () => pagina.getByRole('heading', { name: 'Seu caso foi resolvido' }).waitFor());
         await ok('texto da equipe aparece literal, sem HTML', async () => {
           await pagina.getByText('<b>teste</b>', { exact: false }).first().waitFor();
@@ -432,7 +432,7 @@ try {
 
         // ---- Reabertura pela coordenação
         await api('POST', `/api/casos/${caso.id}/status`, { status: 'em_investigacao' });
-        await pagina.getByRole('button', { name: 'Atualizar conversa' }).click();
+        // com o stream online o botão Atualizar conversa não existe: a atualização chega sozinha e o ok() abaixo espera por ela
         await ok('caso reaberto: o aluno deixa de ver o bloco pós-resolução', async () => {
           await pagina.locator('.etapa[data-estado="atual"]', { hasText: 'Em investigação' }).waitFor();
           if (await pagina.locator('.pos-resolucao').count()) throw new Error('bloco continua');

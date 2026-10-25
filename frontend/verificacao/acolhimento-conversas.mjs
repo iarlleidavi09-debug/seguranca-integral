@@ -27,7 +27,7 @@ try {
       return route.fulfill({ json: {}, status: 503 });
     });
     await page.goto('http://127.0.0.1:15173/', { waitUntil: 'domcontentloaded', timeout: 90000 });
-    await expect(page.getByText('Para iniciar uma denúncia', { exact: false })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Conversar sem me identificar' })).toBeVisible();
     await page.screenshot({ path: fileURLToPath(new URL(`aluno-inicio-${largura}.png`, pasta)), fullPage: true });
     await page.getByRole('button', { name: 'Conversar sem me identificar' }).click();
     await expect(page.getByRole('textbox')).toHaveCount(1);
@@ -44,8 +44,8 @@ try {
     await expect(titulo).toBeFocused();
     await expect(page.getByText('Uma mensagem nova da coordenação.')).toHaveCount(0);
     await page.getByRole('button', { name: 'Voltar ao início' }).click();
-    await page.getByRole('button', { name: 'Apagar todos os acessos' }).click();
-    await expect(page.getByText('Nenhum acesso salvo.')).toBeVisible();
+    await page.getByRole('button', { name: 'Apagar acesso K7M2-9QXD' }).click();
+    await expect(page.getByRole('heading', { name: 'Continuar meu caso' })).toHaveCount(0);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth);
     expect(overflow).toBe(false);
     expect(erros).toEqual([]);

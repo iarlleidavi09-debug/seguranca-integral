@@ -69,7 +69,7 @@ flowchart TD
 | Prévia de anexo | **Remover** | Remove a imagem |
 | Confirmação | **Copiar código** | Copia o código e avisa o resultado, sem mudar de tela |
 | Acompanhamento sem caso | Código → **Acompanhar** | Consulta; aceita minúsculas, espaços e código sem hífen |
-| Conversa carregada | **Atualizar conversa** | Busca de novo etapas, mensagens e pós-resolução |
+| Conversa carregada, só fora do ar ou após uma falha de leitura | **Atualizar conversa** | Busca de novo etapas, mensagens e pós-resolução |
 | Conversa carregada | Resposta → **Enviar resposta** | Envia de 1 a 2000 caracteres e atualiza a conversa |
 | Pós-resolução | **Melhorou** ou **Voltou a acontecer** | Envia a situação, agradece e mostra “Você informou”; pode ser repetido; “voltou” alerta a coordenação |
 

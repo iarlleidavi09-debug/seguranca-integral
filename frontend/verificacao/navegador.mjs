@@ -25,7 +25,9 @@ const servidor = createServer(async (req, res) => {
       mensagens = [{ autor: 'coordenacao', texto: 'Mensagem de teste: recebemos seu pedido.', criado_em: '2026-10-14T12:00:00Z' }];
       res.writeHead(201).end(JSON.stringify({ codigo }));
     } else {
-      const dados = JSON.parse(corpo);
+      // sem transmissão em tempo real: o aluno fica em reconectando e o botão Atualizar conversa aparece
+      if (req.url === '/api/acompanhar/eventos') { res.writeHead(503).end('{}'); return; }
+      const dados = corpo ? JSON.parse(corpo) : {};
       if (dados.codigo !== 'K7M29QXD') { res.writeHead(404).end('{"erro":"codigo nao encontrado"}'); return; }
       if (req.url === '/api/acompanhar/mensagens') {
         mensagens.push({ autor: 'aluno', texto: dados.texto, criado_em: '2026-10-14T12:01:00Z' });
@@ -83,7 +85,7 @@ try {
       await pagina.keyboard.press('Enter');
       await capturar('inicio');
       await pagina.getByRole('button', { name: 'Preciso de ajuda' }).click();
-      await pagina.getByRole('button', { name: 'Continuar' }).click();
+      await pagina.getByRole('button', { name: 'Continuar', exact: true }).click();
       await expect(pagina.getByRole('alert')).toContainText('Escolha');
       await pagina.getByLabel('Ameaça', { exact: true }).check();
       await capturar('tipo');
