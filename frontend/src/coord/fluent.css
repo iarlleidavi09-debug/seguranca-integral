@@ -148,7 +148,7 @@
   .relatorio-totais { grid-template-columns: 1fr; }
   .relatorio-filtros label { flex: 1 1 120px; }
   .relatorio-grafico { padding: 16px; }
-  .relatorio-prioridades, .relatorio-tabela { padding: 16px; }
+  .relatorio-prioridades, .relatorio-tabela { padding: 16px; } /* 759px: layout geral; a lista empilhada troca em 599px (matchMedia no componente) */
   .relatorio-grafico svg { min-width: 900px; }
 }
 @media print {

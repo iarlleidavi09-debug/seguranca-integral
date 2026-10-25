@@ -54,7 +54,8 @@ export default function Relatorios() {
   const maximo = Math.ceil(Math.max(1, ...linhas.flatMap(l => l.valores)) / 2) * 2;
   const pontos = (valores: number[]) => valores.map((n, i) =>
     `${48 + i * 800 / Math.max(1, valores.length - 1)},${210 - n * 170 / maximo}`).join(' ');
-  const diasComDados = (linhas[0]?.valores ?? []).filter((_, i) => linhas.some(l => l.valores[i] > 0)).length;
+  // Sempre a série diária bruta, para que o modo acumulado não infle a contagem.
+  const diasComDados = (dados?.evolucao ?? []).filter(d => d.recebidos > 0 || d.resolvidos > 0).length;
   const tituloGrafico = visualizacao === 'prioridade' ? 'Evolução diária por prioridade' : visualizacao === 'acumulado' ? 'Recebidos e resolvidos acumulados' : 'Recebidos e resolvidos por dia';
   const prioridades = dados && <>
     {dados.prioridades.length === 0 ? <p>Sem pedidos no período.</p> : dados.prioridades.map(p => <div className="prioridade-barra" key={p.prioridade}>
@@ -109,7 +110,7 @@ export default function Relatorios() {
       </section>
       <div className="relatorio-detalhes">{visualizacao !== 'prioridade' && <section className="relatorio-prioridades"><h2>Prioridade dos pedidos recebidos</h2>{prioridades}</section>}
       <details className="relatorio-tabela"><summary>{visualizacao === 'acumulado' ? 'Consultar os dados acumulados' : 'Consultar os dados por dia'}</summary>
-        {telaEstreita ? <ul className="relatorio-lista" aria-label={legendaTabela}>{linhasTabela.map((d, i) => <li key={d.data}>
+        {telaEstreita ? <ul className="relatorio-lista" role="list" aria-label={legendaTabela}>{linhasTabela.map((d, i) => <li key={d.data}>
           <div><span>Data:</span> <strong>{d.data.split('-').reverse().join('/')}</strong></div>
           {linhas.map(l => <div key={l.campo}><span>{l.nome}:</span> <strong>{l.valores[i]}</strong></div>)}</li>)}</ul>
         : <div className="relatorio-tabela-scroll"><table><caption>{legendaTabela}</caption><thead><tr><th>Data</th>{linhas.map(l => <th key={l.campo}>{l.nome}</th>)}</tr></thead>
