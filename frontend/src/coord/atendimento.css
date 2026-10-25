@@ -1,8 +1,10 @@
-.atendimento { margin-block: 1rem; padding-block: 1rem; border-bottom: 1px solid var(--borda-suave); }
+.atendimento { margin-block: 0; padding-block: var(--espaco-2); border-bottom: 1px solid var(--borda-suave); display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--espaco-4); }
+.atendimento > p, .atendimento > details[open] { flex: 1 0 100%; }
 .painel .atendimento h2 { margin: 0 0 .75rem; }
-.atendimento-sintese { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 2rem; }
+.atendimento-sintese { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem 1rem; flex: 1 1 auto; min-width: 0; }
 .atendimento-sintese p { margin: 0; }
-.atendimento-editor > summary { padding-block: .75rem; min-height: 44px; box-sizing: border-box; cursor: pointer; color: var(--primaria-base); font-weight: 700; }
+.atendimento-editor > summary { min-height: 44px; box-sizing: border-box; cursor: pointer; list-style: none; }
+.atendimento-editor > summary::-webkit-details-marker { display: none; }
 .atendimento-editor > summary:focus-visible { outline: 3px solid var(--foco-anel); outline-offset: 3px; }
 .atendimento fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
 .atendimento-campos { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; }

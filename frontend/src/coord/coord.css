@@ -214,10 +214,20 @@ select:disabled { background: var(--desabilitado-fundo); color: var(--desabilita
 .caso-topo h1 { margin-bottom: var(--espaco-2); }
 .caso-selos { display: flex; flex-wrap: wrap; gap: var(--espaco-2); align-items: center; margin-bottom: var(--espaco-2); }
 
-.caso-meta {
-  display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--espaco-4) var(--espaco-6); margin-top: var(--espaco-4);
-  padding: var(--espaco-4) 0; border-block: var(--linha-fina) solid var(--borda-suave);
+.caso-faixa { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--espaco-4); }
+.caso-faixa > * { margin-block: var(--espaco-1); }
+.caso-acoes {
+  display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--espaco-3) var(--espaco-4); margin-top: var(--espaco-3);
+  padding: var(--espaco-3) 0; border-block: var(--linha-fina) solid var(--borda-suave);
 }
+.caso-acoes .botao, .caso-acoes select { min-height: 44px; box-sizing: border-box; }
+.caso-acoes .caso-roe { margin-left: auto; text-decoration: none; }
+.caso-acoes .resolucao-detalhes { margin: 0; border: 0; }
+.caso-acoes .resolucao-detalhes > summary.botao { padding: var(--espaco-3) var(--espaco-5); color: var(--texto-sobre-primaria); list-style: none; cursor: pointer; }
+.caso-acoes .resolucao-detalhes > summary.botao::-webkit-details-marker { display: none; }
+.caso-acoes .resolucao-detalhes[open] { flex: 1 0 100%; order: 10; }
+.caso-acoes .resolucao-detalhes[open] > summary.botao { display: inline-flex; }
+.caso-acoes .resolucao-detalhes > :not(summary) { margin-top: var(--espaco-3); }
 .caso-meta-status { display: grid; gap: var(--espaco-1); min-width: 120px; max-width: 200px; flex: 1 1 120px; }
 .caso-meta-status label { margin-bottom: 0; }
 .caso-meta-status p { margin: 0; font-weight: 700; }
@@ -225,6 +235,8 @@ select:disabled { background: var(--desabilitado-fundo); color: var(--desabilita
 .caso-meta-acesso span { font-size: var(--texto-legenda); color: var(--texto-secundario); }
 .caso-meta-acesso b { color: var(--texto-principal); }
 .caso-dados summary { cursor: pointer; min-height: 44px; padding-block: 12px; box-sizing: border-box; color: var(--primaria-base); font-weight: 700; }
+.caso-dados summary::before { content: '+ '; }
+.caso-dados[open] > summary::before { content: '- '; }
 .caso-dados summary:focus-visible { outline: 3px solid var(--foco-anel); outline-offset: 3px; }
 .caso-dados .caso-meta-acesso { margin-top: var(--espaco-3); }
 .reavaliar { display: contents; }
@@ -237,14 +249,20 @@ select:disabled { background: var(--desabilitado-fundo); color: var(--desabilita
 .form-acao .erro { margin: 0; }
 .form-acao .acoes { margin-top: var(--espaco-2); }
 .caso-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--espaco-6); margin-top: var(--espaco-2); }
-.caso-resumo {
-  order: 2; align-self: start; padding: var(--espaco-4) 0 0;
-  border-top: var(--linha-fina) solid var(--borda-suave);
-}
-.painel .caso-resumo h2 { margin-top: 0; font-size: var(--texto-destaque); line-height: 26px; }
-.caso-resumo .motivos { flex-direction: column; align-items: flex-start; }
-.resumo-prioridade { margin: var(--espaco-3) 0 0; color: var(--texto-secundario); }
-.resumo-prioridade b { color: var(--texto-principal); }
+.caso-lateral { order: -1; align-self: start; min-width: 0; margin-bottom: var(--espaco-2); border-bottom: var(--linha-fina) solid var(--borda-suave); }
+.caso-lateral-detalhes > summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; box-sizing: border-box; color: var(--primaria-base); }
+.caso-lateral-detalhes > summary::before { content: '+ '; white-space: pre; font-weight: 700; }
+.caso-lateral-detalhes[open] > summary::before { content: '- '; }
+.caso-lateral-detalhes > summary:focus-visible { outline: 3px solid var(--foco-anel); outline-offset: 3px; }
+.caso-lateral h2, .painel .caso-lateral h2 { margin: 0; font-size: var(--texto-destaque); line-height: 26px; }
+.caso-lateral .motivos { flex-direction: column; align-items: flex-start; }
+.caso-lateral .resumo-prioridade:last-child { margin-bottom: var(--espaco-3); }
+.caso-principal { min-width: 0; }
+.abas [role='tab'] { position: relative; }
+.aba-contagem { color: var(--texto-secundario); font-weight: 400; margin-left: var(--espaco-1); }
+.aba-ponto-novo { display: inline-block; width: 8px; height: 8px; margin-left: var(--espaco-2); border-radius: var(--raio-pill); background: var(--perigo-base); vertical-align: middle; }
+.vazio-compacto { margin: var(--espaco-2) 0; color: var(--texto-secundario); font-size: var(--texto-pequeno); }
+.respostas-vazio { margin-top: var(--espaco-3); padding-block: 0; border-top: 0; }
 .painel-aba { margin-top: var(--espaco-2); }
 .texto-livre { white-space: pre-wrap; max-width: 75ch; overflow-wrap: anywhere; }
 .detalhes { display: grid; grid-template-columns: auto 1fr; gap: var(--espaco-1) var(--espaco-4); margin: var(--espaco-3) 0 0; }
@@ -345,8 +363,9 @@ select:disabled { background: var(--desabilitado-fundo); color: var(--desabilita
   .casos-linha:hover[data-gravidade] td { background: var(--primaria-suave); }
 }
 @media (min-width: 1100px) {
-  .caso-layout { grid-template-columns: minmax(0, 1fr); gap: var(--espaco-6); }
-  .caso-resumo { order: 2; }
+  .caso-layout { grid-template-columns: minmax(0, 1fr) 320px; gap: var(--espaco-8); align-items: start; }
+  .caso-lateral { order: 0; grid-column: 2; grid-row: 1; position: sticky; top: var(--espaco-4); margin: 0; padding: var(--espaco-4); border: var(--linha-fina) solid var(--borda-suave); border-radius: var(--raio-md); }
+  .caso-principal { grid-column: 1; grid-row: 1; }
 }
 @media (max-width: 759px) {
   .coord-layout { display: block; }
@@ -425,3 +444,7 @@ select:disabled { background: var(--desabilitado-fundo); color: var(--desabilita
 .pos-lista { margin: 0; padding-left: var(--espaco-5); display: grid; gap: var(--espaco-1); }
 .abas { overflow-x: auto; }
 .abas [role='tab'] { flex: 1 0 auto; white-space: nowrap; }
+@media (max-width: 599px) {
+  .caso-acoes .caso-roe, .caso-acoes .resolucao-detalhes:not([open]) { flex: 1 1 100%; margin-left: 0; }
+  .caso-acoes .resolucao-detalhes > summary.botao { display: flex; }
+}
