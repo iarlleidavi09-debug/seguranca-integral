@@ -58,6 +58,8 @@ export default function LimparImplantacao({ aoLimpar }: { aoLimpar: () => void }
       aoLimpar();
       setOcupado(false); trabalhando.current = false;
       setFocarTitulo(true);
+      // dados reais do servidor; se a releitura falhar, ficam as contagens da limpeza
+      obterImplantacao().then(d => { if (montado.current) setDados(d); }).catch(() => { /* sem erro visível */ });
     } catch (falha) {
       if (!montado.current) return;
       const detalhe = falha instanceof ErroCoord ? falha.detalhe : '';

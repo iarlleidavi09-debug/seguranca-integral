@@ -9,6 +9,7 @@ import type { Rota } from './testes/servidor';
 const resumo = { secundaria: true, resumo: { casos: 12, mensagens: 48, anexos: 5, arquivos: 7, backups: 3 }, ultima_limpeza: null };
 const removidos = { casos: 12, mensagens: 48, anexos: 5, arquivos: 7, backups: 3 };
 const ok: Rota = () => ({ corpo: { ok: true, removidos } });
+const zerado = { ...resumo, resumo: { casos: 0, mensagens: 0, anexos: 0, arquivos: 0, backups: 3 } };
 const TITULO = 'Implantação secundária: apagar todos os dados';
 
 async function abrir(aoLimpar = vi.fn()) {
@@ -153,7 +154,8 @@ describe('LimparImplantacao', () => {
   });
 
   it('sucesso: avisa, zera contagens, limpa rascunhos, fecha o painel e foca o título', async () => {
-    servidor({ 'GET /api/implantacao': () => ({ corpo: resumo }), 'POST /api/implantacao/limpar': ok });
+    let leituras = 0;
+    servidor({ 'GET /api/implantacao': () => ({ corpo: leituras++ ? { ...zerado, resumo: { ...zerado.resumo, backups: 0 } } : resumo }), 'POST /api/implantacao/limpar': ok });
     const limpar = vi.spyOn(rascunhos, 'limparRascunhosAtendimento');
     const { u, aoLimpar } = await abrir();
     await preencher(u);
@@ -168,8 +170,9 @@ describe('LimparImplantacao', () => {
   });
 
   it('com a caixa desmarcada, mantém a contagem de cópias e a mensagem diz 0 cópias', async () => {
+    let leituras = 0;
     servidor({
-      'GET /api/implantacao': () => ({ corpo: resumo }),
+      'GET /api/implantacao': () => ({ corpo: leituras++ ? zerado : resumo }),
       'POST /api/implantacao/limpar': () => ({ corpo: { ok: true, removidos: { ...removidos, backups: 0 } } }),
     });
     const { u } = await abrir();
@@ -178,5 +181,34 @@ describe('LimparImplantacao', () => {
     await u.click(screen.getByRole('button', { name: 'Apagar tudo' }));
     expect(await screen.findByText('Dados apagados: 12 casos, 48 mensagens, 5 anexos, 0 cópias de segurança.')).toBeInTheDocument();
     expect(screen.getByText(/Hoje: 0 casos, 0 mensagens, 0 anexos, 3 cópias de segurança/)).toBeInTheDocument();
+  });
+
+  it('depois do sucesso relê o servidor e mostra a última limpeza real', async () => {
+    let leituras = 0;
+    servidor({
+      'GET /api/implantacao': () => ({ corpo: leituras++ ? { ...zerado, ultima_limpeza: { em: '2026-10-25T12:00:00+00:00', por: 'Marina', casos: 12 } } : resumo }),
+      'POST /api/implantacao/limpar': ok,
+    });
+    const { u } = await abrir();
+    await preencher(u);
+    await u.click(screen.getByRole('button', { name: 'Apagar tudo' }));
+    expect(await screen.findByText(/^Última limpeza: em 25\/10\/2026 \d\d:\d\d por Marina \(12 casos\)\.$/)).toBeInTheDocument();
+    expect(screen.getByText('Dados apagados: 12 casos, 48 mensagens, 5 anexos, 3 cópias de segurança.')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: TITULO })).toHaveFocus();
+  });
+
+  it('se a releitura falhar, mantém as contagens zeradas sem erro visível', async () => {
+    let leituras = 0;
+    servidor({
+      'GET /api/implantacao': () => (leituras++ ? { status: 500 } : { corpo: resumo }),
+      'POST /api/implantacao/limpar': ok,
+    });
+    const { u } = await abrir();
+    await preencher(u);
+    await u.click(screen.getByRole('button', { name: 'Apagar tudo' }));
+    expect(await screen.findByText(/Dados apagados/)).toBeInTheDocument();
+    await waitFor(() => expect(chamadasA('GET', '/api/implantacao')).toHaveLength(2));
+    expect(screen.getByText(/Hoje: 0 casos, 0 mensagens, 0 anexos, 0 cópias de segurança/)).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 });
