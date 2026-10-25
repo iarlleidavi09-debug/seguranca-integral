@@ -1,5 +1,8 @@
 """Limpeza dos dados da implantação secundária. Só usa pastas temporárias."""
+import os
 import sqlite3
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -237,7 +240,7 @@ def test_avisos_agregados(conn, config, monkeypatch):
 
     monkeypatch.setattr(Path, "unlink", unlink)
     r = implantacao.limpar(conn, config, None)
-    assert r["avisos"] == ["3 arquivos nao puderam ser removidos"]
+    assert r["avisos"] == ["3 arquivos não puderam ser removidos"]
 
 
 def test_arquivos_de_configuracao_permanecem(conn, config):
@@ -333,3 +336,81 @@ def test_migracao_cria_tabela_em_banco_antigo(config):
         c.close()
     assert cols == {"id", "usuario_id", "criado_em", "casos", "mensagens",
                     "anexos", "backups"}
+
+
+def test_aviso_no_singular(conn, config, monkeypatch):
+    _caso(conn, config, anexos=1)
+    original = Path.unlink
+
+    def unlink(self, *a, **k):
+        if self.parent == config.uploads_dir:
+            raise PermissionError("em uso")
+        return original(self, *a, **k)
+
+    monkeypatch.setattr(Path, "unlink", unlink)
+    r = implantacao.limpar(conn, config, None)
+    assert r["avisos"] == ["1 arquivo não pôde ser removido"]
+
+
+def test_avisos_de_copias_de_seguranca(conn, config, monkeypatch):
+    for n in ("seguranca.db.pre-v3.bak", "seguranca.db.pre-v4.bak"):
+        (config.data_dir / n).write_bytes(b"c")
+    original = Path.unlink
+
+    def unlink(self, *a, **k):
+        if self.name.endswith(".bak"):
+            raise PermissionError("em uso")
+        return original(self, *a, **k)
+
+    monkeypatch.setattr(Path, "unlink", unlink)
+    r = implantacao.limpar(conn, config, None)
+    assert r["avisos"] == ["2 cópias de segurança não puderam ser removidas"]
+
+
+def _link_de_pasta(link: Path, alvo: Path):
+    """Cria link/junção de pasta; pula o teste se o Windows não deixar."""
+    try:
+        link.symlink_to(alvo, target_is_directory=True)
+        return
+    except (OSError, NotImplementedError):
+        pass
+    if sys.platform == "win32":
+        r = subprocess.run(["cmd", "/c", "mklink", "/J", str(link), str(alvo)],
+                           capture_output=True)
+        if r.returncode == 0:
+            return
+    pytest.skip("nao foi possivel criar link nem juncao de pasta")
+
+
+@pytest.mark.parametrize("pasta", ["uploads", "backups"])
+def test_pasta_que_e_link_para_fora_e_ignorada(conn, config, tmp_path_factory, pasta):
+    fora = tmp_path_factory.mktemp("fora")
+    (fora / "sub").mkdir()
+    (fora / "sub" / "b.txt").write_bytes(b"b")
+    (fora / "a.png").write_bytes(b"a")
+    _link_de_pasta(config.data_dir / pasta, fora)
+    r = implantacao.resumo(conn, config)
+    assert r["arquivos"] == 0 and r["backups"] == 0
+    res = implantacao.limpar(conn, config, None)
+    assert res["arquivos"] == 0 and res["backups"] == 0
+    assert any(pasta in a and "fora da pasta de dados" in a for a in res["avisos"])
+    assert (fora / "a.png").exists() and (fora / "sub" / "b.txt").exists()
+
+
+def test_pasta_fora_simulada_por_realpath(conn, config, monkeypatch):
+    _popular(conn, config)
+    uploads = str(config.uploads_dir)
+    real = os.path.realpath
+
+    def falso(caminho, *a, **k):
+        if str(caminho) == uploads:
+            return "Z:/fora/uploads"
+        return real(caminho, *a, **k)
+
+    monkeypatch.setattr(os.path, "realpath", falso)
+    assert implantacao.resumo(conn, config)["arquivos"] == 0
+    res = implantacao.limpar(conn, config, None)
+    assert res["arquivos"] == 0
+    assert res["avisos"] == [
+        "a pasta uploads aponta para fora da pasta de dados e foi ignorada"]
+    assert len(_arquivos(config)) == 3

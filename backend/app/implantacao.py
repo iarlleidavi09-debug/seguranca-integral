@@ -8,6 +8,7 @@ apenas contagens, nunca texto de caso.
 from __future__ import annotations
 
 import logging
+import os
 import shutil
 import sqlite3
 from datetime import datetime, timezone
@@ -34,6 +35,26 @@ def primeiro_admin_id(conn: sqlite3.Connection) -> int | None:
     return linha[0]
 
 
+def _pasta_fora(config: Config, pasta: Path) -> bool:
+    """True se a pasta é link/junção ou aponta para fora da pasta de dados.
+
+    Nesse caso a varredura a ignora: nada dentro dela é contado nem apagado.
+    """
+    if pasta.is_symlink() or os.path.isjunction(pasta):
+        return True
+    raiz = os.path.realpath(config.data_dir)
+    real = os.path.realpath(pasta)
+    try:
+        return os.path.commonpath([raiz, real]) != raiz
+    except ValueError:  # unidades diferentes no Windows
+        return True
+
+
+def _pastas_ignoradas(config: Config) -> list[str]:
+    return [p.name for p in (config.uploads_dir, config.backups_dir)
+            if (p.is_symlink() or p.exists()) and _pasta_fora(config, p)]
+
+
 def _arquivos_de_uploads(config: Config) -> list[Path]:
     """Entradas de `uploads/` que não são pastas, links inclusive.
 
@@ -41,7 +62,7 @@ def _arquivos_de_uploads(config: Config) -> list[Path]:
     entrada própria e nunca é seguido.
     """
     pasta = config.uploads_dir
-    if not pasta.is_dir():
+    if not pasta.is_dir() or _pasta_fora(config, pasta):
         return []
     return sorted(p for p in pasta.iterdir()
                   if p.is_symlink() or p.is_file())
@@ -55,7 +76,7 @@ def _backups(config: Config) -> list[Path]:
     `-wal`, o `-shm`, o `config.json` nem as chaves.
     """
     itens: list[Path] = []
-    if config.backups_dir.is_dir():
+    if config.backups_dir.is_dir() and not _pasta_fora(config, config.backups_dir):
         itens.extend(sorted(p for p in config.backups_dir.iterdir() if p.is_dir()))
     prefixo = config.db_path.name + ".pre-"
     if config.data_dir.is_dir():
@@ -138,6 +159,8 @@ def _remover_arquivos(config: Config, nomes: list[str], avisos: list[str]) -> in
     próxima limpeza os varre.
     """
     alvos: dict[Path, None] = {}
+    if _pasta_fora(config, config.uploads_dir):
+        return 0
     for nome in nomes:
         try:
             caminho_anexo(config, nome)  # só valida o padrão do nome
@@ -157,7 +180,8 @@ def _remover_arquivos(config: Config, nomes: list[str], avisos: list[str]) -> in
             falhas += 1
             log.debug("falha ao remover arquivo %s", caminho.name)
     if falhas:
-        avisos.append(f"{falhas} arquivos nao puderam ser removidos")
+        avisos.append("1 arquivo não pôde ser removido" if falhas == 1
+                      else f"{falhas} arquivos não puderam ser removidos")
     return removidos
 
 
@@ -174,7 +198,8 @@ def _remover_backups(config: Config, avisos: list[str]) -> int:
             falhas += 1
             log.debug("falha ao remover backup %s", item.name)
     if falhas:
-        avisos.append(f"{falhas} backups nao puderam ser removidos")
+        avisos.append("1 cópia de segurança não pôde ser removida" if falhas == 1
+                      else f"{falhas} cópias de segurança não puderam ser removidas")
     return removidos
 
 
@@ -185,9 +210,9 @@ def _compactar(conn: sqlite3.Connection, avisos: list[str]) -> None:
         conn.execute("VACUUM")  # fora de transação
         ocupado |= conn.execute("PRAGMA wal_checkpoint(TRUNCATE)").fetchone()[0]
         if ocupado:
-            avisos.append("o banco estava em uso e nao foi totalmente compactado")
+            avisos.append("o banco estava em uso e não foi totalmente compactado")
     except sqlite3.Error:
-        avisos.append("nao foi possivel compactar o banco")
+        avisos.append("não foi possível compactar o banco")
 
 
 def limpar(conn: sqlite3.Connection, config: Config, usuario_id: int | None,
@@ -195,7 +220,9 @@ def limpar(conn: sqlite3.Connection, config: Config, usuario_id: int | None,
     """Apaga casos, arquivos e (opcional) backups. Banco primeiro, disco depois."""
     n_backups = len(_backups(config)) if apagar_backups else 0
     contagens, nomes = _apagar_do_banco(conn, usuario_id, n_backups)
-    avisos: list[str] = []
+    avisos: list[str] = [
+        f"a pasta {nome} aponta para fora da pasta de dados e foi ignorada"
+        for nome in _pastas_ignoradas(config)]
     arquivos = _remover_arquivos(config, nomes, avisos)
     backups = _remover_backups(config, avisos) if apagar_backups else 0
     _compactar(conn, avisos)
