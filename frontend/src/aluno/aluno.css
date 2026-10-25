@@ -289,4 +289,6 @@
 .aluno-app .resposta-fixa .aviso-resposta { margin: 0; }
 .aluno-app .resposta-fixa .aviso-resposta:not(:empty) { margin-bottom: var(--espaco-2); }
 .aluno-app .resposta-fixa .erro { margin: 0 0 var(--espaco-2); }
-.aluno-app .resposta-fixa .atualizar { width: 100%; margin: 0 0 var(--espaco-2); min-height: 44px; }
+/* aviso de falha e botão Atualizar na mesma linha (quebram só se não couberem); a confirmação de sucesso vai no rodapé e não altera a altura */
+.aluno-app .resposta-fixa .aviso-linha { display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--espaco-3); }
+.aluno-app .resposta-fixa .atualizar { width: auto; margin: 0 0 var(--espaco-2); min-height: 44px; }

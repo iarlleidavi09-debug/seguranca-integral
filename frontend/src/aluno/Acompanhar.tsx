@@ -17,6 +17,7 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
   const [texto, setTexto] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [aviso, setAviso] = useState('');
+  const [confirmada, setConfirmada] = useState(false); // "Resposta enviada." no lugar do contador: não aumenta o campo fixo
   const [informando, setInformando] = useState(false);
   const [erroSituacao, setErroSituacao] = useState('');
   const tituloConversa = useRef<HTMLHeadingElement>(null);
@@ -68,10 +69,10 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
   async function enviar() {
     if (responder.current) return;
     if (!texto.trim() || texto.trim().length > 2000) { setErro('Escreva uma resposta de 1 a 2000 caracteres.'); return; }
-    responder.current = true; setEnviando(true); setErro(''); setAviso('');
+    responder.current = true; setEnviando(true); setErro(''); setAviso(''); setConfirmada(false);
     try {
       await enviarMensagem(codigoAtivo, texto.trim());
-      setTexto(''); setAviso('Resposta enviada.');
+      setTexto(''); setConfirmada(true);
       // responder equivale a ter lido tudo: o separador some, e só o que chegar depois volta a ser nova
       if (caso && baseLida.current) baseLida.current = { ...baseLida.current, valor: Math.max(baseLida.current.valor, ...caso.mensagens.filter(m => m.autor === 'coordenacao').map(m => m.id || 0)) };
       const leitura = consulta.current + 1;
@@ -191,14 +192,17 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
           </Fragment>;
         })}
       </div>
-      <form noValidate onSubmit={e => { e.preventDefault(); void enviar(); }} aria-busy={enviando} className="resposta resposta-fixa">
+      <form noValidate onSubmit={e => { e.preventDefault(); void enviar(); }} className="resposta resposta-fixa">
         {erro && <p role="alert" className="erro">{erro}</p>}
+        <div className="aviso-linha">
         <p role="status" className="aviso-resposta">{aviso}</p>
         {(foraDoAr || falhaAtualizar) && <button type="button" className="botao secundario atualizar" disabled={carregando || enviando} onClick={() => void atualizar()}>Atualizar conversa</button>}
+        </div>
+        <p role="status" className="so-leitor">{confirmada ? 'Resposta enviada.' : ''}</p>
         <label htmlFor="resposta" className="so-leitor">Sua resposta</label>
-        <textarea id="resposta" ref={areaResposta} rows={2} maxLength={2000} value={texto} disabled={enviando} onChange={e => setTexto(e.target.value)} aria-describedby="limite-resposta" />
+        <textarea id="resposta" ref={areaResposta} rows={2} maxLength={2000} value={texto} disabled={enviando} onChange={e => { setTexto(e.target.value); setConfirmada(false); }} aria-describedby="limite-resposta" />
         <div className="resposta-rodape">
-          <p id="limite-resposta" className="texto-pequeno">{texto.length} de 2000 caracteres</p>
+          <p id="limite-resposta" className="texto-pequeno">{confirmada && !texto ? 'Resposta enviada.' : `${texto.length} de 2000 caracteres`}</p>
           <button className="botao principal" disabled={enviando || carregando}>{enviando ? 'Enviando resposta…' : 'Enviar resposta'}</button>
         </div>
       </form>

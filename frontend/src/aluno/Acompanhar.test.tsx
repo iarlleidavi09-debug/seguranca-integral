@@ -209,7 +209,7 @@ describe('Acompanhar', () => {
     responder({ ...base, status: 'novo', mensagens: [] });
     await user.type(screen.getByLabelText('Sua resposta'), 'oi');
     await user.click(screen.getByRole('button', { name: 'Enviar resposta' }));
-    await screen.findByText('Resposta enviada.');
+    await screen.findAllByText('Resposta enviada.');
     expect(screen.queryByRole('button', { name: 'Atualizar conversa' })).not.toBeInTheDocument();
   });
   it('status desconhecido não marca etapa nem quebra', async () => {
@@ -501,7 +501,7 @@ describe('Acompanhar: conversa em formato de chat', () => {
     responder({ ...base, status: 'em_investigacao', mensagens: [aluno(1, 'olá')] });
     await user.type(screen.getByLabelText('Sua resposta'), 'olá');
     await user.click(screen.getByRole('button', { name: 'Enviar resposta' }));
-    expect(await screen.findByText('Resposta enviada.')).toBeInTheDocument();
+    expect((await screen.findAllByText('Resposta enviada.')).length).toBeGreaterThan(0);
     expect(consultas()).toHaveLength(3);
   });
   it('rola até o separador sem mover o foco', async () => {
@@ -626,7 +626,7 @@ describe('Acompanhar: quando a conversa rola', () => {
       responder({ ...base, status: 'em_investigacao', mensagens: [msg(1, 'aluno', 'um'), msg(2, 'aluno', 'dois')] });
       await user.type(screen.getByLabelText('Sua resposta'), 'dois');
       await user.click(screen.getByRole('button', { name: 'Enviar resposta' }));
-      await screen.findByText('Resposta enviada.');
+      await screen.findAllByText('Resposta enviada.');
       const artigos = screen.getByRole('log').querySelectorAll('article');
       await waitFor(() => expect(alvos(rolagem).at(-1)).toBe(artigos[1]));
       await estabilizar();
@@ -778,5 +778,30 @@ describe('Acompanhar: avisos e erros ficam junto do campo fixo', () => {
     responder({ ...base, status: 'novo', mensagens: [{ id: 1, autor: 'coordenacao', texto: 'x', criado_em: '2026-10-14T12:00:00Z' }] });
     render(<Acompanhar codigoInicial="K7M2-9QXD" />);
     expect(await screen.findByRole('separator', { name: 'Novas mensagens' })).toBeInTheDocument();
+  });
+});
+
+describe('Acompanhar: confirmação de envio não muda a altura do campo', () => {
+  const visiveisAcima = (form: Element) => [...form.children].filter(c => c.querySelector('textarea') === null && c.tagName !== 'LABEL' && !c.classList.contains('resposta-rodape') && !c.classList.contains('so-leitor') && (c.textContent || '').trim() !== '').length;
+  it('Resposta enviada. ocupa o lugar do contador, sem linha nova, e o contador volta ao digitar', async () => {
+    const user = userEvent.setup();
+    responder({ ...base, status: 'novo', mensagens: [] });
+    render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+    await screen.findByLabelText('Sua resposta');
+    const form = document.querySelector('form.resposta-fixa')!;
+    const antes = visiveisAcima(form);
+    responder({ ok: true }, 201);
+    responder({ ...base, status: 'novo', mensagens: [{ id: 1, autor: 'aluno', texto: 'oi', criado_em: '2026-10-14T12:00:00Z' }] });
+    await user.type(screen.getByLabelText('Sua resposta'), 'oi');
+    await user.click(screen.getByRole('button', { name: 'Enviar resposta' }));
+    await waitFor(() => expect(form.querySelector('.resposta-rodape')).toHaveTextContent('Resposta enviada.'));
+    expect(form.querySelector('.resposta-rodape')).not.toHaveTextContent('de 2000 caracteres');
+    expect(visiveisAcima(form)).toBe(antes);
+    const estados = screen.getAllByRole('status').filter(e => e.textContent === 'Resposta enviada.');
+    expect(estados.some(e => e.classList.contains('so-leitor'))).toBe(true);
+    expect(form).not.toHaveAttribute('aria-busy');
+    expect(screen.getByLabelText('Sua resposta')).toHaveAttribute('aria-describedby', 'limite-resposta');
+    await user.type(screen.getByLabelText('Sua resposta'), 'a');
+    expect(form.querySelector('.resposta-rodape')).toHaveTextContent('1 de 2000 caracteres');
   });
 });
