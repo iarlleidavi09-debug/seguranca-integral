@@ -29,7 +29,7 @@ export default function Mapa() {
  const [extensao, setExtensao] = useState({ largura: 1200, altura: 800 });
  const [unidadesPorPixel, setUnidadesPorPixel] = useState(1);
  const [pedidoRevelar, setPedidoRevelar] = useState(0);
- const rolagem = useRef<HTMLDivElement>(null);
+ const rolagem = useRef<HTMLDivElement>(null), campoNovo = useRef<HTMLInputElement>(null), focarNovo = useRef(false);
  const svg = useRef<SVGSVGElement>(null), gesto = useRef<Gesto | null>(null), editando = useRef(false), trava = useRef(false);
  const mapa = rascunho ?? estado?.ambientes ?? [], edicao = rascunho !== null;
  const nivel = mapa.filter(a => a.pai_id === pai);
@@ -38,6 +38,7 @@ export default function Mapa() {
  editando.current = edicao;
  const atual = mapa.find(a => a.id === selecionado);
  const tamanhoAlca = 44.1 * unidadesPorPixel;
+ const tamanhoTexto = { fontSize: Math.max(20, 14 * unidadesPorPixel) };
  useEffect(() => {
   const medir = () => { const largura = svg.current?.getBoundingClientRect().width; if (largura) setUnidadesPorPixel(larguraPlanta / largura); };
   medir();
@@ -60,6 +61,11 @@ export default function Mapa() {
   });
   return () => cancelAnimationFrame(quadro);
  }, [selecionado, pai, pedidoRevelar, zoom, larguraPlanta, alturaPlanta]);
+ function iniciarEdicao(focar = false) {
+  if (!estado) return;
+  focarNovo.current = focar; setRascunho(estado.ambientes); setHistorico([]); setErro(''); setAviso('');
+ }
+ useEffect(() => { if (edicao && focarNovo.current) { focarNovo.current = false; campoNovo.current?.focus(); } }, [edicao]);
  function selecionar(id: string) { setSelecionado(id); setPedidoRevelar(p => p + 1); }
  useEffect(() => { setFormulario(atual ? ajustar({ ...atual }) : null); }, [atual]);
  const carregar = useCallback(async () => {
@@ -128,7 +134,7 @@ export default function Mapa() {
  const filtrar = (chave: keyof FiltrosMapa, valor: string) => setFiltros(f => ({ ...f, [chave]: valor }));
  return <section className="mapa" aria-labelledby="titulo-mapa">
   <header className="mapa-cabecalho"><h1 id="titulo-mapa">Mapa da escola</h1>
-   {!edicao && estado && <button className="botao principal" onClick={() => { setRascunho(estado.ambientes); setHistorico([]); setErro(''); setAviso(''); }}>Editar planta</button>}
+   {!edicao && estado && mapa.length > 0 && <button className="botao principal" onClick={() => iniciarEdicao()}>Editar planta</button>}
   </header>
   {erro && <div className="erro" role="alert">{erro}{!estado && <button className="botao secundario" onClick={() => void carregar()}>Tentar novamente</button>}</div>}
   {aviso && <p role="status">{aviso}</p>}
@@ -144,7 +150,7 @@ export default function Mapa() {
    <div className="mapa-legenda" aria-label="Legenda de casos"><span data-concentracao="0">0 casos</span><span data-concentracao="1">1 a 3 casos</span><span data-concentracao="2">4 a 7 casos</span><span data-concentracao="3">8 ou mais casos</span></div>
    </details>
    {erroResumo ? <p role="alert">Contagens indisponíveis. {erroResumo}</p> : resumo && <div className="mapa-contagens" aria-label="Resumo dos casos"><p><strong>{resumo.total}</strong> casos no período</p><p><strong>{resumo.sem_local}</strong> sem local</p><p><strong>{resumo.sem_turma}</strong> sem turma</p>{filtros.base === 'autores' && <p><strong>{resumo.sem_autoria}</strong> sem autoria apurada</p>}</div>}
-   <div className="mapa-ferramentas"><nav aria-label="Níveis da planta"><button className="botao secundario" onClick={() => navegar(null)}>Escola</button>{trilha.map(a => <button className="botao secundario" key={a.id} onClick={() => navegar(a.id)}>{a.nome}</button>)}</nav><label>Zoom<select value={zoom} onChange={e => setZoom(Number(e.target.value))}>{[50, 75, 100, 125, 150, 200].map(z => <option value={z} key={z}>{z}%</option>)}</select></label><label>Buscar ambiente<input value={busca} onChange={e => setBusca(e.target.value)} maxLength={80}/></label></div>
+   <div className="mapa-ferramentas"><nav aria-label="Níveis da planta" className={mapa.length > 0 && !visiveis.length ? 'mapa-niveis-destaque' : undefined}><button className="botao secundario" onClick={() => navegar(null)}>Escola</button>{trilha.map(a => <button className="botao secundario" key={a.id} onClick={() => navegar(a.id)}>{a.nome}</button>)}</nav><label>Zoom<select value={zoom} onChange={e => setZoom(Number(e.target.value))}>{[50, 75, 100, 125, 150, 200].map(z => <option value={z} key={z}>{z}%</option>)}</select></label><label>Buscar ambiente<input value={busca} onChange={e => setBusca(e.target.value)} maxLength={80}/></label></div>
    {busca.trim() && <ul className="mapa-resultados">{mapa.filter(a => a.nome.toLocaleLowerCase().includes(busca.trim().toLocaleLowerCase())).map(a => <li key={a.id}><button className="botao secundario" onClick={() => { navegar(a.pai_id); selecionar(a.id); }}>{[...caminho(a.pai_id, mapa).map(p => p.nome), a.nome].join(' / ')}</button></li>)}</ul>}
    {edicao && <div className="mapa-edicao"><p>Arraste sobre a área vazia para desenhar. Selecione um ambiente para mover; arraste seu canto para redimensionar.</p><div className="acoes"><button className="botao secundario" disabled={ocupado || !historico.length} onClick={() => { setRascunho(historico[historico.length - 1]); setHistorico(h => h.slice(0, -1)); setSelecionado(null); }}>Desfazer</button><button className="botao secundario" disabled={ocupado} onClick={() => { setRascunho(null); setHistorico([]); setSelecionado(null); setDesenhar(false); setPai(null); void carregar(); }}>Cancelar edição</button><button className="botao principal" disabled={ocupado} onClick={() => void salvar()}>{ocupado ? 'Salvando…' : 'Salvar planta'}</button></div></div>}
    {edicao && <div className="mapa-edicao"><div className="acoes">
@@ -152,15 +158,15 @@ export default function Mapa() {
     <button type="button" className="botao secundario" disabled={ocupado || alturaPlanta >= LIMITE_ALTURA} onClick={() => setExtensao({ largura: larguraPlanta, altura: Math.min(LIMITE_ALTURA, alturaPlanta + 400) })}>Ampliar para baixo</button>
    </div><p className="texto-pequeno">Amplie a área para adicionar mais blocos. Use a rolagem para alcançar o espaço novo ou afaste o zoom.</p></div>}
    {edicao && conferenciaAberta && avisosPlanta.length > 0 && <section className="aviso" aria-label="Conferência da planta"><h2>Confira antes de salvar</h2><p>{avisosPlanta.length} avisos encontrados. Áreas sobrepostas podem ser intencionais; confira os ambientes antes de continuar.</p><ul>{avisosPlanta.slice(0,20).map((a,i) => <li key={i}>{a.texto} <button type="button" className="botao-texto" onClick={() => { const alvo = mapa.find(b => b.id === a.ids[0]); if (alvo) { navegar(alvo.pai_id); selecionar(alvo.id); } }}>Localizar ambiente</button></li>)}</ul>{avisosPlanta.length > 20 && <p>Mostrando os primeiros 20 avisos.</p>}<div className="acoes"><button type="button" className="botao secundario" onClick={() => setConferenciaAberta(false)}>Continuar editando</button><button type="button" className="botao principal" disabled={ocupado} onClick={() => void salvar(true)}>Salvar mesmo assim</button></div></section>}
-   <div className="mapa-corpo"><div><div ref={rolagem} className={`mapa-rolagem mapa-zoom-${zoom}`} role="region" aria-label="Área rolável da planta" tabIndex={0}>
+   <div className="mapa-corpo"><div>{!edicao && mapa.length === 0 && <section className="mapa-vazio-cartao" aria-labelledby="titulo-mapa-vazio"><h2 id="titulo-mapa-vazio">A planta ainda está vazia</h2><p>Adicione uma ala ou um ambiente para começar.</p><button className="botao principal" onClick={() => iniciarEdicao(true)}>Editar planta</button></section>}<div hidden={!edicao && mapa.length === 0} ref={rolagem} className={`mapa-rolagem mapa-zoom-${zoom}`} role="region" aria-label="Área rolável da planta" tabIndex={0}>
     <svg ref={svg} viewBox={`0 0 ${larguraPlanta} ${alturaPlanta}`} width={`${larguraPlanta / 1200 * zoom}%`} className={desenhar ? 'mapa-planta desenhando' : 'mapa-planta'} aria-label="Planta esquemática do nível atual" role="group" onPointerDown={iniciar} onPointerMove={mover} onPointerUp={terminar} onPointerCancel={() => { if (gesto.current) setRascunho(gesto.current.origem); gesto.current = null; setPrevia(null); }}>
      <rect width={larguraPlanta} height={alturaPlanta} className="mapa-fundo" />
      {visiveis.map(a => <g key={a.id} data-ambiente={a.id} data-concentracao={!resumo ? 0 : (agregarAmbiente(a.id, mapa, resumo.ambientes) === 0 ? 0 : agregarAmbiente(a.id, mapa, resumo.ambientes) <= 3 ? 1 : agregarAmbiente(a.id, mapa, resumo.ambientes) <= 7 ? 2 : 3)} className={selecionado === a.id ? 'mapa-ambiente selecionado' : 'mapa-ambiente'} role="button" tabIndex={0} aria-label={`${a.nome}, ${TIPOS[a.tipo]}${resumo ? `, ${agregarAmbiente(a.id, mapa, resumo.ambientes)} casos` : ''}`} onClick={() => !desenhar && setSelecionado(a.id)} onDoubleClick={() => { if (a.tipo === 'escadaria') navegar(a.id); }} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelecionado(a.id); } }}>
-      <title>{a.nome}</title>{a.formato === 'l' ? <polygon points={pontosL(a)}/> : <rect x={a.x} y={a.y} width={a.largura} height={a.altura} rx="8"/>}{faixaTexto(a).altura >= 32 && <text x={a.x + 12} y={faixaTexto(a).y + 26}>{a.nome.length > Math.floor(a.largura / 12) ? `${a.nome.slice(0, Math.max(1, Math.floor(a.largura / 12) - 1))}…` : a.nome}</text>}{resumo && faixaTexto(a).altura >= 60 && <text x={a.x + 12} y={faixaTexto(a).y + 52}>{agregarAmbiente(a.id, mapa, resumo.ambientes)} casos</text>}
+      <title>{a.nome}</title>{a.formato === 'l' ? <polygon points={pontosL(a)}/> : <rect x={a.x} y={a.y} width={a.largura} height={a.altura} rx="8"/>}{faixaTexto(a).altura >= 32 && <text x={a.x + 12} y={faixaTexto(a).y + 26} style={tamanhoTexto}>{a.nome.length > Math.floor(a.largura / (12 * tamanhoTexto.fontSize / 20)) ? `${a.nome.slice(0, Math.max(1, Math.floor(a.largura / (12 * tamanhoTexto.fontSize / 20)) - 1))}…` : a.nome}</text>}{resumo && faixaTexto(a).altura >= 60 && <text x={a.x + 12} y={faixaTexto(a).y + 52} style={tamanhoTexto}>{agregarAmbiente(a.id, mapa, resumo.ambientes)} casos</text>}
       {edicao && selecionado === a.id && <rect data-tamanho="true" className="mapa-alca" x={Math.max(0, a.x + a.largura - tamanhoAlca)} y={Math.max(0, a.y + a.altura - tamanhoAlca)} width={tamanhoAlca} height={tamanhoAlca}/>}
      </g>)}
      {previa && (previa.formato === 'l' ? <polygon className="mapa-previa" points={pontosL(previa)}/> : <rect className="mapa-previa" x={previa.x} y={previa.y} width={previa.largura} height={previa.altura}/>)}
-    </svg></div>{!visiveis.length && <p className="mapa-vazio">{mapa.length === 0 ? 'A planta está vazia.' : 'Este nível ainda não tem ambientes.'} {edicao ? 'Adicione ou desenhe o primeiro ambiente.' : 'Edite a planta para começar.'}</p>}
+    </svg></div>{!visiveis.length && (mapa.length > 0 || edicao) && <section className="mapa-vazio-cartao" aria-label="Nível sem ambientes">{mapa.length === 0 ? <><h2>A planta ainda está vazia</h2><p>Adicione uma ala ou um ambiente para começar.</p></> : <p>Este nível ainda não tem ambientes.</p>}<p className="texto-pequeno">{edicao ? 'Digite um nome em Novo ambiente e use Adicionar ou desenhe na área vazia.' : 'Use os níveis acima para voltar ou escolha Editar planta para adicionar.'}</p></section>}
     <p className="texto-pequeno">Planta esquemática · {larguraPlanta} × {alturaPlanta} unidades neste nível · sem escala métrica</p>
    </div><aside className="mapa-inspector" aria-label="Ambiente selecionado">
     {atual && <><h2>{atual.nome}</h2><p>{TIPOS[atual.tipo]}{resumo ? ` · ${agregarAmbiente(atual.id, mapa, resumo.ambientes)} casos` : ''}</p>{atual.tipo === 'escadaria' && <button className="botao secundario" onClick={() => navegar(atual.id)}>Abrir este nível</button>}</>}
@@ -171,7 +177,7 @@ export default function Mapa() {
      <div className="mapa-numeros">{(['x', 'y', 'largura', 'altura'] as const).map(campo => <label key={campo}>{{ x: 'Posição X', y: 'Posição Y', largura: 'Largura', altura: 'Altura' }[campo]}<input required type="number" min={campo === 'largura' || campo === 'altura' ? 40 : 0} max={campo === 'x' || campo === 'largura' ? LIMITE_LARGURA : LIMITE_ALTURA} value={formulario[campo]} onChange={e => setFormulario({ ...formulario, [campo]: e.target.value === '' ? '' : Number(e.target.value) } as Ambiente)}/></label>)}</div><button disabled={ocupado} className="botao secundario">Aplicar alterações</button>
      <button type="button" className="botao secundario" disabled={ocupado || mapa.some(a => a.pai_id === formulario.id)} onClick={() => { alterar(mapa.filter(a => a.id !== formulario.id)); setSelecionado(null); }}>Excluir ambiente</button><p className="texto-pequeno">Ambientes com filhos não podem ser excluídos. O servidor protege os vínculos com casos.</p>
     </form>}
-    {edicao && <form onSubmit={e => { e.preventDefault(); novo(); }}><h2>Novo ambiente</h2><label>Nome do novo ambiente<input required maxLength={80} value={nome} onChange={e => setNome(e.target.value)}/></label><label>Tipo do novo ambiente<select value={tipo} onChange={e => setTipo(e.target.value as TipoAmbiente)}>{Object.entries(TIPOS).map(([v, texto]) => <option key={v} value={v}>{texto}</option>)}</select></label><ControlesFormato novo valor={formaNova} aoMudar={setFormaNova}/><button disabled={ocupado} className="botao secundario">Adicionar ambiente</button><button disabled={ocupado} type="button" className="botao secundario" aria-pressed={desenhar} onClick={() => { setErro(''); setDesenhar(d => !d); }}>{desenhar ? 'Parar desenho' : formaNova.formato === 'l' ? 'Desenhar em L' : 'Desenhar retângulo'}</button><p className="texto-pequeno">O botão Adicionar cria o ambiente sem usar o mouse. Ajuste posição e tamanho pelos campos.</p></form>}
+    {edicao && <form onSubmit={e => { e.preventDefault(); novo(); }}><h2>Novo ambiente</h2><label>Nome do novo ambiente<input ref={campoNovo} required maxLength={80} value={nome} onChange={e => setNome(e.target.value)}/></label><label>Tipo do novo ambiente<select value={tipo} onChange={e => setTipo(e.target.value as TipoAmbiente)}>{Object.entries(TIPOS).map(([v, texto]) => <option key={v} value={v}>{texto}</option>)}</select></label><ControlesFormato novo valor={formaNova} aoMudar={setFormaNova}/><button disabled={ocupado} className="botao secundario">Adicionar ambiente</button><button disabled={ocupado} type="button" className="botao secundario" aria-pressed={desenhar} onClick={() => { setErro(''); setDesenhar(d => !d); }}>{desenhar ? 'Parar desenho' : formaNova.formato === 'l' ? 'Desenhar em L' : 'Desenhar retângulo'}</button><p className="texto-pequeno">O botão Adicionar cria o ambiente sem usar o mouse. Ajuste posição e tamanho pelos campos.</p></form>}
     {!edicao && !atual && <p>Selecione um ambiente para consultar. Use uma escadaria para mudar de nível.</p>}
    </aside></div>
   </>}

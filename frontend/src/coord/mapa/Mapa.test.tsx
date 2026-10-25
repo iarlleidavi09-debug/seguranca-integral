@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import Mapa from './Mapa';
@@ -102,7 +102,25 @@ describe('Mapa escolar', () => {
   await user.type(screen.getByLabelText('Nome do novo ambiente'), 'Outra ala');
   await user.click(screen.getByRole('button', { name: 'Adicionar ambiente' }));
   await user.click(screen.getByRole('button', { name: 'Cancelar edição' }));
-  expect(screen.getByText(/A planta está vazia/)).toBeInTheDocument();
+  expect(screen.getByText('A planta ainda está vazia')).toBeInTheDocument();
+ });
+ it('planta vazia mostra um cartão explicativo com o botão para começar e foca o primeiro campo', async () => {
+  montar(); const user = userEvent.setup();
+  const cartao = (await screen.findByText('A planta ainda está vazia')).closest('section')!;
+  expect(cartao).toHaveClass('mapa-vazio-cartao');
+  expect(within(cartao).getByText('Adicione uma ala ou um ambiente para começar.')).toBeInTheDocument();
+  expect(screen.getAllByRole('button', { name: 'Editar planta' })).toHaveLength(1);
+  await user.click(within(cartao).getByRole('button', { name: 'Editar planta' }));
+  expect(screen.getByLabelText('Nome do novo ambiente')).toHaveFocus();
+ });
+ it('nível sem ambientes explica e destaca o seletor de nível', async () => {
+  montar(); const user = await criar('Escada');
+  await user.selectOptions(screen.getByLabelText('Tipo do ambiente'), 'escadaria');
+  await user.click(screen.getByRole('button', { name: 'Aplicar alterações' }));
+  await user.click(screen.getByRole('button', { name: 'Abrir este nível' }));
+  expect(screen.getByText('Este nível ainda não tem ambientes.')).toBeInTheDocument();
+  expect(screen.queryByText('A planta ainda está vazia')).toBeNull();
+  expect(screen.getByRole('navigation', { name: 'Níveis da planta' })).toHaveClass('mapa-niveis-destaque');
  });
  it('preserva o rascunho quando há conflito de revisão', async () => {
   montar(true); const user = await criar();
