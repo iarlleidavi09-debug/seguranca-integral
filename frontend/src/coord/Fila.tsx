@@ -196,7 +196,7 @@ export default function Fila({ modo, meuId, filtros, aoFiltrar, aoAbrir }: Props
             || (c.status === 'resolvido' && c.atencao?.includes('mensagem_pendente')) || (!c.simulacao && demoraPrimeiroAcesso(c));
           return <tr key={c.id} role="row" className="casos-linha" data-gravidade={c.prioridade} onClick={e => {
             // um só caminho por caso para teclado e leitor de tela (o botão do assunto); o clique na linha é só para quem usa mouse ou toque
-            if ((e.target as HTMLElement).closest('button, a, summary, input, select, textarea')) return;
+            if ((e.target as HTMLElement).closest('button, a, summary, input, select, textarea, label')) return;
             if (window.getSelection()?.toString()) return;
             aoAbrir(c.id);
           }}>
@@ -217,7 +217,7 @@ export default function Fila({ modo, meuId, filtros, aoFiltrar, aoAbrir }: Props
               {(motivosAtencao.length > 0 || raros) && <div className="casos-selos">
                 {!!motivosAtencao.length && <span className="casos-motivos">
                   {motivosAtencao.slice(0, 2).map(m => <span key={m} className="casos-motivo">{m}</span>)}
-                  {motivosAtencao.length > 2 && <span className="casos-mais" title={motivosAtencao.slice(2).join(' · ')}>+{motivosAtencao.length - 2}</span>}
+                  {motivosAtencao.length > 2 && <span className="casos-mais" title={motivosAtencao.slice(2).join(' · ')}><span aria-hidden="true">+{motivosAtencao.length - 2}</span><span className="so-leitor">e mais: {motivosAtencao.slice(2).join('; ')}</span></span>}
                 </span>}
                 {c.canal === 'acolhimento' && <span className="selo-neutro">Acolhimento anônimo</span>}
                 {c.recorrencia_pendente && <Retorno />}

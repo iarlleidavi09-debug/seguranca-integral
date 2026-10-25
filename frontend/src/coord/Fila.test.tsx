@@ -350,7 +350,20 @@ describe('Fila compacta', () => {
     await screen.findByText('Resumo do caso 1');
     const motivos = linhas()[0].querySelector('.casos-motivos')!;
     expect(motivos.querySelectorAll('.casos-motivo')).toHaveLength(2);
-    expect(within(motivos as HTMLElement).getByText('+1')).toBeInTheDocument();
+    const mais = motivos.querySelector('.casos-mais') as HTMLElement;
+    expect(mais).toHaveTextContent('+1');
+    expect(mais.querySelector('.so-leitor')).toHaveTextContent('e mais: Ação vencida');
+  });
+
+  it('clicar em select, link ou label dentro da linha não abre o caso', async () => {
+    const aoAbrir = vi.fn();
+    await montar({}, { aoAbrir });
+    const linha = linhas()[1];
+    for (const tag of ['select', 'a', 'label']) {
+      const el = document.createElement(tag); el.textContent = 'x'; linha.querySelector('td')!.appendChild(el);
+      fireEvent.click(el);
+    }
+    expect(aoAbrir).not.toHaveBeenCalled();
   });
 
   it('o texto de ajuda dos filtros fica dentro dos filtros detalhados e o resumo conta os ativos', async () => {
