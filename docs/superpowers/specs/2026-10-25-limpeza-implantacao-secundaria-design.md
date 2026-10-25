@@ -33,7 +33,7 @@ As duas rotas entram em `SO_ADMIN` e a rota verifica, além do papel, que o usu�
 
 | Rota | Efeito |
 | --- | --- |
-| `GET /api/implantacao` | 404 se não for secundária; 403 se não for o primeiro admin; senão 200 `{"secundaria": true, "resumo": {"casos": n, "mensagens": n, "anexos": n, "arquivos": n, "backups": n}, "ultima_limpeza": {"em": "...", "por": "nome", "casos": n} \| null}`. `backups` conta pastas de cópia e arquivos `.pre-v2.bak`. |
+| `GET /api/implantacao` | 404 se não for secundária; 403 se não for o primeiro admin; senão 200 `{"secundaria": true, "resumo": {"casos": n, "mensagens": n, "anexos": n, "arquivos": n, "backups": n}, "ultima_limpeza": {"em": "...", "por": "nome", "casos": n} \| null}`. `backups` conta as subpastas de cópia e os arquivos `seguranca.db.pre-*.bak` ao lado do banco (cópias completas do banco, com texto de casos). |
 | `POST /api/implantacao/limpar` com `{"senha": "...", "confirmacao": "APAGAR TUDO", "apagar_backups": true}` | Valida na ordem: flag (404), primeiro admin (403), `confirmacao` exatamente igual a `APAGAR TUDO` (400 `{"erro": "confirmacao invalida"}`), `apagar_backups` booleano (400), senha (403 `{"erro": "senha incorreta"}`; usa `auth.autenticar` com o nome do próprio usuário, então as falhas entram no mesmo contador de tentativas e bloqueio do login, e o bloqueio responde 403 também, sem revelar a diferença). Em seguida apaga e responde 200 `{"ok": true, "removidos": {"casos": n, "mensagens": n, "anexos": n, "arquivos": n, "backups": n}}`. |
 
 `apagar_backups` ausente vale `true` (padrão). O corpo inválido nunca apaga nada.
@@ -42,7 +42,7 @@ As duas rotas entram em `SO_ADMIN` e a rota verifica, além do papel, que o usu�
 
 **Apaga (uma transação `BEGIN IMMEDIATE`):** `DELETE FROM casos`, com as tabelas filhas saindo por `ON DELETE CASCADE` (`anexos`, `mensagens`, `mensagens_versoes`, `notas_internas`, `leituras_conversa`, `eventos`, `resolucoes`, `autores_resolucao`, `situacoes_aluno`, `revisoes_recorrencia`, `envios`); depois `DELETE FROM sqlite_sequence WHERE name IN (...)` das tabelas acima, para os números recomeçarem do 1. Antes de apagar, a rota lê os nomes de todos os arquivos de `anexos.nome_interno` e `autores_resolucao.foto_nome`.
 
-**Depois do commit (nunca antes):** remove os arquivos do disco em `uploads/` (os nomes lidos acima e, por segurança, qualquer outro arquivo restante da pasta; a pasta em si é mantida); se `apagar_backups`, remove as subpastas de `backups/` e o arquivo `seguranca.db.pre-v2.bak` ao lado do banco; executa `PRAGMA wal_checkpoint(TRUNCATE)` e `VACUUM`, para o SQLite não manter o conteúdo apagado em páginas livres.
+**Depois do commit (nunca antes):** remove os arquivos do disco em `uploads/` (os nomes lidos acima e, por segurança, qualquer outro arquivo restante da pasta; a pasta em si é mantida); se `apagar_backups`, remove as subpastas de `backups/` e os arquivos `seguranca.db.pre-*.bak` ao lado do banco (cópias completas do banco, com texto de casos, criadas pelas migrações; glob estrito, nunca `seguranca.db`, `-wal`, `-shm`, `config.json` nem chaves); executa `PRAGMA wal_checkpoint(TRUNCATE)` e `VACUUM`, para o SQLite não manter o conteúdo apagado em páginas livres.
 
 **Preserva:** `usuarios` (contas, senhas e papéis), `ambientes` e `mapa_estado` (o mapa da escola), `config.json`, `secret.key`, `sessao.key`, `risk_terms.json`, `questionario*.json`, `limpezas_implantacao`, o esquema do banco. O admin que limpou continua logado.
 
@@ -74,7 +74,7 @@ Backend (TDD, bancos e pastas temporários dos fixtures; nunca o banco real):
 - Flag desligada: `GET` e `POST` dão 404 mesmo para o primeiro admin; sem sessão 401; sem JSON 415.
 - Flag ligada: coordenador comum 403; segundo admin 403; primeiro admin 200.
 - `POST`: frase errada 400 (nada apagado); `apagar_backups` não booleano 400; senha errada 403 e `tentativas` do usuário incrementa; bloqueio por tentativas bloqueia a limpeza também; senha certa apaga.
-- Sucesso: tabelas filhas vazias; `usuarios`, `ambientes` e `mapa_estado` iguais; `config.json`, `secret.key`, `sessao.key` e `risk_terms.json` presentes; novos casos recomeçam do id 1; os arquivos de `uploads/` somem (anexos e fotos); com `apagar_backups: true` as subpastas de `backups/` e o `.pre-v2.bak` somem, com `false` ficam; o login do admin e o de outro usuário continuam funcionando.
+- Sucesso: tabelas filhas vazias; `usuarios`, `ambientes` e `mapa_estado` iguais; `config.json`, `secret.key`, `sessao.key` e `risk_terms.json` presentes; novos casos recomeçam do id 1; os arquivos de `uploads/` somem (anexos e fotos); com `apagar_backups: true` as subpastas de `backups/` e os `seguranca.db.pre-*.bak` somem, com `false` ficam; o login do admin e o de outro usuário continuam funcionando.
 - Privacidade física: um texto único gravado em um caso (relato e mensagem) não aparece nos bytes de `seguranca.db`, nem de `-wal`, depois da limpeza (prova do `VACUUM` e do checkpoint).
 - Atomicidade: se a transação do banco falhar (simulada), nenhum arquivo do disco é removido; falha ao remover um arquivo gera `avisos` e não desfaz a limpeza; segunda chamada seguida (nada a apagar) responde 200 com zeros.
 - `GET`: contagens corretas, `ultima_limpeza` nula antes e preenchida depois; migração em banco antigo sem a tabela.

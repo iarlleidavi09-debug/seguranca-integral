@@ -35,20 +35,34 @@ def primeiro_admin_id(conn: sqlite3.Connection) -> int | None:
 
 
 def _arquivos_de_uploads(config: Config) -> list[Path]:
+    """Entradas de `uploads/` que não são pastas, links inclusive.
+
+    Subpastas são ignoradas: o app não cria nenhuma. Um link conta como
+    entrada própria e nunca é seguido.
+    """
     pasta = config.uploads_dir
     if not pasta.is_dir():
         return []
-    return sorted(p for p in pasta.iterdir() if p.is_file())
+    return sorted(p for p in pasta.iterdir()
+                  if p.is_symlink() or p.is_file())
 
 
 def _backups(config: Config) -> list[Path]:
-    """Subpastas de `backups/` mais o `.pre-v2.bak` ao lado do banco."""
+    """Subpastas de `backups/` e as cópias `seguranca.db.pre-*.bak`.
+
+    As cópias ao lado do banco (criadas pelas migrações) são cópias completas
+    do banco, com texto de casos. O glob é estrito: nunca pega o banco, o
+    `-wal`, o `-shm`, o `config.json` nem as chaves.
+    """
     itens: list[Path] = []
     if config.backups_dir.is_dir():
         itens.extend(sorted(p for p in config.backups_dir.iterdir() if p.is_dir()))
-    bak = caminho_backup_v2(config)
-    if bak.is_file():
-        itens.append(bak)
+    prefixo = config.db_path.name + ".pre-"
+    if config.data_dir.is_dir():
+        itens.extend(sorted(
+            p for p in config.data_dir.iterdir()
+            if p.name.startswith(prefixo) and p.name.endswith(".bak")
+            and (p.is_file() or p.is_symlink())))
     return itens
 
 
@@ -75,7 +89,10 @@ def resumo(conn: sqlite3.Connection, config: Config) -> dict:
 
 def _apagar_do_banco(conn: sqlite3.Connection, usuario_id: int | None,
                      n_backups: int) -> tuple[dict, list[str]]:
-    """Transação única: lê contagens e nomes, apaga, zera contadores, registra."""
+    """Transação única: lê contagens e nomes, apaga, zera contadores, registra.
+
+    A coluna `backups` da auditoria guarda a contagem planejada antes do commit.
+    """
     if conn.in_transaction:
         conn.commit()
     conn.execute("PRAGMA foreign_keys = ON")  # os filhos saem por ON DELETE CASCADE
@@ -114,47 +131,61 @@ def _apagar_do_banco(conn: sqlite3.Connection, usuario_id: int | None,
 
 
 def _remover_arquivos(config: Config, nomes: list[str], avisos: list[str]) -> int:
-    """Remove os anexos e fotos conhecidos e varre o resto de `uploads/`."""
+    """Remove os arquivos de `uploads/`: os nomes do banco e o que sobrar.
+
+    Nunca resolve nem segue links: apaga a própria entrada. Uma queda entre o
+    commit e esta remoção deixa arquivos órfãos; `resumo` os mostra e a
+    próxima limpeza os varre.
+    """
     alvos: dict[Path, None] = {}
     for nome in nomes:
         try:
-            alvos[caminho_anexo(config, nome)] = None
+            caminho_anexo(config, nome)  # só valida o padrão do nome
         except AnexoInvalido:
             continue
+        alvos[config.uploads_dir / nome] = None
     for caminho in _arquivos_de_uploads(config):
-        alvos.setdefault(caminho.resolve(), None)
-    removidos = 0
+        alvos.setdefault(caminho, None)
+    removidos = falhas = 0
     for caminho in alvos:
-        if not caminho.exists():
+        if not caminho.is_symlink() and not caminho.exists():
             continue
         try:
             caminho.unlink()
             removidos += 1
         except OSError:
-            avisos.append(f"nao foi possivel remover o arquivo {caminho.name}")
+            falhas += 1
+            log.debug("falha ao remover arquivo %s", caminho.name)
+    if falhas:
+        avisos.append(f"{falhas} arquivos nao puderam ser removidos")
     return removidos
 
 
 def _remover_backups(config: Config, avisos: list[str]) -> int:
-    removidos = 0
+    removidos = falhas = 0
     for item in _backups(config):
         try:
-            if item.is_dir():
+            if item.is_dir() and not item.is_symlink():
                 shutil.rmtree(item)
             else:
                 item.unlink()
             removidos += 1
         except OSError:
-            avisos.append(f"nao foi possivel remover o backup {item.name}")
+            falhas += 1
+            log.debug("falha ao remover backup %s", item.name)
+    if falhas:
+        avisos.append(f"{falhas} backups nao puderam ser removidos")
     return removidos
 
 
 def _compactar(conn: sqlite3.Connection, avisos: list[str]) -> None:
     """Checkpoint e VACUUM, para o texto apagado não sobrar em páginas livres."""
     try:
-        conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        ocupado = conn.execute("PRAGMA wal_checkpoint(TRUNCATE)").fetchone()[0]
         conn.execute("VACUUM")  # fora de transação
-        conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        ocupado |= conn.execute("PRAGMA wal_checkpoint(TRUNCATE)").fetchone()[0]
+        if ocupado:
+            avisos.append("o banco estava em uso e nao foi totalmente compactado")
     except sqlite3.Error:
         avisos.append("nao foi possivel compactar o banco")
 

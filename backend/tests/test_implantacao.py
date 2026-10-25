@@ -161,6 +161,85 @@ def test_backups_apagados_por_padrao_e_preservados_com_false(conn, config):
     assert config.backups_dir.is_dir()
 
 
+BAKS = ("seguranca.db.pre-v2.bak", "seguranca.db.pre-v3.bak",
+        "seguranca.db.pre-v4.bak", "seguranca.db.pre-mapa-l.bak",
+        "seguranca.db.pre-atendimento.bak")
+PARECIDOS = ("seguranca.db.bak", "seguranca.db.pre-v3.bak.txt", "config.json.bak",
+             "outro.db.pre-v3.bak")
+
+
+def test_todas_as_copias_pre_bak_sao_apagadas_e_parecidas_ficam(conn, config):
+    for n in BAKS + PARECIDOS:
+        (config.data_dir / n).write_bytes(b"copia")
+    assert implantacao.resumo(conn, config)["backups"] == len(BAKS)
+    r = implantacao.limpar(conn, config, None)
+    assert r["backups"] == len(BAKS)
+    for n in BAKS:
+        assert not (config.data_dir / n).exists(), n
+    for n in PARECIDOS:
+        assert (config.data_dir / n).exists(), n
+    assert config.db_path.is_file()
+
+
+def test_copias_pre_bak_preservadas_com_apagar_backups_falso(conn, config):
+    for n in BAKS:
+        (config.data_dir / n).write_bytes(b"copia")
+    r = implantacao.limpar(conn, config, None, apagar_backups=False)
+    assert r["backups"] == 0
+    for n in BAKS:
+        assert (config.data_dir / n).exists(), n
+
+
+def test_symlink_em_uploads_remove_so_o_link(conn, config, tmp_path_factory):
+    fora = tmp_path_factory.mktemp("fora") / "importante.txt"
+    fora.write_text("nao apagar", encoding="utf-8")
+    config.uploads_dir.mkdir(parents=True, exist_ok=True)
+    link = config.uploads_dir / "x.png"
+    try:
+        link.symlink_to(fora)
+    except (OSError, NotImplementedError) as erro:
+        pytest.skip(f"sem permissao para criar symlink: {erro}")
+    implantacao.limpar(conn, config, None)
+    assert not link.is_symlink()
+    assert fora.read_text(encoding="utf-8") == "nao apagar"
+
+
+def test_link_simulado_nunca_segue_o_alvo(conn, config, monkeypatch):
+    """Simula um link: o alvo (resolve) nunca pode ser tocado."""
+    config.uploads_dir.mkdir(parents=True, exist_ok=True)
+    entrada = config.uploads_dir / "x.png"
+    entrada.write_bytes(b"x")
+    apagados, resolvidos = [], []
+    original_unlink = Path.unlink
+    monkeypatch.setattr(Path, "is_symlink",
+                        lambda self: self.name == "x.png")
+    monkeypatch.setattr(Path, "resolve",
+                        lambda self, *a, **k: resolvidos.append(self) or self)
+
+    def unlink(self, *a, **k):
+        apagados.append(self.name)
+        return original_unlink(self, *a, **k)
+
+    monkeypatch.setattr(Path, "unlink", unlink)
+    implantacao.limpar(conn, config, None)
+    assert apagados.count("x.png") == 1
+    assert not any(p.name == "x.png" for p in resolvidos)
+
+
+def test_avisos_agregados(conn, config, monkeypatch):
+    _popular(conn, config)
+    original = Path.unlink
+
+    def unlink(self, *a, **k):
+        if self.parent == config.uploads_dir.resolve() or self.parent == config.uploads_dir:
+            raise PermissionError("em uso")
+        return original(self, *a, **k)
+
+    monkeypatch.setattr(Path, "unlink", unlink)
+    r = implantacao.limpar(conn, config, None)
+    assert r["avisos"] == ["3 arquivos nao puderam ser removidos"]
+
+
 def test_arquivos_de_configuracao_permanecem(conn, config):
     nomes = ("config.json", "secret.key", "sessao.key", "risk_terms.json")
     for n in nomes:
@@ -176,9 +255,12 @@ def test_texto_unico_nao_sobra_nos_bytes_do_banco(conn, config):
     i = _caso(conn, config, relato=f"relato {marca} longo " * 20)
     adicionar_mensagem(conn, i, "aluno", f"mensagem {marca}")
     conn.commit()
+    # o marcador precisa estar no arquivo principal antes da limpeza
+    conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+    assert marca.encode() in config.db_path.read_bytes()
     implantacao.limpar(conn, config, None)
     conn.close()
-    for sufixo in ("", "-wal"):
+    for sufixo in ("", "-wal", "-shm"):
         caminho = config.data_dir / f"seguranca.db{sufixo}"
         if caminho.exists():
             assert marca.encode() not in caminho.read_bytes(), sufixo
