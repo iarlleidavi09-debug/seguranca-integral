@@ -287,6 +287,8 @@ select:disabled { background: var(--desabilitado-fundo); color: var(--desabilita
 .form-usuario { max-width: 420px; }
 .zona-risco { margin-top: var(--espaco-8); padding: var(--espaco-4); border: var(--linha-fina) solid var(--perigo-base); border-radius: var(--raio-md); background: var(--fundo-superficie); }
 .zona-risco h2 { margin-top: 0; }
+.zona-risco > .botao { margin-top: var(--espaco-3); }
+.zona-risco .botao, .zona-risco-painel input:not([type="checkbox"]) { min-height: 44px; }
 .zona-risco-painel { margin-top: var(--espaco-4); padding: var(--espaco-4); background: var(--perigo-suave); border-radius: var(--raio-md); }
 .zona-risco-painel .campos { max-width: 420px; }
 .zona-risco-painel .acoes { margin-top: var(--espaco-3); }

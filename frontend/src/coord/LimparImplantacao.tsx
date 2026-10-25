@@ -51,7 +51,7 @@ export default function LimparImplantacao({ aoLimpar }: { aoLimpar: () => void }
       const r = await limparImplantacao(enviada, frase, backups);
       limparRascunhosAtendimento();
       if (!montado.current) { aoLimpar(); return; }
-      setDados(d => d && { ...d, resumo: { casos: 0, mensagens: 0, anexos: 0, arquivos: 0, backups: 0 } });
+      setDados(d => d && { ...d, resumo: { casos: 0, mensagens: 0, anexos: 0, arquivos: 0, backups: Math.max(0, d.resumo.backups - r.removidos.backups) } });
       setAviso(`Dados apagados: ${contagem(r.removidos)}.`);
       setAvisos(r.avisos ?? []);
       setAberto(false); setFrase('');

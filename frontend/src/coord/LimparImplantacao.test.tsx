@@ -166,4 +166,17 @@ describe('LimparImplantacao', () => {
     expect(screen.queryByLabelText('Senha')).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { name: TITULO })).toHaveFocus();
   });
+
+  it('com a caixa desmarcada, mantém a contagem de cópias e a mensagem diz 0 cópias', async () => {
+    servidor({
+      'GET /api/implantacao': () => ({ corpo: resumo }),
+      'POST /api/implantacao/limpar': () => ({ corpo: { ok: true, removidos: { ...removidos, backups: 0 } } }),
+    });
+    const { u } = await abrir();
+    await preencher(u);
+    await u.click(screen.getByLabelText('Apagar também as cópias de segurança'));
+    await u.click(screen.getByRole('button', { name: 'Apagar tudo' }));
+    expect(await screen.findByText('Dados apagados: 12 casos, 48 mensagens, 5 anexos, 0 cópias de segurança.')).toBeInTheDocument();
+    expect(screen.getByText(/Hoje: 0 casos, 0 mensagens, 0 anexos, 3 cópias de segurança/)).toBeInTheDocument();
+  });
 });
