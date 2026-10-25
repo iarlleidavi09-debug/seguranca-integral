@@ -81,7 +81,7 @@ try {
     await page.getByRole('button', { name: 'Caso 1. Abrir.' }).click();
     await expect(page.getByRole('tab', { name: 'Conversa', exact: true })).toBeVisible();
     expect(leituras).toBe(0);
-    await expect(page.getByRole('link', { name: 'Exportar para preenchimento do ROE' })).toHaveAttribute('href', '/api/casos/1/exportacao');
+    await expect(page.getByRole('link', { name: 'Exportar para o ROE' })).toHaveAttribute('href', '/api/casos/1/exportacao');
     await page.getByRole('tab', { name: 'Conversa', exact: true }).click();
     await expect.poll(() => leituras).toBe(1);
     expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);

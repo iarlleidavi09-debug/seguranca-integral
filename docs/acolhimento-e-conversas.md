@@ -25,7 +25,7 @@ A fila mostra a prévia, autor, horário e quantidade de mensagens novas. Atendi
 
 ## Relatório de apoio ao ROE
 
-No detalhe do caso, **Exportar para preenchimento do ROE** abre um relatório para copiar ou imprimir/salvar como PDF pelo navegador. É necessário estar autenticado na coordenação.
+Na barra de ações do caso, **Exportar para o ROE** abre um relatório para copiar ou imprimir/salvar como PDF pelo navegador. É necessário estar autenticado na coordenação.
 
 O relatório contém dados disponíveis do caso, relato, providências, desfecho e conversa. Dados ausentes aparecem como não informados. Não inclui código de acesso nem notas internas.
 
@@ -33,7 +33,7 @@ Não é um arquivo de importação oficial. A compatibilidade com ROE depende de
 
 ## Editar e excluir mensagens enviadas ao aluno
 
-Em cada mensagem que a coordenação enviou, quem a escreveu (e o administrador) vê **Editar** e **Excluir**. Não há limite de tempo.
+Em cada mensagem que a coordenação enviou, quem a escreveu (e o administrador) encontra **Editar**, **Excluir** e **Ver versões** (ou **Ver texto original**) no menu **⋯** da mensagem (botão "Ações da mensagem"). Não há limite de tempo.
 
 - Editar troca o texto no lugar. O aluno passa a ver o texto novo com "(editada)". O texto anterior fica guardado apenas para a coordenação, em **Ver versões**.
 - Excluir pede confirmação na própria mensagem. O aluno e a equipe passam a ver "Mensagem apagada" no lugar do texto; o texto original fica guardado só para a coordenação, em **Ver texto original**.
@@ -51,3 +51,13 @@ Os dois portais foram recompilados. A inicialização normal do backend cria a t
 ## Verificação no navegador
 
 Com os servidores Vite em 15173 (aluno) e 15174 (coordenação), execute `node verificacao/acolhimento-conversas.mjs` dentro de frontend. O teste usa APIs simuladas, sem criar casos no banco escolar, e verifica os dois portais em 375 e 1280 pixels. Testes de API separados verificam persistência, autorização e recibos reais em bancos temporários.
+
+## Visual da coordenação
+
+- **Fila:** cada caso é uma linha compacta. Não há botão "Abrir": clicar no assunto (ou na linha) abre o caso.
+- **Página do caso:** uma barra de ações reúne Status, **Reavaliar prioridade**, **Exportar para o ROE** e **Resolver este caso**. A **Organização do atendimento** é uma síntese de uma linha, com o botão **Editar responsável e ação**.
+- **Abas:** Conversa, Histórico e as demais mostram contador (por exemplo "Conversa 8") e um ponto quando há mensagem nova.
+- **Por que esta prioridade?** fica num painel ao lado a partir de 1100 px e num bloco recolhível em telas menores.
+- **Menu ⋯ por mensagem:** Editar, Excluir e Ver versões / Ver texto original ficam dentro do menu, não mais como botões soltos.
+- **Estados vazios:** o mapa sem planta mostra o cartão "A planta ainda está vazia", com o botão **Editar planta** dentro dele. Em Relatórios, abaixo de 600 px os dados viram uma lista empilhada, e com poucos dias de dados aparece "Ainda há pouco histórico: só existem dados em N dia(s) neste período."
+- **Celular:** o menu lateral ocupa a altura toda no computador; no celular o cabeçalho é compacto e a navegação vira uma linha rolável. Abaixo de 760 px o campo de nova mensagem fica fixo na parte de baixo.
