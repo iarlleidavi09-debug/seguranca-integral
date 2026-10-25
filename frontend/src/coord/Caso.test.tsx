@@ -534,7 +534,8 @@ describe('editar, excluir e ver versões de mensagens', () => {
     });
     await screen.findByRole('heading', { name: /Caso 5/ });
     await user.click(screen.getByRole('tab', { name: 'Conversa' }));
-    await user.click(screen.getByRole('button', { name: 'Editar' }));
+    await user.click(screen.getByRole('button', { name: 'Ações da mensagem' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Editar' }));
     const campo = screen.getByRole('textbox', { name: 'Editar mensagem' });
     await user.clear(campo); await user.type(campo, 'Texto corrigido');
     await user.click(screen.getByRole('button', { name: 'Salvar' }));
@@ -550,7 +551,8 @@ describe('editar, excluir e ver versões de mensagens', () => {
     });
     await screen.findByRole('heading', { name: /Caso 5/ });
     await user.click(screen.getByRole('tab', { name: 'Conversa' }));
-    await user.click(screen.getByRole('button', { name: 'Excluir' }));
+    await user.click(screen.getByRole('button', { name: 'Ações da mensagem' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Excluir' }));
     await user.click(screen.getByRole('button', { name: 'Excluir' }));
     expect(await screen.findByText('Mensagem apagada')).toBeInTheDocument();
     expect(screen.queryByText('Texto original')).toBeNull();
@@ -563,7 +565,8 @@ describe('editar, excluir e ver versões de mensagens', () => {
     });
     await screen.findByRole('heading', { name: /Caso 5/ });
     await user.click(screen.getByRole('tab', { name: 'Conversa' }));
-    await user.click(screen.getByRole('button', { name: 'Ver versões' }));
+    await user.click(screen.getByRole('button', { name: 'Ações da mensagem' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Ver versões' }));
     expect(await screen.findByText('Redação antiga')).toBeInTheDocument();
   });
 
@@ -581,7 +584,8 @@ describe('editar, excluir e ver versões de mensagens', () => {
     const user = await abrirCaso({ mensagens: [msg()] }, { 'POST /api/casos/5/conversa/lida': () => ({ corpo: { ok: true } }), 'PATCH /api/casos/5/mensagens/12': () => ({ status: 409, corpo: { erro: 'x' } }) });
     await screen.findByRole('heading', { name: /Caso 5/ });
     await user.click(screen.getByRole('tab', { name: 'Conversa' }));
-    await user.click(screen.getByRole('button', { name: 'Editar' }));
+    await user.click(screen.getByRole('button', { name: 'Ações da mensagem' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Editar' }));
     const campo = screen.getByRole('textbox', { name: 'Editar mensagem' });
     await user.clear(campo); await user.type(campo, 'Meu rascunho');
     await user.click(screen.getByRole('button', { name: 'Salvar' }));
@@ -594,7 +598,8 @@ describe('editar, excluir e ver versões de mensagens', () => {
     const user = await abrirCaso({ mensagens: [msg()] }, { 'POST /api/casos/5/conversa/lida': () => ({ corpo: { ok: true } }), 'DELETE /api/casos/5/mensagens/12': () => { throw new TypeError('rede'); } });
     await screen.findByRole('heading', { name: /Caso 5/ });
     await user.click(screen.getByRole('tab', { name: 'Conversa' }));
-    await user.click(screen.getByRole('button', { name: 'Excluir' }));
+    await user.click(screen.getByRole('button', { name: 'Ações da mensagem' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Excluir' }));
     await user.click(screen.getByRole('button', { name: 'Excluir' }));
     await waitFor(() => expect(screen.getAllByRole('alert').filter(a => a.textContent)).toHaveLength(1));
     expect(screen.getAllByRole('alert').find(a => a.textContent)).toHaveTextContent(/Não foi possível/);

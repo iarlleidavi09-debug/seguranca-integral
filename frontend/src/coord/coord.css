@@ -301,6 +301,22 @@ select:disabled { background: var(--desabilitado-fundo); color: var(--desabilita
 .mensagem-confirmacao { margin-top: var(--espaco-2); }
 .mensagem-versoes { list-style: none; margin: var(--espaco-3) 0 0; padding: var(--espaco-3) 0 0; border-top: var(--linha-fina) solid var(--borda-suave); display: grid; gap: var(--espaco-3); }
 .mensagem-versoes p { margin: 0 0 var(--espaco-1); }
+.mensagem-acoes { justify-content: flex-end; }
+.mensagem-menu { position: relative; }
+.mensagem-menu-gatilho { min-width: 44px; min-height: 44px; padding: 0; background: transparent; color: var(--primaria-base); border: var(--linha-fina) solid transparent; border-radius: var(--raio-md); font-size: var(--texto-corpo); font-weight: 700; line-height: 1; }
+.mensagem-menu-gatilho[aria-expanded='true'] { background: var(--fundo-superficie-2); border-color: var(--borda-suave); }
+.mensagem-menu-lista { position: absolute; right: 0; top: 100%; z-index: 2; min-width: 12rem; max-width: calc(100vw - 2 * var(--espaco-4)); margin: var(--espaco-1) 0 0; padding: var(--espaco-1); list-style: none; background: var(--fundo-superficie); border: var(--linha-fina) solid var(--borda-forte); border-radius: var(--raio-md); }
+.mensagem-menu-lista li { margin: 0; }
+.mensagem-menu-lista [role='menuitem'] { display: block; width: 100%; min-height: 44px; padding: var(--espaco-2) var(--espaco-3); text-align: left; color: var(--texto-principal); background: transparent; border: none; border-radius: var(--raio-sm); font-weight: 400; }
+.mensagem-menu-lista [role='menuitem']:hover, .mensagem-menu-lista [role='menuitem']:focus-visible { background: var(--fundo-superficie-2); }
+.resposta-rodape { display: flex; align-items: center; justify-content: space-between; gap: var(--espaco-3); }
+.resposta-rodape .contador { margin: 0; }
+@media (max-width: 760px) {
+  .painel-aba .resposta-fixa-coord { position: sticky; bottom: 0; z-index: 1; margin-top: var(--espaco-4); padding: var(--espaco-2) 0 calc(var(--espaco-2) + env(safe-area-inset-bottom)); background: var(--fundo-base); border-top: var(--linha-fina) solid var(--borda-forte); }
+  .resposta-fixa-coord textarea { width: 100%; box-sizing: border-box; line-height: 1.5; resize: none; }
+  .resposta-fixa-coord .resposta-rodape { margin-top: var(--espaco-1); }
+  .resposta-fixa-coord .resposta-rodape .botao { min-height: 44px; margin: 0; flex: none; white-space: nowrap; padding-inline: var(--espaco-4); }
+}
 .painel-aba .resposta { margin-top: var(--espaco-6); padding-top: var(--espaco-4); }
 .painel-aba .resposta .texto-pequeno { margin-top: 0; margin-bottom: var(--espaco-2); }
 .painel-aba .contador { margin-top: var(--espaco-1); }

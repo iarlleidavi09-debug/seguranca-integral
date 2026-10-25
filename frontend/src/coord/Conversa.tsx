@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import type { VersaoMensagem } from '../shared/api';
 import { dataLegivel } from './rotulos';
+import MenuMensagem from './MenuMensagem';
+import type { ItemMenu } from './MenuMensagem';
 
 export const TEXTO_MAX = 2000;
 export type Item = {
@@ -24,10 +26,8 @@ function ItemMensagem({ item, aoEditar, aoExcluir, aoVerVersoes }: { item: Item 
   const [versoes, setVersoes] = useState<VersaoMensagem[] | null>(null);
   const trabalhando = useRef(false);
   const campo = useRef<HTMLTextAreaElement>(null);
-  const botaoEditar = useRef<HTMLButtonElement>(null);
-  const botaoExcluir = useRef<HTMLButtonElement>(null);
+  const gatilho = useRef<HTMLButtonElement>(null);
   const raiz = useRef<HTMLLIElement>(null);
-  const botaoVersoes = useRef<HTMLButtonElement>(null);
   const botaoManter = useRef<HTMLButtonElement>(null);
   const devolverFoco = useRef<'editar' | 'excluir' | null>(null);
   const excluiu = useRef(false); // exclusão confirmada: o foco espera o item virar "apagado"
@@ -37,17 +37,16 @@ function ItemMensagem({ item, aoEditar, aoExcluir, aoVerVersoes }: { item: Item 
     if (modo === 'editar') campo.current?.focus();
     else if (modo === 'excluir') botaoManter.current?.focus();
     else if (devolverFoco.current) {
-      // o botão de origem pode ter sumido (mensagem apagada): cai no botão de versões ou no próprio item
-      const origem = devolverFoco.current === 'editar' ? botaoEditar : botaoExcluir;
-      // após exclusão confirmada nunca se foca o botão Excluir (vai sumir): o item é o alvo até a prop apagada chegar
-      if (excluiu.current && item.apagada) { excluiu.current = false; (botaoVersoes.current ?? raiz.current)?.focus(); }
-      else (excluiu.current ? raiz.current : origem.current ?? botaoVersoes.current ?? raiz.current)?.focus();
+      // o gatilho do menu pode não existir (sem ações restantes): cai no próprio item
+      // após exclusão confirmada o item é o alvo até a prop apagada chegar (o menu muda de itens)
+      if (excluiu.current && item.apagada) { excluiu.current = false; (gatilho.current ?? raiz.current)?.focus(); }
+      else (excluiu.current ? raiz.current : gatilho.current ?? raiz.current)?.focus();
       devolverFoco.current = null;
     }
   }, [modo]);
 
   useEffect(() => {
-    if (item.apagada && excluiu.current) { excluiu.current = false; (botaoVersoes.current ?? raiz.current)?.focus(); }
+    if (item.apagada && excluiu.current) { excluiu.current = false; (gatilho.current ?? raiz.current)?.focus(); }
   }, [item.apagada]);
 
   const fechar = () => { devolverFoco.current = modo === 'editar' ? 'editar' : 'excluir'; setErro(''); setModo('ver'); };
@@ -82,6 +81,10 @@ function ItemMensagem({ item, aoEditar, aoExcluir, aoVerVersoes }: { item: Item 
 
   const podeAlterar = !!item.podeAlterar && !item.apagada && id !== undefined;
   const temVersoes = !!aoVerVersoes && id !== undefined && (!!item.editada || !!item.apagada);
+  const itensMenu: ItemMenu[] = [];
+  if (podeAlterar && aoEditar) itensMenu.push({ rotulo: 'Editar', aoEscolher: abrirEdicao });
+  if (podeAlterar && aoExcluir) itensMenu.push({ rotulo: 'Excluir', aoEscolher: () => { setErro(''); setModo('excluir'); } });
+  if (temVersoes) itensMenu.push({ rotulo: item.apagada ? (versoes ? 'Ocultar texto original' : 'Ver texto original') : (versoes ? 'Ocultar versões' : 'Ver versões'), devolveFoco: true, aoEscolher: () => void alternarVersoes() });
 
   return <li ref={raiz} tabIndex={-1} className="mensagem" data-autor={item.lado} onKeyDown={modo === 'ver' ? undefined : teclas}>
     <h3>{item.autor}</h3>
@@ -105,11 +108,7 @@ function ItemMensagem({ item, aoEditar, aoExcluir, aoVerVersoes }: { item: Item 
         <button ref={botaoManter} type="button" className="botao secundario" disabled={ocupado} onClick={fechar}>Cancelar</button>
       </div>
     </div>}
-    {modo === 'ver' && (podeAlterar && (aoEditar || aoExcluir) || temVersoes) && <div className="mensagem-acoes">
-      {podeAlterar && aoEditar && <button ref={botaoEditar} type="button" className="botao-texto" disabled={ocupado} onClick={abrirEdicao}>Editar</button>}
-      {podeAlterar && aoExcluir && <button ref={botaoExcluir} type="button" className="botao-texto" disabled={ocupado} onClick={() => { setErro(''); setModo('excluir'); }}>Excluir</button>}
-      {temVersoes && <button ref={botaoVersoes} type="button" className="botao-texto" disabled={ocupado} onClick={() => void alternarVersoes()}>{item.apagada ? (versoes ? 'Ocultar texto original' : 'Ver texto original') : (versoes ? 'Ocultar versões' : 'Ver versões')}</button>}
-    </div>}
+    {modo === 'ver' && itensMenu.length > 0 && <div className="mensagem-acoes"><MenuMensagem itens={itensMenu} desabilitado={ocupado} gatilhoRef={gatilho} /></div>}
     {erro && <p className="erro" role="alert">{erro}</p>}
     {versoes && <ul className="mensagem-versoes" aria-label="Versões anteriores">
       {versoes.length === 0 ? <li className="texto-pequeno">Nenhuma versão anterior.</li> : versoes.map(v => <li key={v.id}>
@@ -120,21 +119,40 @@ function ItemMensagem({ item, aoEditar, aoExcluir, aoVerVersoes }: { item: Item 
   </li>;
 }
 
+/** Verdadeiro em telas de até 760 px; sem matchMedia (jsdom) vale falso. */
+function useTelaEstreita() {
+  const consulta = () => window.matchMedia?.('(max-width: 760px)') ?? null;
+  const [estreita, setEstreita] = useState(() => !!consulta()?.matches);
+  useEffect(() => {
+    const mq = consulta();
+    if (!mq) return;
+    const mudou = () => setEstreita(mq.matches);
+    mudou();
+    mq.addEventListener?.('change', mudou);
+    return () => mq.removeEventListener?.('change', mudou);
+  }, []);
+  return estreita;
+}
+
 export default function Conversa({ titulo, campo, rotulo, ajuda, botao, itens, texto, aoMudar, aoEnviar, enviando, aoEditar, aoExcluir, aoVerVersoes }: {
   titulo: string; campo: string; rotulo: string; ajuda: string; botao: string; texto: string; enviando: boolean; itens: Item[];
   aoMudar: (valor: string) => void; aoEnviar: () => void;
 } & Acoes) {
+  const estreita = useTelaEstreita();
+  const linhas = estreita ? Math.min(6, Math.max(2, texto.split('\n').length)) : 4;
   return <div>
     <h2 className="titulo-painel">{titulo}</h2>
     {itens.length === 0 ? <p className="vazio">Nada por aqui ainda.</p> : <ul className="mensagens">
       {itens.map(i => <ItemMensagem key={i.chave} item={i} aoEditar={aoEditar} aoExcluir={aoExcluir} aoVerVersoes={aoVerVersoes} />)}
     </ul>}
-    <form className="resposta" onSubmit={e => { e.preventDefault(); aoEnviar(); }}>
+    <form className={estreita ? 'resposta resposta-fixa-coord' : 'resposta'} onSubmit={e => { e.preventDefault(); aoEnviar(); }}>
       <label htmlFor={campo}>{rotulo}</label>
-      <p className="texto-pequeno">{ajuda}</p>
-      <textarea id={campo} rows={4} maxLength={TEXTO_MAX} value={texto} onChange={e => aoMudar(e.target.value)} />
-      <p className="texto-pequeno contador">{texto.length} de {TEXTO_MAX}</p>
-      <button type="submit" className="botao principal" disabled={enviando}>{botao}</button>
+      <p id={`${campo}-ajuda`} className={estreita ? 'so-leitor' : 'texto-pequeno'}>{ajuda}</p>
+      <textarea id={campo} rows={linhas} maxLength={TEXTO_MAX} aria-describedby={`${campo}-ajuda`} value={texto} onChange={e => aoMudar(e.target.value)} />
+      <div className="resposta-rodape">
+        <p className="texto-pequeno contador">{texto.length} de {TEXTO_MAX}</p>
+        <button type="submit" className="botao principal" disabled={enviando}>{botao}</button>
+      </div>
     </form>
   </div>;
 }
