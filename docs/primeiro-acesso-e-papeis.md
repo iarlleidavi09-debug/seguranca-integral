@@ -6,6 +6,6 @@
 - Bancos da v1: ao iniciar, a coluna `papel` é criada e `coordenacao` (ou, na falta dela, o usuário de menor id) vira admin.
 - `--criar-admin` e `--redefinir-senha` continuam como recuperação; o usuário criado por `--criar-admin` é admin.
 - O instalador (`instalador.iss`) e o `instalar-lan-teste.ps1` não criam mais a conta `coordenacao` nem mostram senha: a conta nasce no primeiro acesso, aberto em `http://127.0.0.1:4000` no próprio servidor.
-- O **primeiro admin** (administrador de menor id, o criado no primeiro acesso) é o único que pode usar a **Zona de risco**, cartão no fim da tela Usuários que apaga todos os dados de uso.
+- O **primeiro admin** (administrador de menor id, o criado no primeiro acesso) é o único que pode usar a **Implantação secundária**, cartão no fim da tela Usuários que apaga todos os dados de uso.
 - O cartão só existe em implantação secundária, com `"implantacao_secundaria": true` no `config.json`; exige senha e a frase `APAGAR TUDO`, e preserva usuários e mapa.
 - Outro admin ou um coordenador não vê o cartão (403). Detalhes e avisos em `docs/operacao-lan.md`, seção "Implantação secundária: limpar todos os dados".

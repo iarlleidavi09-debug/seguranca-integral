@@ -66,13 +66,15 @@ Teste o executável com uma pasta temporária e host explícito `127.0.0.1`. Ger
 
 **Como ligar.** No `config.json` da pasta de dados, acrescente `"implantacao_secundaria": true`. O valor precisa ser exatamente `true` ou `false` (sem aspas; qualquer outro valor é erro de configuração e o serviço não inicia). A chave vale depois de reiniciar o serviço. Sem a chave, ou com `false`, o botão e as rotas `/api/implantacao` não existem (respondem 404). O instalador não liga a chave sozinho.
 
-**Quem usa.** Só o **primeiro admin**, isto é, o administrador de menor id (a conta criada no primeiro acesso). Se essa conta estiver desativada, ninguém consegue limpar. Outro administrador ou um coordenador recebe 403. O botão fica no cartão **Zona de risco**, no fim da tela **Usuários**, e a tela mostra a data da última limpeza.
+**Quem usa.** Só o **primeiro admin**, isto é, o administrador de menor id (a conta criada no primeiro acesso). Se essa conta estiver desativada, ninguém consegue limpar. Outro administrador ou um coordenador recebe 403. O botão fica no cartão **Implantação secundária**, no fim da tela **Usuários**, e a tela mostra a data da última limpeza.
 
 **Como funciona.** O painel pede a senha do próprio usuário e a frase `APAGAR TUDO`. Cinco senhas erradas aqui bloqueiam também o login desse administrador, porque o contador de tentativas é o mesmo do login. A caixa **Apagar também as cópias de segurança** vem marcada e pode ser desmarcada.
 
 **O que apaga:** casos, conversas (mensagens e versões), anexos, notas internas, histórico, resoluções, fotos dos autores, respostas e recibos de envio, e os arquivos de `uploads\`. Por padrão apaga também as subpastas de `backups\` e todos os `seguranca.db.pre-*.bak` ao lado do banco. Os números dos casos recomeçam do 1. O SQLite é compactado (`VACUUM`) para não guardar o texto apagado em páginas livres. Os códigos de acompanhamento dos alunos deixam de valer, e os acessos salvos no navegador deles ficam sem efeito.
 
 **O que preserva:** usuários (contas, senhas e papéis), o mapa da escola, o `config.json` e as chaves (`secret.key`, `sessao.key`). Fica um registro mínimo da limpeza (quem, quando e quantos casos), sem nenhum texto de caso.
+
+**O que a limpeza não cobre:** o arquivo de log do servidor (`logs\servidor.log` e os rotacionados), que pode citar texto em mensagens de erro; os rascunhos guardados no navegador de outros coordenadores e dos alunos; e um upload feito durante a limpeza, que pode ser apagado (janela de milissegundos).
 
 **Não há como desfazer.** Com as cópias de segurança apagadas, também não há de onde restaurar. Se houver alguma dúvida, desmarque a caixa das cópias ou não use o botão.
 

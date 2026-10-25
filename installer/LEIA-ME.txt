@@ -371,7 +371,7 @@ Para zerar uma instalação de teste sem reinstalar, acrescente no config.json
 não existe.
 
 Só o primeiro administrador (a conta criada no primeiro acesso) vê, na tela
-Usuários, o cartão "Zona de risco". Ele pede a senha e a frase APAGAR TUDO.
+Usuários, o cartão "Implantação secundária". Ele pede a senha e a frase APAGAR TUDO.
 Cinco senhas erradas ali também bloqueiam o login desse administrador.
 
 Apaga: casos, conversas, anexos, notas, histórico, resoluções, fotos de
