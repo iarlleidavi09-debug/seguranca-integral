@@ -294,3 +294,18 @@ export const criarUsuario = (nome: string, senha: string) => coord<{ id: number;
 export const desativarUsuario = (usuarioId: number) => coord<{ ok: boolean }>('POST', `/api/usuarios/${id(usuarioId)}/desativar`);
 export const carregarSimulacao = () => coord<{ criados: number }>('POST', '/api/simulacao/carregar');
 export const removerSimulacao = () => coord<{ removidos: number }>('DELETE', '/api/simulacao');
+
+export type Removidos = { casos: number; mensagens: number; anexos: number; arquivos: number; backups: number };
+export type ResumoImplantacao = {
+  secundaria: boolean; resumo: Removidos; ultima_limpeza: { em: string; por: string | null; casos: number } | null;
+};
+/** Devolve null quando a limpeza não está disponível (404 sem a flag, 403 fora do primeiro administrador). */
+export async function obterImplantacao(): Promise<ResumoImplantacao | null> {
+  try { return await coord<ResumoImplantacao>('GET', '/api/implantacao'); }
+  catch (falha) {
+    if (falha instanceof ErroApi && (falha.status === 404 || falha.status === 403)) return null;
+    throw falha;
+  }
+}
+export const limparImplantacao = (senha: string, confirmacao: string, apagarBackups: boolean) =>
+  coord<{ ok: boolean; removidos: Removidos; avisos?: string[] }>('POST', '/api/implantacao/limpar', { senha, confirmacao, apagar_backups: apagarBackups });

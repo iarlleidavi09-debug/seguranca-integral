@@ -163,7 +163,7 @@ export default function App() {
           {telaVisivel.nome === 'casos' && <Fila modo="casos" filtros={filtros} aoFiltrar={setFiltros} aoAbrir={abrirCaso} />}
           {telaVisivel.nome === 'pos' && <Fila modo="pos" filtros={filtrosPos} aoFiltrar={setFiltrosPos} aoAbrir={abrirCaso} />}
           {telaVisivel.nome === 'caso' && <Caso key={telaVisivel.id} id={telaVisivel.id} aoVoltar={() => ir({ nome: 'casos' })} aoMudar={atualizarResumo} />}
-          {telaVisivel.nome === 'usuarios' && <Usuarios meuId={sessao.id} />}
+          {telaVisivel.nome === 'usuarios' && <Usuarios meuId={sessao.id} aoLimpar={atualizarResumo} />}
           {telaVisivel.nome === 'ensaio' && <Ensaio />}
           {telaVisivel.nome === 'relatorios' && <Relatorios />}
           {(mapaVisitado || telaVisivel.nome === 'mapa') && <div hidden={telaVisivel.nome !== 'mapa'}><Mapa /></div>}

@@ -285,6 +285,13 @@ select:disabled { background: var(--desabilitado-fundo); color: var(--desabilita
 .confirmar { flex-basis: 100%; padding: var(--espaco-4); background: var(--perigo-suave); border-radius: var(--raio-md); }
 .confirmar .acoes { margin-top: var(--espaco-3); }
 .form-usuario { max-width: 420px; }
+.zona-risco { margin-top: var(--espaco-8); padding: var(--espaco-4); border: var(--linha-fina) solid var(--perigo-base); border-radius: var(--raio-md); background: var(--fundo-superficie); }
+.zona-risco h2 { margin-top: 0; }
+.zona-risco-painel { margin-top: var(--espaco-4); padding: var(--espaco-4); background: var(--perigo-suave); border-radius: var(--raio-md); }
+.zona-risco-painel .campos { max-width: 420px; }
+.zona-risco-painel .acoes { margin-top: var(--espaco-3); }
+.zona-risco-painel .opcao { display: flex; gap: var(--espaco-2); align-items: center; min-height: 44px; }
+.zona-risco-painel .opcao input { width: auto; min-height: 0; }
 
 @media (min-width: 960px) {
   .painel { padding: var(--espaco-8) var(--espaco-6) var(--espaco-12); }

@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { criarUsuario, desativarUsuario, ErroApi, ErroCoord, listarUsuarios, mensagemErroCoord } from '../shared/api';
 import type { UsuarioLista } from '../shared/api';
+import LimparImplantacao from './LimparImplantacao';
 
 const SENHA_MIN = 10;
 const semSessao = (falha: unknown) => falha instanceof ErroApi && falha.status === 401;
 
-export default function Usuarios({ meuId, confirmarInicial = null }: { meuId: number; confirmarInicial?: number | null }) {
+export default function Usuarios({ meuId, confirmarInicial = null, aoLimpar = () => {} }: { meuId: number; confirmarInicial?: number | null; aoLimpar?: () => void }) {
   const [lista, setLista] = useState<UsuarioLista[] | null>(null);
   const [erro, setErro] = useState('');
   const [aviso, setAviso] = useState('');
@@ -96,5 +97,6 @@ export default function Usuarios({ meuId, confirmarInicial = null }: { meuId: nu
       </div>
       <div className="acoes"><button type="submit" className="botao principal" disabled={ocupado}>Criar usuário</button></div>
     </form>
+    <LimparImplantacao aoLimpar={aoLimpar} />
   </section>;
 }
