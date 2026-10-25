@@ -127,3 +127,24 @@ Para recuperar a conta local coordenacao, pare a tarefa e execute o programa
 com --redefinir-senha (e a mesma --data-dir, se personalizada); anote a senha
 exibida uma vez e reinicie a tarefa. --criar-admin cria essa conta se ausente.
 
+8. IMPLANTAÇÃO SECUNDÁRIA: LIMPAR TODOS OS DADOS
+------------------------------------------------
+
+*** ATENÇÃO: INSTALAÇÃO NORMAL NUNCA DEVE LIGAR ESTA CHAVE. ***
+*** Ela é só para instalações de teste, treinamento ou demonstração. ***
+
+Para zerar uma instalação de teste sem reinstalar, acrescente no config.json
+(pasta de dados) a linha  "implantacao_secundaria": true  (exatamente true ou
+false) e reinicie a tarefa. Sem a chave, o botão não existe.
+
+Só o primeiro administrador (a conta criada no primeiro acesso) vê, na tela
+Usuários, o cartão "Zona de risco". Ele pede a senha e a frase APAGAR TUDO.
+Cinco senhas erradas ali também bloqueiam o login desse administrador.
+
+Apaga: casos, conversas, anexos, notas, histórico, resoluções, fotos de
+autores, respostas e a pasta uploads. Por padrão apaga também os backups e os
+arquivos seguranca.db.pre-*.bak (a caixa pode ser desmarcada). Os códigos dos
+alunos deixam de valer. Mantém: usuários, mapa, config.json e chaves.
+NÃO HÁ COMO DESFAZER.
+
+Para desligar depois: remova a chave do config.json e reinicie a tarefa.

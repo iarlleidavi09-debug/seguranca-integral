@@ -58,3 +58,22 @@ powershell -NoProfile -ExecutionPolicy Bypass -File installer\build.ps1
 O build compila os portais, executa o backend, empacota o executável com PyInstaller e compila o instalador LAN. Não instala dependências nem executa o instalador, helper LAN, firewall ou tarefas agendadas. `-Lan` continua aceito por compatibilidade; a versão 3 só gera LAN. `-SemInstalador` gera apenas a pasta do executável. Use `-SemTestes` somente quando a suíte completa do mesmo working tree já tiver sido executada e registrada; o build dos dois portais continua obrigatório. Rode as suítes frontend, TypeScript e contraste antes da entrega. Não execute builds simultâneos com testes que dependem de `backend/app/static`, porque Vite limpa esse diretório ao compilar.
 
 Teste o executável com uma pasta temporária e host explícito `127.0.0.1`. Gerar o Setup não comprova instalação em máquina limpa; esse ensaio deve ser feito separadamente em ambiente autorizado.
+
+
+## Implantação secundária: limpar todos os dados
+
+> **Atenção: a implantação normal NUNCA deve ligar esta chave.** Ela existe só para instalações de teste, treinamento ou demonstração. Com ela ligada, o primeiro administrador pode apagar todos os casos e conversas da instalação, sem desfazer.
+
+**Como ligar.** No `config.json` da pasta de dados, acrescente `"implantacao_secundaria": true`. O valor precisa ser exatamente `true` ou `false` (sem aspas; qualquer outro valor é erro de configuração e o serviço não inicia). A chave vale depois de reiniciar o serviço. Sem a chave, ou com `false`, o botão e as rotas `/api/implantacao` não existem (respondem 404). O instalador não liga a chave sozinho.
+
+**Quem usa.** Só o **primeiro admin**, isto é, o administrador de menor id (a conta criada no primeiro acesso). Se essa conta estiver desativada, ninguém consegue limpar. Outro administrador ou um coordenador recebe 403. O botão fica no cartão **Zona de risco**, no fim da tela **Usuários**, e a tela mostra a data da última limpeza.
+
+**Como funciona.** O painel pede a senha do próprio usuário e a frase `APAGAR TUDO`. Cinco senhas erradas aqui bloqueiam também o login desse administrador, porque o contador de tentativas é o mesmo do login. A caixa **Apagar também as cópias de segurança** vem marcada e pode ser desmarcada.
+
+**O que apaga:** casos, conversas (mensagens e versões), anexos, notas internas, histórico, resoluções, fotos dos autores, respostas e recibos de envio, e os arquivos de `uploads\`. Por padrão apaga também as subpastas de `backups\` e todos os `seguranca.db.pre-*.bak` ao lado do banco. Os números dos casos recomeçam do 1. O SQLite é compactado (`VACUUM`) para não guardar o texto apagado em páginas livres. Os códigos de acompanhamento dos alunos deixam de valer, e os acessos salvos no navegador deles ficam sem efeito.
+
+**O que preserva:** usuários (contas, senhas e papéis), o mapa da escola, o `config.json` e as chaves (`secret.key`, `sessao.key`). Fica um registro mínimo da limpeza (quem, quando e quantos casos), sem nenhum texto de caso.
+
+**Não há como desfazer.** Com as cópias de segurança apagadas, também não há de onde restaurar. Se houver alguma dúvida, desmarque a caixa das cópias ou não use o botão.
+
+**Como desligar depois.** Remova a chave `implantacao_secundaria` do `config.json` (ou troque para `false`) e reinicie o serviço. O botão e as rotas deixam de existir.

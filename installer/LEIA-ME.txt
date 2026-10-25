@@ -358,3 +358,26 @@ o aparelho é agrupado pelo prefixo /64.
 Painel de Controle > Programas > TETRA-GUARD > Desinstalar. O programa
 e a tarefa são removidos. Os dados ficam, a não ser que você responda "Sim"
 quando o desinstalador perguntar se deve apagá-los (o padrão é "Não").
+
+12. IMPLANTAÇÃO SECUNDÁRIA: LIMPAR TODOS OS DADOS
+------------------------------------------------
+
+*** ATENÇÃO: INSTALAÇÃO NORMAL NUNCA DEVE LIGAR ESTA CHAVE. ***
+*** Ela é só para instalações de teste, treinamento ou demonstração. ***
+
+Para zerar uma instalação de teste sem reinstalar, acrescente no config.json
+(C:\ProgramData\SegurancaIntegral) a linha  "implantacao_secundaria": true
+(exatamente true ou false) e reinicie a tarefa (seção 6). Sem a chave, o botão
+não existe.
+
+Só o primeiro administrador (a conta criada no primeiro acesso) vê, na tela
+Usuários, o cartão "Zona de risco". Ele pede a senha e a frase APAGAR TUDO.
+Cinco senhas erradas ali também bloqueiam o login desse administrador.
+
+Apaga: casos, conversas, anexos, notas, histórico, resoluções, fotos de
+autores, respostas e a pasta uploads. Por padrão apaga também os backups e os
+arquivos seguranca.db.pre-*.bak (a caixa pode ser desmarcada). Os códigos dos
+alunos deixam de valer. Mantém: usuários, mapa, config.json e chaves.
+NÃO HÁ COMO DESFAZER.
+
+Para desligar depois: remova a chave do config.json e reinicie a tarefa.
