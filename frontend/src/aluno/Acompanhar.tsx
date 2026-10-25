@@ -60,7 +60,7 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
   async function consultar() {
     if (!codigo.trim()) { setErro('Digite seu código para acompanhar.'); return; }
     const atual = consulta.current + 1;
-    setCarregando(true); setErro(''); setErroSituacao(''); setCaso(null); setAviso(''); baseLida.current = null;
+    setCarregando(true); setErro(''); setErroSituacao(''); setCaso(null); setAviso(''); setConfirmada(false); baseLida.current = null;
     try {
       if (await buscar(codigo)) { setCodigoAtivo(codigo); setCodigo(''); }
     } catch (falha) { if (atual === consulta.current) setErro(mensagemErro(falha)); }
@@ -68,6 +68,7 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
   }
   async function enviar() {
     if (responder.current) return;
+    setConfirmada(false);
     if (!texto.trim() || texto.trim().length > 2000) { setErro('Escreva uma resposta de 1 a 2000 caracteres.'); return; }
     responder.current = true; setEnviando(true); setErro(''); setAviso(''); setConfirmada(false);
     try {
@@ -78,7 +79,7 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
       const leitura = consulta.current + 1;
       deveRolar.current = true;
       try { if (!(await buscar(codigoAtivo))) deveRolar.current = false; }
-      catch (falha) { deveRolar.current = false; if (leitura === consulta.current) setFalhaAtualizar(true); setAviso(`Resposta enviada. ${mensagemErro(falha)} Use Atualizar conversa para ver as mensagens.`); }
+      catch (falha) { deveRolar.current = false; if (leitura === consulta.current) setFalhaAtualizar(true); setAviso(`${mensagemErro(falha)} Use Atualizar conversa para ver as mensagens.`); }
     } catch (falha) { setErro(mensagemErro(falha)); }
     finally { setEnviando(false); responder.current = false; }
   }

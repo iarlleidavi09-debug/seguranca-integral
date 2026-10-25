@@ -209,7 +209,7 @@ describe('Acompanhar', () => {
     responder({ ...base, status: 'novo', mensagens: [] });
     await user.type(screen.getByLabelText('Sua resposta'), 'oi');
     await user.click(screen.getByRole('button', { name: 'Enviar resposta' }));
-    await screen.findAllByText('Resposta enviada.');
+    await waitFor(() => expect(document.querySelector('.resposta-rodape')).toHaveTextContent('Resposta enviada.'));
     expect(screen.queryByRole('button', { name: 'Atualizar conversa' })).not.toBeInTheDocument();
   });
   it('status desconhecido não marca etapa nem quebra', async () => {
@@ -501,7 +501,7 @@ describe('Acompanhar: conversa em formato de chat', () => {
     responder({ ...base, status: 'em_investigacao', mensagens: [aluno(1, 'olá')] });
     await user.type(screen.getByLabelText('Sua resposta'), 'olá');
     await user.click(screen.getByRole('button', { name: 'Enviar resposta' }));
-    expect((await screen.findAllByText('Resposta enviada.')).length).toBeGreaterThan(0);
+    await waitFor(() => expect(document.querySelector('.resposta-rodape')).toHaveTextContent('Resposta enviada.'));
     expect(consultas()).toHaveLength(3);
   });
   it('rola até o separador sem mover o foco', async () => {
@@ -626,7 +626,7 @@ describe('Acompanhar: quando a conversa rola', () => {
       responder({ ...base, status: 'em_investigacao', mensagens: [msg(1, 'aluno', 'um'), msg(2, 'aluno', 'dois')] });
       await user.type(screen.getByLabelText('Sua resposta'), 'dois');
       await user.click(screen.getByRole('button', { name: 'Enviar resposta' }));
-      await screen.findAllByText('Resposta enviada.');
+      await waitFor(() => expect(document.querySelector('.resposta-rodape')).toHaveTextContent('Resposta enviada.'));
       const artigos = screen.getByRole('log').querySelectorAll('article');
       await waitFor(() => expect(alvos(rolagem).at(-1)).toBe(artigos[1]));
       await estabilizar();
@@ -754,6 +754,12 @@ describe('Acompanhar: avisos e erros ficam junto do campo fixo', () => {
     const campo = document.querySelector('form.resposta-fixa')!;
     expect(campo).toContainElement(aviso);
     expect(campo).toContainElement(screen.getByRole('button', { name: 'Atualizar conversa' }));
+    const linha = document.querySelector('.aviso-linha')!;
+    expect(campo).toContainElement(linha as HTMLElement);
+    expect(linha).toContainElement(aviso);
+    expect(linha).toContainElement(screen.getByRole('button', { name: 'Atualizar conversa' }));
+    // sem anúncio duplo: o aviso de falha não repete a confirmação já anunciada pelo status oculto
+    expect(aviso.textContent).not.toMatch(/^Resposta enviada/);
   });
   it('erro de envio fica dentro do campo e preserva o texto', async () => {
     const user = userEvent.setup();
@@ -790,6 +796,8 @@ describe('Acompanhar: confirmação de envio não muda a altura do campo', () =>
     await screen.findByLabelText('Sua resposta');
     const form = document.querySelector('form.resposta-fixa')!;
     const antes = visiveisAcima(form);
+    const oculto = form.querySelector('p.so-leitor[role="status"]')!;
+    expect(oculto).toHaveTextContent('');
     responder({ ok: true }, 201);
     responder({ ...base, status: 'novo', mensagens: [{ id: 1, autor: 'aluno', texto: 'oi', criado_em: '2026-10-14T12:00:00Z' }] });
     await user.type(screen.getByLabelText('Sua resposta'), 'oi');
@@ -798,10 +806,45 @@ describe('Acompanhar: confirmação de envio não muda a altura do campo', () =>
     expect(form.querySelector('.resposta-rodape')).not.toHaveTextContent('de 2000 caracteres');
     expect(visiveisAcima(form)).toBe(antes);
     const estados = screen.getAllByRole('status').filter(e => e.textContent === 'Resposta enviada.');
-    expect(estados.some(e => e.classList.contains('so-leitor'))).toBe(true);
+    expect(estados).toContain(oculto);
     expect(form).not.toHaveAttribute('aria-busy');
     expect(screen.getByLabelText('Sua resposta')).toHaveAttribute('aria-describedby', 'limite-resposta');
     await user.type(screen.getByLabelText('Sua resposta'), 'a');
     expect(form.querySelector('.resposta-rodape')).toHaveTextContent('1 de 2000 caracteres');
+  });
+});
+
+describe('Acompanhar: confirmada é zerada nos outros caminhos', () => {
+  const rodape = () => document.querySelector('.resposta-rodape')!;
+  const enviarUma = async (user: ReturnType<typeof userEvent.setup>) => {
+    responder({ ...base, status: 'novo', mensagens: [] });
+    render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+    await screen.findByLabelText('Sua resposta');
+    responder({ ok: true }, 201);
+    responder({ ...base, status: 'novo', mensagens: [] });
+    await user.type(screen.getByLabelText('Sua resposta'), 'oi');
+    await user.click(screen.getByRole('button', { name: 'Enviar resposta' }));
+    await waitFor(() => expect(rodape()).toHaveTextContent('Resposta enviada.'));
+  };
+  it('enviar com o campo vazio depois de um sucesso volta o contador', async () => {
+    const user = userEvent.setup();
+    await enviarUma(user);
+    await user.click(screen.getByRole('button', { name: 'Enviar resposta' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Escreva uma resposta de 1 a 2000 caracteres.');
+    expect(rodape()).toHaveTextContent('0 de 2000 caracteres');
+    expect(rodape()).not.toHaveTextContent('Resposta enviada.');
+    expect(document.querySelector('p.so-leitor[role="status"]')).toHaveTextContent('');
+  });
+  it('envio que falha mostra o contador', async () => {
+    const user = userEvent.setup();
+    responder({ ...base, status: 'novo', mensagens: [] });
+    render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+    await screen.findByLabelText('Sua resposta');
+    responder({}, 429);
+    await user.type(screen.getByLabelText('Sua resposta'), 'oi');
+    await user.click(screen.getByRole('button', { name: 'Enviar resposta' }));
+    await screen.findByRole('alert');
+    expect(rodape()).not.toHaveTextContent('Resposta enviada.');
+    expect(rodape()).toHaveTextContent('2 de 2000 caracteres');
   });
 });
