@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import { chamadasA, servidor } from './testes/servidor';
 import type { Rota } from './testes/servidor';
@@ -54,7 +54,7 @@ it('registra leitura somente na conversa e oferece exportação autenticada', as
   });
   await screen.findByRole('heading', { name: /Caso 5/ });
   expect(chamadasA('POST', '/api/casos/5/conversa/lida')).toHaveLength(0);
-  const link = screen.getByRole('link', { name: 'Exportar para preenchimento do ROE' });
+  const link = screen.getByRole('link', { name: 'Exportar para o ROE' });
   expect(link).toHaveAttribute('href', '/api/casos/5/exportacao');
   expect(link).toHaveAttribute('rel', 'noopener');
   await user.click(screen.getByRole('tab', { name: 'Conversa' }));
@@ -348,7 +348,7 @@ describe('Caso: abas', () => {
     expect(within(painel).getByText('Relato completo do aluno.')).toBeInTheDocument();
     expect(within(painel).getByText('aplicativo da turma')).toBeInTheDocument();
     expect(within(painel).getByAltText('Anexo 1 do caso 5')).toBeInTheDocument();
-    expect(screen.getAllByRole('tab').map(t => t.textContent)).toEqual(['Relato e investigação', 'Conversa', 'Notas internas', 'Histórico']);
+    expect(screen.getAllByRole('tab').map(t => t.textContent)).toEqual(['Relato e investigação', 'Conversa', 'Notas internas', 'Histórico 3']);
   });
 
   it('o bloco Respostas do aluno vem depois do relato e antes dos anexos', async () => {
@@ -598,5 +598,124 @@ describe('editar, excluir e ver versões de mensagens', () => {
     await user.click(screen.getByRole('button', { name: 'Excluir' }));
     await waitFor(() => expect(screen.getAllByRole('alert').filter(a => a.textContent)).toHaveLength(1));
     expect(screen.getAllByRole('alert').find(a => a.textContent)).toHaveTextContent(/Não foi possível/);
+  });
+});
+
+const msg = (id: number, autor: 'aluno' | 'coordenacao', extra: Record<string, unknown> = {}) =>
+  ({ id, autor, texto: `Texto ${id}`, criado_em: base.criado_em, usuario: null, usuario_id: null, editada_em: null, apagada_em: null, pode_alterar: false, ...extra });
+
+describe('Caso: página reorganizada', () => {
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  it('a barra de ações reúne Status, Reavaliar, Exportar para o ROE e Resolver', async () => {
+    await abrirCaso();
+    const barra = (await screen.findByLabelText('Status')).closest('.caso-acoes') as HTMLElement;
+    expect(barra).not.toBeNull();
+    expect(within(barra).getByRole('button', { name: 'Reavaliar prioridade' })).toBeInTheDocument();
+    const roe = within(barra).getByRole('link', { name: 'Exportar para o ROE' });
+    expect(roe).toHaveAttribute('target', '_blank');
+    expect(roe).toHaveAttribute('rel', 'noopener');
+    expect(roe).toHaveClass('botao', 'secundario');
+    expect(roe).toHaveAttribute('title', expect.stringContaining('Relatório de apoio para impressão ou cópia'));
+    expect(within(barra).getByText('Resolver este caso')).toBeInTheDocument();
+  });
+
+  it('a nota do ROE fica em Dados do caso e não como parágrafo solto', async () => {
+    await abrirCaso();
+    const dados = (await screen.findByText('Dados do caso')).closest('details')!;
+    expect(dados).not.toHaveAttribute('open');
+    const nota = screen.getByText(/Relatório de apoio para impressão ou cópia/, { selector: 'p' });
+    expect(dados).toContainElement(nota);
+  });
+
+  it('em caso resolvido a barra mostra Reabrir no lugar de Status e Resolver', async () => {
+    await abrirCaso({ status: 'resolvido' });
+    const reabrir = await screen.findByRole('button', { name: 'Reabrir para investigação' });
+    expect(reabrir.closest('.caso-acoes')).not.toBeNull();
+    expect(screen.queryByLabelText('Status')).not.toBeInTheDocument();
+    expect(screen.queryByText('Resolver este caso')).not.toBeInTheDocument();
+  });
+
+  it('Resolver este caso abre o painel de resolução existente', async () => {
+    const user = await abrirCaso();
+    await user.click(await screen.findByText('Resolver este caso'));
+    expect(screen.getByText('Resolver este caso').closest('details')).toHaveAttribute('open');
+    expect(screen.getByRole('button', { name: 'Registrar resolução' })).toBeInTheDocument();
+  });
+
+  it('o atendimento vira uma linha com responsável e próxima ação', async () => {
+    await abrirCaso({ responsavel: { id: 2, nome: 'Ana', ativo: true }, proxima_acao: 'Conversar com a turma', prazo_acao: '2026-10-20' });
+    const linha = await screen.findByText(/Responsável: Ana/);
+    expect(linha).toHaveTextContent('Responsável: Ana · Próxima ação: Conversar com a turma até 20/10');
+    expect(screen.getByText('Editar responsável e ação').closest('details')).not.toHaveAttribute('open');
+  });
+
+  it('as abas mostram contadores e o ponto de mensagem nova do aluno', async () => {
+    const mensagens = [msg(1, 'coordenacao'), msg(2, 'aluno')];
+    const notas = [{ id: 1, usuario: 'Marina', texto: 'n1', criado_em: base.criado_em }, { id: 2, usuario: 'Marina', texto: 'n2', criado_em: base.criado_em }];
+    const user = await abrirCaso({ mensagens, notas }, { 'POST /api/casos/5/conversa/lida': () => ({ corpo: { ok: true } }) });
+    const conversa = await screen.findByRole('tab', { name: 'Conversa' });
+    expect(conversa).toHaveTextContent('Conversa 2');
+    expect(screen.getByRole('tab', { name: 'Notas internas' })).toHaveTextContent('Notas internas 2');
+    expect(screen.getByRole('tab', { name: 'Histórico' })).toHaveTextContent('Histórico 3');
+    expect(screen.getByRole('tab', { name: 'Relato e investigação' }).querySelector('.aba-contagem')).toBeNull();
+    expect(conversa.querySelector('.aba-ponto-novo')).not.toBeNull();
+    expect(conversa).toHaveAccessibleDescription(/mensagem nova/i);
+    await user.click(conversa);
+    await waitFor(() => expect(conversa.querySelector('.aba-ponto-novo')).toBeNull());
+    await user.click(screen.getByRole('tab', { name: 'Notas internas' }));
+    expect(conversa.querySelector('.aba-ponto-novo')).toBeNull();
+  });
+
+  it('com a última mensagem do aluno apagada não há ponto', async () => {
+    await abrirCaso({ mensagens: [msg(1, 'aluno', { apagada_em: '2026-10-14T11:00:00+00:00' })] });
+    const conversa = await screen.findByRole('tab', { name: 'Conversa' });
+    expect(conversa.querySelector('.aba-ponto-novo')).toBeNull();
+  });
+
+  it('setas, Home e End continuam movendo a seleção e a aba selecionada entra na vista', async () => {
+    const rolar = vi.fn();
+    Element.prototype.scrollIntoView = rolar;
+    const user = await abrirCaso();
+    const relato = await screen.findByRole('tab', { name: 'Relato e investigação' });
+    relato.focus();
+    await user.keyboard('{ArrowRight}');
+    expect(screen.getByRole('tab', { name: 'Conversa' })).toHaveAttribute('aria-selected', 'true');
+    await user.keyboard('{End}');
+    expect(screen.getByRole('tab', { name: 'Histórico' })).toHaveAttribute('aria-selected', 'true');
+    await user.keyboard('{Home}');
+    expect(relato).toHaveAttribute('aria-selected', 'true');
+    expect(rolar.mock.contexts).toContain(screen.getByRole('tab', { name: 'Histórico' }));
+    expect(rolar.mock.contexts.at(-1)).toBe(relato);
+  });
+
+  it('estados vazios ocupam uma linha de texto secundário sem título visível', async () => {
+    await abrirCaso({ anexos: [], questionario: null });
+    const vazioQ = await screen.findByText('O aluno não respondeu ao questionário.');
+    expect(vazioQ).toHaveClass('vazio-compacto');
+    expect(screen.getByRole('heading', { level: 3, name: 'Respostas do aluno' })).toHaveClass('so-leitor');
+    expect(screen.getByText('Sem anexos.')).toHaveClass('vazio-compacto');
+    expect(screen.getByRole('heading', { level: 2, name: 'Anexos' })).toHaveClass('so-leitor');
+  });
+
+  it('Por que esta prioridade? fica num aside e abre por padrão só para crítica ou alta', async () => {
+    await abrirCaso({ prioridade: 'alta' });
+    const painel = (await screen.findByRole('heading', { name: 'Por que esta prioridade?' })).closest('aside')!;
+    expect(painel).toHaveClass('caso-lateral');
+    expect(painel.querySelector('details')).toHaveAttribute('open');
+  });
+
+  it('prioridade média deixa o painel recolhido', async () => {
+    await abrirCaso({ prioridade: 'media', prioridade_original: 'media' });
+    const painel = (await screen.findByRole('heading', { name: 'Por que esta prioridade?' })).closest('aside')!;
+    expect(painel.querySelector('details')).not.toHaveAttribute('open');
+  });
+
+  it('a partir de 1100 px o painel é fixo, sem details', async () => {
+    vi.stubGlobal('matchMedia', (consulta: string) => ({ matches: true, media: consulta, addEventListener: () => {}, removeEventListener: () => {} }));
+    await abrirCaso({ prioridade: 'media', prioridade_original: 'media' });
+    const painel = (await screen.findByRole('heading', { name: 'Por que esta prioridade?' })).closest('aside')!;
+    expect(painel.querySelector('details')).toBeNull();
+    expect(painel).toHaveTextContent('Prioridade atual: Média');
   });
 });

@@ -13,7 +13,7 @@ export default function Anexos({ caso, anexoInicial = null, imagemPrevia }: { ca
     if (e.key === 'Escape') { e.stopPropagation(); fecharJanela(); }
     if (e.key === 'Tab') { e.preventDefault(); fechar.current?.focus(); }
   }
-  if (caso.anexos.length === 0) return <p className="vazio">Sem anexos.</p>;
+  if (caso.anexos.length === 0) return <p className="vazio-compacto">Sem anexos.</p>;
   return <>
     <ul className="miniaturas">
       {caso.anexos.map((a, i) => <li key={a.id}>

@@ -17,7 +17,8 @@ describe('RespostasAluno', () => {
   it('sem questionário mostra a mensagem', () => {
     render(<RespostasAluno questionario={null} />);
     expect(screen.getByRole('heading', { level: 3, name: 'Respostas do aluno' })).toBeInTheDocument();
-    expect(screen.getByText('O aluno não respondeu ao questionário.')).toBeInTheDocument();
+    expect(screen.getByText('O aluno não respondeu ao questionário.')).toHaveClass('vazio-compacto');
+    expect(screen.getByRole('heading', { level: 3, name: 'Respostas do aluno' })).toHaveClass('so-leitor');
   });
 
   it('mostra título, situação, opções marcadas e um grupo por dimensão na ordem recebida', () => {

@@ -2,9 +2,9 @@ import type { QuestionarioCaso } from '../shared/api';
 
 /** Respostas do questionário do aluno. Tudo entra como texto do React, nunca como HTML. */
 export default function RespostasAluno({ questionario }: { questionario: QuestionarioCaso | null }) {
-  if (!questionario) return <section className="respostas-aluno">
-    <h3>Respostas do aluno</h3>
-    <p className="vazio">O aluno não respondeu ao questionário.</p>
+  if (!questionario) return <section className="respostas-aluno respostas-vazio">
+    <h3 className="so-leitor">Respostas do aluno</h3>
+    <p className="vazio-compacto">O aluno não respondeu ao questionário.</p>
   </section>;
   const dimensoes = questionario.dimensoes.filter(d => d.itens.length > 0);
   return <section className="respostas-aluno">

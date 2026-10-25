@@ -9,6 +9,15 @@ const caso = { id: 1, revisao_estado: 3, responsavel: null, proxima_acao: null, 
 afterEach(limparRascunhosAtendimento);
 
 describe('Atendimento interno', () => {
+  it('resume responsável e ação em uma linha', () => {
+    servidor({ 'GET /api/equipe': () => ({ corpo: { usuarios: [] } }) });
+    const { unmount } = render(<Atendimento caso={caso} ocupado={false} aoSalvar={vi.fn()} aoConcluir={vi.fn()} />);
+    expect(screen.getByText(/Responsável:/)).toHaveTextContent('Responsável: Sem responsável · Próxima ação: Nenhuma pendente');
+    unmount();
+    render(<Atendimento caso={{ ...caso, responsavel: { id: 2, nome: 'Ana', ativo: true }, proxima_acao: 'Ligar', prazo_acao: '2026-10-20' }} ocupado={false} aoSalvar={vi.fn()} aoConcluir={vi.fn()} />);
+    expect(screen.getByText(/Responsável:/)).toHaveTextContent('Responsável: Ana · Próxima ação: Ligar até 20/10');
+  });
+
   it('mostra a síntese e deixa a edição recolhida até ser solicitada', async () => {
     servidor({ 'GET /api/equipe': () => ({ corpo: { usuarios: [] } }) });
     render(<Atendimento caso={caso} ocupado={false} aoSalvar={vi.fn()} aoConcluir={vi.fn()} />);

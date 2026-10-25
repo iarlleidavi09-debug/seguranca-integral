@@ -16,7 +16,7 @@ import Atendimento from './Atendimento';
 import { usePolling } from './polling';
 import {
   Prioridade, Simulacao, STATUS, Status, acessoLegivel, dataLegivel, descricaoEvento, motivo, prioridade, rotuloStatus,
-  assuntos,
+  assuntos, tipo,
 } from './rotulos';
 
 type Aba = 'relato' | 'conversa' | 'notas' | 'historico';
@@ -25,6 +25,42 @@ const ABAS: { id: Aba; nome: string }[] = [
   { id: 'notas', nome: 'Notas internas' }, { id: 'historico', nome: 'Histórico' },
 ];
 const sessaoPerdida = (falha: unknown) => falha instanceof ErroApi && falha.status === 401;
+const NOTA_ROE = 'Relatório de apoio para impressão ou cópia. Os campos devem ser conferidos ao preencher o ROE.';
+
+/** Verdadeiro quando a janela tem 1100 px ou mais; sem matchMedia (jsdom) vale falso. */
+function useLargo(): boolean {
+  const consultar = () => (typeof window.matchMedia === 'function' ? window.matchMedia('(min-width: 1100px)') : null);
+  const [largo, setLargo] = useState(() => Boolean(consultar()?.matches));
+  useEffect(() => {
+    const consulta = consultar();
+    if (!consulta) return;
+    const atualizar = () => setLargo(consulta.matches);
+    atualizar();
+    consulta.addEventListener?.('change', atualizar);
+    return () => consulta.removeEventListener?.('change', atualizar);
+  }, []);
+  return largo;
+}
+
+/** "Por que esta prioridade?": coluna fixa a partir de 1100 px; abaixo disso, bloco recolhível aberto só para crítica ou alta. */
+function PainelPrioridade({ caso }: { caso: CasoDetalhe }) {
+  const largo = useLargo();
+  const [aberto, setAberto] = useState(caso.prioridade === 'critica' || caso.prioridade === 'alta');
+  const titulo = <h2 id="titulo-resumo">Por que esta prioridade?</h2>;
+  const conteudo = <>
+    {caso.motivos.length === 0 ? <p className="vazio">Sem motivos registrados.</p>
+      : <ul className="motivos">{caso.motivos.map(m => <li key={m}>{motivo(m)}</li>)}</ul>}
+    <p className="resumo-prioridade">Prioridade atual: <b>{prioridade(caso.prioridade)}</b></p>
+    {caso.prioridade_original && caso.prioridade_original !== caso.prioridade
+      && <p className="resumo-prioridade">Classificação original: <b>{prioridade(caso.prioridade_original)}</b></p>}
+  </>;
+  return <aside className="caso-lateral" aria-labelledby="titulo-resumo">
+    {largo ? <>{titulo}{conteudo}</>
+      : <details className="caso-lateral-detalhes" open={aberto} onToggle={e => setAberto(e.currentTarget.open)}>
+        <summary>{titulo}</summary>{conteudo}
+      </details>}
+  </aside>;
+}
 
 export default function Caso({ id, aoVoltar, aoMudar, abaInicial = 'relato', anexoInicial = null, imagemPrevia }: { id: number; aoVoltar: () => void; aoMudar?: () => void; abaInicial?: Aba; anexoInicial?: number | null; imagemPrevia?: string }) {
   const [caso, setCaso] = useState<CasoDetalhe | null>(null);
@@ -43,6 +79,9 @@ export default function Caso({ id, aoVoltar, aoMudar, abaInicial = 'relato', ane
   const revisaoPrioridade = useRef<number | null>(null);
   const revisaoResolucao = useRef<number | null>(null);
   const [resolucaoEditando, setResolucaoEditando] = useState(false);
+  // Maior id de mensagem já exibido na aba Conversa nesta visita (-1: nunca aberta). Serve ao ponto de mensagem nova.
+  const [vistoAte, setVistoAte] = useState(-1);
+  const abaAnterior = useRef<Aba>(abaInicial);
   const leitura = useRef({ casoId: id, ultimoId: 0, pendente: 0 });
   const [visivel, setVisivel] = useState(document.visibilityState !== 'hidden');
   useEffect(() => {
@@ -64,6 +103,17 @@ export default function Caso({ id, aoVoltar, aoMudar, abaInicial = 'relato', ane
     }).finally(() => { if (registro.pendente === ultimoId) registro.pendente = 0; });
   }, [aba, visivel, caso, id]);
   useEffect(() => { montado.current = true; return () => { montado.current = false; }; }, []);
+  useEffect(() => {
+    if (aba !== 'conversa' || !caso) return;
+    const maior = Math.max(0, ...caso.mensagens.map(m => m.id ?? 0));
+    setVistoAte(atual => Math.max(atual, maior));
+  }, [aba, caso]);
+  // A aba escolhida volta para a vista quando a fileira de abas rola (celular). Não roda na carga inicial para não mover a página.
+  useEffect(() => {
+    if (abaAnterior.current === aba) return;
+    abaAnterior.current = aba;
+    abas.current[aba]?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+  }, [aba]);
 
   const recarregar = useCallback(async () => {
     const rodada = ++rodadaCarga.current;
@@ -170,6 +220,22 @@ export default function Caso({ id, aoVoltar, aoMudar, abaInicial = 'relato', ane
   </section>;
 
   const resolvido = caso.status === 'resolvido';
+  const contagens: Partial<Record<Aba, number>> = { conversa: caso.mensagens.length, notas: caso.notas.length, historico: caso.eventos.length };
+  /**
+   * Ponto de mensagem nova na aba Conversa. O detalhe do caso não traz `mensagens_novas` (só a fila traz), então
+   * vale: a última mensagem é do aluno, não foi apagada e ainda não foi exibida nesta visita à aba Conversa.
+   * Se o servidor passar a enviar `mensagens_novas` no detalhe, ele manda.
+   */
+  const ultimaMensagem = caso.mensagens.at(-1);
+  const mensagemNova = aba !== 'conversa' && (caso.mensagens_novas !== undefined
+    ? caso.mensagens_novas > 0
+    : !!ultimaMensagem && ultimaMensagem.autor === 'aluno' && !ultimaMensagem.apagada_em && (ultimaMensagem.id ?? 0) > vistoAte);
+  const descricaoAba = (idAba: Aba): string | undefined => {
+    const n = contagens[idAba] ?? 0;
+    if (!n) return undefined;
+    const base = idAba === 'conversa' ? `${n} ${n === 1 ? 'mensagem' : 'mensagens'}` : idAba === 'notas' ? `${n} ${n === 1 ? 'nota' : 'notas'}` : `${n} ${n === 1 ? 'evento' : 'eventos'}`;
+    return idAba === 'conversa' && mensagemNova ? `${base}. Há mensagem nova do aluno.` : `${base}.`;
+  };
   return <section aria-labelledby="titulo-caso">
     <button type="button" className="botao-texto" onClick={aoVoltar}>Voltar aos casos</button>
     <div className="caso-topo">
@@ -177,9 +243,10 @@ export default function Caso({ id, aoVoltar, aoMudar, abaInicial = 'relato', ane
       <p className="caso-selos"><Prioridade valor={caso.prioridade} /><Status valor={caso.status} />
         {caso.canal === 'acolhimento' && <span className="selo-neutro">Acolhimento anônimo</span>}
         {caso.simulacao && <Simulacao />}{caso.em_andamento && <span className="selo-neutro">Ocorrendo agora</span>}</p>
-      <p className="texto-pequeno">Recebido em {dataLegivel(caso.criado_em)}. {caso.anonimo ? 'Denúncia anônima.' : `Identificado: ${caso.nome ?? 'sem nome'}${caso.turma ? `, turma ${caso.turma}` : ''}.`}</p>
-      <p><a href={urlExportacao(id)} target="_blank" rel="noopener">Exportar para preenchimento do ROE</a></p>
-      <p className="texto-pequeno">Relatório de apoio para impressão ou cópia. Os campos devem ser conferidos ao preencher o ROE.</p>
+      <div className="caso-faixa">
+        <p className="texto-pequeno caso-linha">Recebido em {dataLegivel(caso.criado_em)} · Tipo de denúncia: {tipo(caso.tipo)} · {caso.anonimo ? 'Denúncia anônima' : `Identificado: ${caso.nome ?? 'sem nome'}${caso.turma ? `, turma ${caso.turma}` : ''}`}</p>
+        <Presenca casoId={id} atividade={aba === 'conversa' && rascunho.mensagens ? 'mensagem' : aba === 'notas' && rascunho.notas ? 'nota' : 'vendo'} />
+      </div>
       <details className="caso-dados"><summary>Dados do caso</summary><dl className="detalhes">
         <dt>Ano do relator</dt><dd>{caso.ano_relator || 'Sem informação'}</dd>
         <dt>Sala do relator</dt><dd>{caso.sala_relator || 'Sem informação'}</dd>
@@ -187,10 +254,10 @@ export default function Caso({ id, aoVoltar, aoMudar, abaInicial = 'relato', ane
       </dl>
       <div className="caso-meta-acesso"><span>Último acesso</span>
         <b>{acessoLegivel(caso.ultimo_acesso?.por ?? null, caso.ultimo_acesso?.em ?? null)}</b></div>
+      <p className="texto-pequeno">{NOTA_ROE}</p>
       </details>
     </div>
-    <Presenca casoId={id} atividade={aba === 'conversa' && rascunho.mensagens ? 'mensagem' : aba === 'notas' && rascunho.notas ? 'nota' : 'vendo'} />
-    <div className="caso-meta">
+    <div className="caso-acoes">
       {resolvido
         ? <div className="caso-meta-status">
           <p>Caso resolvido.</p>
@@ -203,6 +270,13 @@ export default function Caso({ id, aoVoltar, aoMudar, abaInicial = 'relato', ane
             {STATUS.filter(s => s !== 'resolvido').map(s => <option key={s} value={s}>{rotuloStatus[s]}</option>)}
           </select></div>}
       <ReavaliarPrioridade atual={caso.prioridade} aoConfirmar={reavaliar} ocupado={ocupado} aoAbrir={() => { revisaoPrioridade.current = revisaoAtual.current; }} />
+      <a className="botao secundario caso-roe" href={urlExportacao(id)} target="_blank" rel="noopener" title={NOTA_ROE}>Exportar para o ROE</a>
+      {(!resolvido || resolucaoEditando) && <details className="resolucao-detalhes" open={resolucaoEditando}
+        onToggle={e => { const aberta = e.currentTarget.open; if (aberta && revisaoResolucao.current === null) revisaoResolucao.current = revisaoAtual.current; setResolucaoEditando(aberta); }}>
+        <summary className="botao principal">Resolver este caso</summary>
+        <RegistrarResolucao aoConfirmar={resolver} ocupado={ocupado} resolvido={resolvido}
+          aoEditar={() => { if (revisaoResolucao.current === null) revisaoResolucao.current = revisaoAtual.current; setResolucaoEditando(true); }} />
+      </details>}
     </div>
     <Atendimento caso={caso} ocupado={ocupado}
       aoSalvar={(dados, revisao) => agir(() => salvarAtendimento(id, dados, revisao), 'Atendimento salvo.')}
@@ -212,20 +286,20 @@ export default function Caso({ id, aoVoltar, aoMudar, abaInicial = 'relato', ane
     {(resolvido || caso.recorrencia_pendente) && <PosResolucao caso={caso} aoRevisar={revisar} ocupado={ocupado} />}
 
     <div className="caso-layout">
-      <aside className="caso-resumo" aria-labelledby="titulo-resumo">
-        <h2 id="titulo-resumo">Por que esta prioridade?</h2>
-        {caso.motivos.length === 0 ? <p className="vazio">Sem motivos registrados.</p>
-          : <ul className="motivos">{caso.motivos.map(m => <li key={m}>{motivo(m)}</li>)}</ul>}
-        <p className="resumo-prioridade">Prioridade atual: <b>{prioridade(caso.prioridade)}</b></p>
-        {caso.prioridade_original && caso.prioridade_original !== caso.prioridade
-          && <p className="resumo-prioridade">Classificação original: <b>{prioridade(caso.prioridade_original)}</b></p>}
-      </aside>
-      <div>
+      <PainelPrioridade caso={caso} />
+      <div className="caso-principal">
         <div role="tablist" aria-label="Conteúdo do caso" className="abas">
-          {ABAS.map(a => <button key={a.id} type="button" role="tab" id={`aba-${a.id}`} aria-selected={aba === a.id} aria-controls={aba === a.id ? `painel-${a.id}` : undefined}
-            tabIndex={aba === a.id ? 0 : -1} ref={el => { abas.current[a.id] = el; }}
-            onClick={() => setAba(a.id)} onKeyDown={e => teclasAbas(e, a.id)}>{a.nome}</button>)}
+          {ABAS.map(a => {
+            const n = contagens[a.id] ?? 0;
+            return <button key={a.id} type="button" role="tab" id={`aba-${a.id}`} aria-selected={aba === a.id} aria-controls={aba === a.id ? `painel-${a.id}` : undefined}
+              aria-describedby={n ? `descricao-aba-${a.id}` : undefined}
+              tabIndex={aba === a.id ? 0 : -1} ref={el => { abas.current[a.id] = el; }}
+              onClick={() => setAba(a.id)} onKeyDown={e => teclasAbas(e, a.id)}>{a.nome}
+              {n > 0 && <span className="aba-contagem" aria-hidden="true"> {n}</span>}
+              {a.id === 'conversa' && mensagemNova && <span className="aba-ponto-novo" aria-hidden="true" />}</button>;
+          })}
         </div>
+        {ABAS.map(a => descricaoAba(a.id) && <span key={a.id} id={`descricao-aba-${a.id}`} hidden>{descricaoAba(a.id)}</span>)}
         <div role="tabpanel" id={`painel-${aba}`} aria-labelledby={`aba-${aba}`} className="painel-aba" tabIndex={0}>
           {aba === 'relato' && <>
             <h2>Relato</h2>
@@ -249,7 +323,7 @@ export default function Caso({ id, aoVoltar, aoMudar, abaInicial = 'relato', ane
                 </li>)}</ul> : <p>Autoria sem informação nesta resolução.</p>}
               </div>)}
             </section>}
-            <h2>Anexos</h2>
+            <h2 className={caso.anexos.length === 0 ? 'so-leitor' : undefined}>Anexos</h2>
             <Anexos caso={caso} anexoInicial={anexoInicial} imagemPrevia={imagemPrevia} />
           </>}
           {aba === 'conversa' && <Conversa titulo="Conversa com o aluno" campo="texto-mensagem" rotulo="Mensagem ao aluno" ajuda="O aluno lê esta mensagem no acompanhamento."
@@ -271,11 +345,5 @@ export default function Caso({ id, aoVoltar, aoMudar, abaInicial = 'relato', ane
         </div>
       </div>
     </div>
-    {(!resolvido || resolucaoEditando) && <details className="resolucao-detalhes" open={resolucaoEditando}
-      onToggle={e => { const aberta = e.currentTarget.open; if (aberta && revisaoResolucao.current === null) revisaoResolucao.current = revisaoAtual.current; setResolucaoEditando(aberta); }}>
-      <summary>Resolver este caso</summary>
-      <RegistrarResolucao aoConfirmar={resolver} ocupado={ocupado} resolvido={resolvido}
-        aoEditar={() => { if (revisaoResolucao.current === null) revisaoResolucao.current = revisaoAtual.current; setResolucaoEditando(true); }} />
-    </details>}
   </section>;
 }

@@ -12,6 +12,7 @@ const dadosDo = (caso: CasoDetalhe): DadosAtendimento => ({
   responsavel_id: caso.responsavel?.id ?? null, proxima_acao: caso.proxima_acao ?? '', prazo_acao: caso.prazo_acao ?? null,
 });
 export const prazoLegivel = (data: string) => data.split('-').reverse().join('/');
+const prazoCurto = (data: string) => data.split('-').slice(1).reverse().join('/');
 
 export default function Atendimento({ caso, ocupado, aoSalvar, aoConcluir }: {
   caso: CasoDetalhe; ocupado: boolean;
@@ -65,16 +66,15 @@ export default function Atendimento({ caso, ocupado, aoSalvar, aoConcluir }: {
     } finally { trava.current = false; setSalvando(false); }
   }
   const bloqueado = ocupado || salvando;
-  return <section className="atendimento" aria-labelledby="titulo-atendimento">
-    <h2 id="titulo-atendimento">Organização do atendimento</h2>
+  return <section className="atendimento caso-atendimento-linha" aria-labelledby="titulo-atendimento">
+    <h2 id="titulo-atendimento" className="so-leitor">Organização do atendimento</h2>
     {inicial.current && editando && <p role="status">Rascunho recuperado. Confira os dados e salve quando terminar.</p>}
     <div className="atendimento-sintese">
-      <p><strong>Responsável atual:</strong> {caso.responsavel?.nome ?? 'Sem responsável'}{caso.responsavel && !caso.responsavel.ativo && ' (conta desativada)'}</p>
-      <p><strong>Ação registrada:</strong> {caso.proxima_acao || 'Nenhuma ação pendente'}{caso.prazo_acao && `, até ${prazoLegivel(caso.prazo_acao)}`}</p>
+      <p>{`Responsável: ${caso.responsavel?.nome ?? 'Sem responsável'}${caso.responsavel && !caso.responsavel.ativo ? ' (conta desativada)' : ''} · Próxima ação: ${caso.proxima_acao || 'Nenhuma pendente'}${caso.proxima_acao && caso.prazo_acao ? ` até ${prazoCurto(caso.prazo_acao)}` : ''}`}</p>
       {caso.proxima_acao && <button type="button" className="botao secundario" disabled={bloqueado || editando} onClick={() => { void aoConcluir(caso.revisao_estado ?? 0); }}>Concluir ação</button>}
     </div>
     <details className="atendimento-editor" open={aberto} onToggle={e => setAberto(e.currentTarget.open)}>
-      <summary>Editar responsável e ação</summary>
+      <summary className="botao secundario">Editar responsável e ação</summary>
       <p className="texto-pequeno">Uso interno da equipe. O aluno não vê estes dados.</p>
     <form onSubmit={e => { e.preventDefault(); void salvar(); }}>
       <fieldset disabled={bloqueado}>
