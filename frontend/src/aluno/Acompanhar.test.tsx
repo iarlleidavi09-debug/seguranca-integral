@@ -381,9 +381,11 @@ it('não registra mensagem como vista enquanto a página está oculta', async ()
  render(<Acompanhar codigoInicial="K7M2-9QXD" />);
  await screen.findByText('Mensagem em segundo plano');
  expect(JSON.parse(localStorage.getItem('tetra-guard.acessos.v1') || '[]')).toEqual([{codigo:'K7M2-9QXD',lastRead:0}]);
+ // o ouvinte de visibilitychange nasce em um efeito: deixa os efeitos rodarem antes de disparar o evento
+ await act(async () => { await new Promise(r => setTimeout(r, 30)); });
  vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
  document.dispatchEvent(new Event('visibilitychange'));
- expect(JSON.parse(localStorage.getItem('tetra-guard.acessos.v1') || '[]')).toEqual([{codigo:'K7M2-9QXD',lastRead:50}]);
+ await waitFor(() => expect(JSON.parse(localStorage.getItem('tetra-guard.acessos.v1') || '[]')).toEqual([{codigo:'K7M2-9QXD',lastRead:50}]));
 });
 
 describe('Acompanhar: mensagens editadas e apagadas', () => {
