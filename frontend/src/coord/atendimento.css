@@ -16,8 +16,12 @@
 .casos-atendimento { display: block; margin-top: .45rem; color: var(--texto-secundario); overflow-wrap: anywhere; }
 .casos-pendencias { display: block; margin-top: .45rem; font-weight: 700; color: var(--recorrencia-texto); }
 @media (max-width: 600px) { .atendimento-campos { grid-template-columns: minmax(0, 1fr); } .atendimento-acoes .botao { width: 100%; } }
-@media (max-width: 600px) { .fila-visoes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); } .fila-visoes .botao { padding-inline: .4rem; } }
-.busca-casos { display: grid; gap: 1rem; }
+/* visões em uma única linha que rola na horizontal */
+.fila-visoes { flex-wrap: nowrap; overflow-x: auto; margin-block: .5rem; }
+.fila-visoes .botao { flex: 0 0 auto; white-space: nowrap; min-height: 44px; }
+.busca-casos { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: .5rem 1rem; align-items: end; }
+.busca-casos > details, .busca-casos > .botao-texto { grid-column: 1 / -1; }
+.busca-casos input, .busca-casos select { min-height: 44px; }
 .busca-casos label { display: block; margin-bottom: .35rem; }
 .filtros-detalhados summary, .resolucao-detalhes > summary { cursor: pointer; padding: .75rem .25rem; min-height: 44px; box-sizing: border-box; color: var(--primaria-base); font-weight: 700; }
 .filtros-detalhados .filtros { padding-block: 1rem; }

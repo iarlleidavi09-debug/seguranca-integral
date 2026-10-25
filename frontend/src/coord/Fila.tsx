@@ -185,34 +185,53 @@ export default function Fila({ modo, meuId, filtros, aoFiltrar, aoAbrir }: Props
       <thead role="rowgroup"><tr role="row">
         <th role="columnheader" scope="col">Caso e situação</th><th role="columnheader" scope="col">Prioridade</th>
         <th role="columnheader" scope="col">Status</th><th role="columnheader" scope="col">Último acesso</th>
-        <th role="columnheader" scope="col"><span className="so-leitor">Abrir</span></th>
       </tr></thead>
       <tbody role="rowgroup">
-        {exibidos.map(c => <tr key={c.id} role="row" className="casos-linha" data-gravidade={c.prioridade}>
-          <td role="cell" className="casos-caso">
-            <span className="casos-tipo"><strong>{assuntos(c)}</strong>
-              {c.canal === 'acolhimento' && <span className="selo-neutro">Acolhimento anônimo</span>}
-              {c.recorrencia_pendente && <Retorno />}
-              {c.status === 'resolvido' && c.atencao?.includes('mensagem_pendente') && <span className="selo-recorrencia">Aluno voltou a pedir ajuda</span>}
-              {!c.simulacao && demoraPrimeiroAcesso(c) && <span className="selo-recorrencia">Sem primeiro acesso há mais de 24 horas</span>}
-              {c.em_andamento && <span className="selo-neutro">Ocorrendo agora</span>}
-              {c.simulacao && <Simulacao />}</span>
-            <span className="casos-resumo">{c.resumo}</span>
-            <span className="casos-atendimento"><strong>{(c.mensagens_novas ?? 0) > 0 ? `${c.mensagens_novas} ${c.mensagens_novas === 1 ? 'mensagem nova' : 'mensagens novas'}` : CONVERSAS[c.conversa_estado ?? 'sem_mensagem']}</strong></span>
-            {c.ultima_mensagem && <><span className="casos-resumo">{c.ultima_mensagem.texto.slice(0, 180)}</span>
-              <time className="casos-atendimento" dateTime={c.ultima_mensagem.criado_em}>{c.ultima_mensagem.autor === 'aluno' ? 'Aluno' : 'Equipe'} · {dataLegivel(c.ultima_mensagem.criado_em)}</time></>}
-            <span className="casos-atendimento">Responsável: {c.responsavel?.nome ?? 'Não atribuído'}{c.responsavel && !c.responsavel.ativo ? ' (conta desativada)' : ''}
-              {c.proxima_acao && <> · {c.proxima_acao}{c.prazo_acao && ` · até ${prazoLegivel(c.prazo_acao)}`}</>}</span>
-            {!!c.atencao?.length && <span className="casos-pendencias">{c.atencao.map(m => MOTIVOS_ATENCAO[m] ?? m).join(' · ')}</span>}
-            {motivoRelevante(c) && <span className="casos-porque">Por que: {motivo(motivoRelevante(c)!)}</span>}
-          </td>
-          <td role="cell" data-rotulo="Prioridade"><Prioridade valor={c.prioridade} /></td>
-          <td role="cell" data-rotulo="Status"><Status valor={c.status} /></td>
-          <td role="cell" data-rotulo="Último acesso" className="casos-acesso">{acessoLegivel(c.ultimo_acesso_por, c.ultimo_acesso_em)}</td>
-          <td role="cell" className="casos-acao">
-            <button type="button" className="botao secundario casos-abrir" aria-label={`Caso ${c.id}. Abrir.`} onClick={() => aoAbrir(c.id)}>Abrir</button>
-          </td>
-        </tr>)}
+        {exibidos.map(c => {
+          const novas = c.mensagens_novas ?? 0;
+          const estadoConversa = c.conversa_estado ?? 'sem_mensagem';
+          const motivosAtencao = (c.atencao ?? []).map(m => MOTIVOS_ATENCAO[m] ?? m);
+          const porque = motivoRelevante(c);
+          const raros = c.canal === 'acolhimento' || c.recorrencia_pendente || c.em_andamento || c.simulacao
+            || (c.status === 'resolvido' && c.atencao?.includes('mensagem_pendente')) || (!c.simulacao && demoraPrimeiroAcesso(c));
+          return <tr key={c.id} role="row" className="casos-linha" data-gravidade={c.prioridade} onClick={e => {
+            // um só caminho por caso para teclado e leitor de tela (o botão do assunto); o clique na linha é só para quem usa mouse ou toque
+            if ((e.target as HTMLElement).closest('button, a, summary, input, select, textarea')) return;
+            if (window.getSelection()?.toString()) return;
+            aoAbrir(c.id);
+          }}>
+            <td role="cell" className="casos-caso">
+              <div className="casos-linha1">
+                <button type="button" className="casos-assunto" aria-label={`Caso ${c.id}. Abrir.`} onClick={() => aoAbrir(c.id)}>{assuntos(c)}</button>
+                {novas > 0 && <span className="selo-neutro casos-novas">{`${novas} ${novas === 1 ? 'mensagem nova' : 'mensagens novas'}`}</span>}
+              </div>
+              <span className="casos-resumo">{c.resumo}</span>
+              <span className="casos-meta">
+                <span>Responsável: {c.responsavel?.nome ?? 'Não atribuído'}{c.responsavel && !c.responsavel.ativo ? ' (conta desativada)' : ''}
+                  {c.proxima_acao && <> · {c.proxima_acao}{c.prazo_acao && ` · até ${prazoLegivel(c.prazo_acao)}`}</>}</span>
+                {novas === 0 && estadoConversa !== 'sem_mensagem' && <span> · {CONVERSAS[estadoConversa]}</span>}
+                {c.ultima_mensagem && <>{' · '}<time dateTime={c.ultima_mensagem.criado_em}>{c.ultima_mensagem.autor === 'aluno' ? 'Aluno' : 'Equipe'} · {dataLegivel(c.ultima_mensagem.criado_em)}</time>
+                  {': '}<span>{c.ultima_mensagem.texto.slice(0, 180)}</span></>}
+                {porque && <span className="casos-porque"> · Por que: {motivo(porque)}</span>}
+              </span>
+              {(motivosAtencao.length > 0 || raros) && <div className="casos-selos">
+                {!!motivosAtencao.length && <span className="casos-motivos">
+                  {motivosAtencao.slice(0, 2).map(m => <span key={m} className="casos-motivo">{m}</span>)}
+                  {motivosAtencao.length > 2 && <span className="casos-mais" title={motivosAtencao.slice(2).join(' · ')}>+{motivosAtencao.length - 2}</span>}
+                </span>}
+                {c.canal === 'acolhimento' && <span className="selo-neutro">Acolhimento anônimo</span>}
+                {c.recorrencia_pendente && <Retorno />}
+                {c.status === 'resolvido' && c.atencao?.includes('mensagem_pendente') && <span className="selo-recorrencia">Aluno voltou a pedir ajuda</span>}
+                {!c.simulacao && demoraPrimeiroAcesso(c) && <span className="selo-recorrencia">Sem primeiro acesso há mais de 24 horas</span>}
+                {c.em_andamento && <span className="selo-neutro">Ocorrendo agora</span>}
+                {c.simulacao && <Simulacao />}
+              </div>}
+            </td>
+            <td role="cell" className="casos-prioridade"><Prioridade valor={c.prioridade} /></td>
+            <td role="cell" className="casos-status"><Status valor={c.status} /></td>
+            <td role="cell" className="casos-acesso">{acessoLegivel(c.ultimo_acesso_por, c.ultimo_acesso_em)}</td>
+          </tr>;
+        })}
       </tbody>
     </table>}
   </section>;

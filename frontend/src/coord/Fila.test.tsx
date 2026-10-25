@@ -104,7 +104,7 @@ describe('Fila de Casos', () => {
       'GET /api/casos': () => ({ corpo: { casos: [caso(9, { categorias: ['customizado'], opcoes: ['nova-opcao'], assuntos: ['Texto histórico do pedido'] })] } }),
     });
     render(<Harness />);
-    expect(await screen.findByText('Texto histórico do pedido', { selector: 'strong' })).toBeInTheDocument();
+    expect(await screen.findByText('Texto histórico do pedido', { selector: 'button' })).toBeInTheDocument();
     await screen.findByRole('option', { name: 'Grupo customizado' });
     await user.selectOptions(screen.getByLabelText('Grupo de situações'), 'customizado');
     await user.selectOptions(screen.getByLabelText('Situação relatada'), 'nova-opcao');
@@ -113,11 +113,11 @@ describe('Fila de Casos', () => {
     await user.click(screen.getByRole('button', { name: 'Limpar filtros' }));
     await waitFor(() => expect(consultas().at(-1)).toBe('/api/casos'));
   });
-  it('mostra o título Casos e a tabela com as cinco colunas', async () => {
+  it('mostra o título Casos e a tabela com as quatro colunas, sem coluna de botão', async () => {
     await montar();
     expect(screen.getByRole('heading', { level: 1, name: 'Casos' })).toHaveAttribute('tabindex', '-1');
     const cabecalho = screen.getAllByRole('columnheader').map(c => c.textContent);
-    expect(cabecalho).toEqual(['Caso e situação', 'Prioridade', 'Status', 'Último acesso', 'Abrir']);
+    expect(cabecalho).toEqual(['Caso e situação', 'Prioridade', 'Status', 'Último acesso']);
   });
 
   it('ordena crítica, alta, média e baixa sem reordenar dentro da mesma prioridade, com forma e texto', async () => {
@@ -297,6 +297,78 @@ describe('Fila de Casos', () => {
     await act(async () => { await vi.advanceTimersByTimeAsync(1); });
     await act(async () => { await vi.advanceTimersByTimeAsync(INTERVALO_MS); });
     expect(screen.queryByRole('alert')).toBeNull();
+  });
+});
+
+describe('Fila compacta', () => {
+  it('não há botão chamado Abrir; o assunto é o botão do caso e abre uma vez só', async () => {
+    const aoAbrir = vi.fn();
+    await montar({}, { aoAbrir });
+    expect(screen.queryByRole('button', { name: /^Abrir$/ })).toBeNull();
+    const botao = screen.getByRole('button', { name: 'Caso 3. Abrir.' });
+    expect(botao).toHaveClass('casos-assunto');
+    expect(botao).toHaveTextContent('Ameaça');
+    await userEvent.setup().click(botao);
+    expect(aoAbrir).toHaveBeenCalledTimes(1);
+    expect(aoAbrir).toHaveBeenCalledWith(3);
+    expect(screen.getAllByRole('button', { name: /^Caso \d+\. Abrir\.$/ })).toHaveLength(5);
+  });
+
+  it('clicar na linha abre o caso, mas não quando o clique vem de um botão ou de seleção de texto', async () => {
+    const aoAbrir = vi.fn();
+    await montar({}, { aoAbrir });
+    fireEvent.click(within(linhas()[1]).getByText('Caso alto'));
+    expect(aoAbrir).toHaveBeenCalledTimes(1);
+    expect(aoAbrir).toHaveBeenLastCalledWith(3);
+    const selecao = vi.spyOn(window, 'getSelection').mockReturnValue({ toString: () => 'Caso' } as Selection);
+    fireEvent.click(within(linhas()[1]).getByText('Caso alto'));
+    expect(aoAbrir).toHaveBeenCalledTimes(1);
+    selecao.mockRestore();
+    fireEvent.click(within(linhas()[1]).getByRole('button', { name: 'Caso 3. Abrir.' }));
+    expect(aoAbrir).toHaveBeenCalledTimes(2);
+  });
+
+  it('mostra "N mensagens novas" na primeira linha, com o resumo e o texto de apoio uma vez cada', async () => {
+    servidor({ 'GET /api/casos': () => ({ corpo: { casos: [
+      caso(2, { canal: 'acolhimento', conversa_estado: 'mensagem_nova', mensagens_novas: 2, motivos: ['ocorrendo agora'], ultima_mensagem: { id: 8, autor: 'aluno', texto: 'Preciso conversar hoje', criado_em: '2026-10-14T12:00:00+00:00' } }),
+    ] } }) });
+    render(<Harness />);
+    const selo = await screen.findByText('2 mensagens novas');
+    expect(selo.closest('.casos-linha1')).toContainElement(screen.getByRole('button', { name: 'Caso 2. Abrir.' }));
+    expect(screen.getAllByText('Resumo do caso 2')).toHaveLength(1);
+    const meta = linhas()[0].querySelector('.casos-meta')!;
+    expect(meta).toHaveTextContent('Responsável: Não atribuído');
+    expect(meta).toHaveTextContent(/Por que:/);
+    expect(within(linhas()[0]).getByText('Preciso conversar hoje')).toBeInTheDocument();
+  });
+
+  it('mostra no máximo dois motivos de atenção e "+N" para o resto', async () => {
+    servidor({ 'GET /api/casos': () => ({ corpo: { casos: [
+      caso(1, { atencao: ['sem_resposta', 'mensagem_pendente', 'acao_vencida'] }),
+    ] } }) });
+    render(<Harness />);
+    await screen.findByText('Resumo do caso 1');
+    const motivos = linhas()[0].querySelector('.casos-motivos')!;
+    expect(motivos.querySelectorAll('.casos-motivo')).toHaveLength(2);
+    expect(within(motivos as HTMLElement).getByText('+1')).toBeInTheDocument();
+  });
+
+  it('o texto de ajuda dos filtros fica dentro dos filtros detalhados e o resumo conta os ativos', async () => {
+    await montar();
+    const detalhes = document.querySelector('details.filtros-detalhados')!;
+    expect(detalhes).toContainElement(document.querySelector('.filtros-ajuda') as HTMLElement);
+    expect(detalhes.querySelector('summary')).toHaveTextContent('Filtros detalhados');
+    fireEvent.change(screen.getByLabelText('Prioridade'), { target: { value: 'alta' } });
+    expect(detalhes.querySelector('summary')).toHaveTextContent('Filtros detalhados (1 ativos)');
+  });
+
+  it('as visões ficam em uma linha rolável e a região de status continua', async () => {
+    await montar();
+    const visoes = document.querySelector('.fila-visoes')!;
+    expect(within(visoes as HTMLElement).getAllByRole('button').map(b => b.textContent)).toEqual([
+      'Todos (5)', 'Ainda não abertos (4)', 'Precisam de atenção (0)', 'Resolvidos (0)',
+    ]);
+    expect(screen.getAllByRole('status').length).toBeGreaterThan(0);
   });
 });
 
