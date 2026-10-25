@@ -1,6 +1,6 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import { servidor } from './testes/servidor';
 import type { Rota } from './testes/servidor';
@@ -102,6 +102,72 @@ describe('Casca da coordenação', () => {
     abrir(admin, '/', { 'GET /api/resumo': () => ({ status: 500 }) });
     expect(await screen.findByRole('button', { name: 'Pós-resolução' })).toBeInTheDocument();
     await waitFor(() => expect(screen.queryByText(/pendente/)).toBeNull());
+  });
+});
+
+describe('Casca: barra lateral e cabeçalho', () => {
+  it('a barra lateral tem, nesta ordem, marca, navegação e rodapé com a sessão', async () => {
+    const { container } = abrir(admin);
+    const nav = await screen.findByRole('navigation', { name: 'Principal' });
+    const lateral = container.querySelector('.coord-lateral') as HTMLElement;
+    const filhos = Array.from(lateral.children);
+    const marca = filhos.findIndex(f => f.textContent?.includes('TETRA-GUARD'));
+    const iNav = filhos.indexOf(nav);
+    const rodape = lateral.querySelector('.coord-lateral-rodape') as HTMLElement;
+    const iRodape = filhos.indexOf(rodape);
+    expect(marca).toBeGreaterThanOrEqual(0);
+    expect(marca).toBeLessThan(iNav);
+    expect(iNav).toBeLessThan(iRodape);
+    expect(within(rodape).getByText('Marina')).toBeInTheDocument();
+    expect(within(rodape).getByRole('button', { name: 'Sair' })).toBeInTheDocument();
+    expect(within(rodape).getByRole('button', { name: 'Pausar efeito' })).toBeInTheDocument();
+  });
+
+  it('o item atual é rolado para a vista ao montar e ao trocar de tela', async () => {
+    const rolar = vi.fn();
+    const original = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = rolar;
+    try {
+      const user = userEvent.setup();
+      abrir(admin);
+      const geral = await screen.findByRole('button', { name: /Visão geral/ });
+      await waitFor(() => expect(rolar).toHaveBeenCalledWith({ inline: 'nearest', block: 'nearest' }));
+      expect(rolar.mock.contexts.at(-1)).toBe(geral);
+      rolar.mockClear();
+      await user.click(screen.getByRole('button', { name: /Pós-resolução/ }));
+      await waitFor(() => expect(rolar).toHaveBeenCalledWith({ inline: 'nearest', block: 'nearest' }));
+      expect(rolar.mock.contexts.at(-1)).toBe(screen.getByRole('button', { name: /Pós-resolução/ }));
+    } finally {
+      Element.prototype.scrollIntoView = original;
+    }
+  });
+
+  it('o estado das atualizações ao vivo fica na coluna principal, fora da barra lateral', async () => {
+    const { container } = abrir(admin);
+    await screen.findByRole('navigation', { name: 'Principal' });
+    const estado = await screen.findByText(/Atualizações ao vivo|Conectando às atualizações|Reconectando/);
+    expect(container.querySelector('.coord-coluna')).toContainElement(estado);
+    expect(container.querySelector('.coord-lateral')).not.toContainElement(estado);
+  });
+
+  it('a contagem de pós-resolução fica no item da navegação', async () => {
+    const { container } = abrir(admin);
+    await screen.findByText('2 pendentes');
+    const contagem = container.querySelector('.nav-contagem') as HTMLElement;
+    expect(contagem).toHaveTextContent('2');
+    expect(contagem.closest('nav')).not.toBeNull();
+  });
+
+  it('Pausar efeito alterna data-pausado', async () => {
+    const user = userEvent.setup();
+    const { container } = abrir(admin);
+    const botao = await screen.findByRole('button', { name: 'Pausar efeito' });
+    const metal = container.querySelector('.metal-liquido') as HTMLElement;
+    expect(metal).toHaveAttribute('data-pausado', 'false');
+    await user.click(botao);
+    expect(metal).toHaveAttribute('data-pausado', 'true');
+    await user.click(screen.getByRole('button', { name: 'Retomar efeito' }));
+    expect(metal).toHaveAttribute('data-pausado', 'false');
   });
 });
 

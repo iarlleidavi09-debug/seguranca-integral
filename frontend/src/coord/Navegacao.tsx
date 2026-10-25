@@ -1,3 +1,5 @@
+import { useEffect, useRef } from 'react';
+
 export type Tela =
   | { nome: 'geral' } | { nome: 'atendimento' } | { nome: 'casos' } | { nome: 'pos' }
   | { nome: 'mapa' } | { nome: 'relatorios' } | { nome: 'caso'; id: number } | { nome: 'usuarios' } | { nome: 'ensaio' };
@@ -26,11 +28,16 @@ const ITENS: { nome: Destino; rotulo: string }[] = [
 export default function Navegacao({ tela, admin, pendencias, aoIr }: {
   tela: Tela; admin: boolean; pendencias: number; aoIr: (tela: Tela) => void;
 }) {
+  const atual = useRef<HTMLButtonElement>(null);
+  // na barra rolável do celular, o item atual precisa estar à vista
+  useEffect(() => {
+    atual.current?.scrollIntoView?.({ inline: 'nearest', block: 'nearest' });
+  }, [tela.nome]);
   return <nav aria-label="Principal" className="coord-nav">
     {ITENS.filter(i => admin || i.nome !== 'usuarios').map(i => {
       // o detalhe de um caso pertence ao item Casos
       const aqui = tela.nome === i.nome || (i.nome === 'casos' && tela.nome === 'caso');
-      return <button key={i.nome} type="button" className="nav-item" aria-current={aqui ? 'page' : undefined}
+      return <button key={i.nome} ref={aqui ? atual : undefined} type="button" className="nav-item" aria-current={aqui ? 'page' : undefined}
         onClick={() => aoIr({ nome: i.nome })}>
         <svg className="nav-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={ICONES[i.nome]} /></svg>
         {i.rotulo}

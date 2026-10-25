@@ -46,7 +46,7 @@ export default function MetalLiquido() {
     <button type="button" className="metal-pausa" aria-pressed={pausado} onClick={() => setPausado(!pausado)}>
       <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
         <path d={pausado ? 'M4 2l9 6-9 6z' : 'M3 2h3v12H3z M10 2h3v12h-3z'} />
-      </svg>{pausado ? 'Retomar efeito' : 'Pausar efeito'}
+      </svg><span className="metal-pausa-texto">{pausado ? 'Retomar efeito' : 'Pausar efeito'}</span>
     </button>
   </>;
 }

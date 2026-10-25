@@ -148,11 +148,13 @@ export default function App() {
     <a className="pular" href="#conteudo" onClick={e => { e.preventDefault(); main.current?.focus(); }}>Pular para o conteúdo</a>
     <div className="coord-layout">
       <div className="coord-lateral">
-        <MetalLiquido />
-        <p className="marca">TETRA-GUARD <span>Coordenação</span></p>
+        <div className="coord-marca-linha"><p className="marca">TETRA-GUARD <span>Coordenação</span></p></div>
         <Navegacao tela={telaVisivel} admin={admin} pendencias={pendencias} aoIr={ir} />
-        <div className="sessao"><span className="sessao-nome">{sessao.nome}</span>
-          <button type="button" className="botao secundario" onClick={() => void encerrar()}>Sair</button></div>
+        <div className="coord-lateral-rodape">
+          <div className="sessao"><span className="sessao-nome">{sessao.nome}</span>
+            <button type="button" className="botao secundario" onClick={() => void encerrar()}>Sair</button></div>
+          <MetalLiquido />
+        </div>
       </div>
       <div className="coord-coluna">
         <div className="coord-topo">

@@ -7,7 +7,7 @@
 .coord-app .coord-nav .nav-item:hover { background: #ffffffed; color: #0f6cbd; }
 .coord-app .coord-nav .nav-item[aria-current='page'] { background: #ffffff; color: #0f6cbd; }
 .coord-app .coord-lateral .sessao { background: #f8fafcde; padding: 16px; border: 1px solid #ffffffab; border-radius: 6px; margin-inline: 0; }
-.coord-app .metal-pausa { order: 5; display: inline-flex; justify-content: center; align-items: center; gap: 7px; min-height: 32px; padding: 6px 10px; font-size: 12px; color: #424e5c; background: #f8fafcdb; border: 1px solid #c5ced8; border-radius: 4px; align-self: flex-start; }
+.coord-app .metal-pausa { display: inline-flex; justify-content: center; align-items: center; gap: 7px; min-height: 44px; padding: 6px 12px; font-size: 12px; color: #424e5c; background: #f8fafcdb; border: 1px solid #c5ced8; border-radius: 4px; justify-self: start; }
 .metal-bolha { transform-box: fill-box; transform-origin: center; }
 @media (prefers-reduced-motion: no-preference) {
   .metal-bolha-1 { animation: metal-fluir-1 19s ease-in-out infinite alternate; }
@@ -51,7 +51,11 @@
 }
 @media (max-width: 759px) {
   .coord-app .coord-lateral { position: relative; }
-  .coord-app .metal-pausa { justify-self: start; }
-  .coord-app .coord-lateral .sessao { padding: 8px 12px; }
+  .coord-app .coord-marca-linha { flex: 1 1 0; min-width: 0; }
+  .coord-app .coord-lateral-rodape { order: 2; display: flex; align-items: center; gap: 8px; margin-top: 0; }
+  .coord-app .coord-lateral .sessao { padding: 0 0 0 8px; background: none; border: none; display: flex; align-items: center; gap: 8px; }
+  .coord-app .sessao-nome { max-width: 7rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .coord-app .metal-pausa { min-width: 44px; padding: 6px; }
+  .coord-app .metal-pausa-texto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 }
 @media print { .metal-liquido, .metal-pausa { display: none !important; } }
