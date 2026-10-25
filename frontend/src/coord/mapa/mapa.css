@@ -23,7 +23,7 @@
 .mapa-ambiente { cursor:pointer; }
 .mapa-ambiente > :is(rect, polygon) { fill:var(--fundo-superficie-2); stroke:var(--borda-forte); stroke-width:2; }
 .mapa-ambiente.selecionado > :is(rect, polygon) { fill:var(--primaria-suave); stroke:var(--primaria-base); stroke-width:4; }
-.mapa-ambiente text { fill:var(--texto-principal); font-family:inherit; font-size:20px; pointer-events:none; }
+.mapa-ambiente text { fill:var(--texto-principal); font-family:inherit; pointer-events:none; }
 .mapa-ambiente > .mapa-alca { fill:var(--primaria-base); cursor:nwse-resize; }
 .mapa-ambiente:focus-visible { outline:3px solid var(--foco-anel); outline-offset:5px; }
 .mapa-previa { fill:var(--primaria-suave); stroke:var(--primaria-base); stroke-width:3; stroke-dasharray:10 6; pointer-events:none; }

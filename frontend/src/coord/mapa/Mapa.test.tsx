@@ -144,7 +144,8 @@ describe('Mapa escolar', () => {
   try {
    render(<Mapa />);
    const planta = await screen.findByRole('group', { name: 'Planta esquemática do nível atual' });
-   await waitFor(() => expect(planta.querySelector('[data-ambiente="g"] text')).toHaveStyle({ fontSize: '52.5px' }));
+   await waitFor(() => expect(planta.querySelector('[data-ambiente="g"] text')).toHaveAttribute('font-size', '52.5'));
+   planta.querySelectorAll('text').forEach(t => expect(t).not.toHaveAttribute('style'));
    const textos = (id: string) => [...planta.querySelectorAll(`[data-ambiente="${id}"] text`)];
    expect(textos('g').map(t => t.getAttribute('y'))).toEqual(['148.25', '216.5']);
    expect(textos('m').map(t => t.getAttribute('y'))).toEqual(['468.25']);
