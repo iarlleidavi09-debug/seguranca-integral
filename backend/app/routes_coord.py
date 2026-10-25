@@ -18,7 +18,7 @@ from flask import (
 )
 from flask.sessions import SecureCookieSessionInterface
 
-from . import auth, casos, simulation
+from . import auth, casos, implantacao, simulation
 from ._comum import registrar_rotas_finais
 from .db import connect
 from .questionario import QuestionarioInvalido, carregar
@@ -51,7 +51,8 @@ LIVRES = {"coord.api_desconhecida", "coord.spa"}
 # rotas que dispensam sessão, mas ainda exigem JSON quando alteram estado
 SEM_SESSAO = {"coord.login", "coord.saude", "coord.setup_estado", "coord.setup"}
 # rotas só do administrador
-SO_ADMIN = {"coord.usuarios", "coord.criar_usuario", "coord.desativar"}
+SO_ADMIN = {"coord.usuarios", "coord.criar_usuario", "coord.desativar",
+            "coord.implantacao", "coord.limpar_implantacao"}
 # cabeçalhos que o túnel acrescenta: pedido que os traz não veio da máquina
 CABECALHOS_DE_PROXY = ("CF-Connecting-IP", "X-Forwarded-For", "X-Forwarded-Proto",
                        "X-Forwarded-Host", "Forwarded", "X-Real-IP")
@@ -617,6 +618,64 @@ def desativar(usuario_id: int):
     auth.desativar_usuario(conn, usuario_id)
     publicar(None)
     return jsonify({"ok": True})
+
+
+# --- limpeza da implantação secundária -----------------------------------
+
+FRASE_LIMPEZA = "APAGAR TUDO"
+
+
+def _acesso_limpeza():
+    """None se o pedido pode seguir; senão a resposta de recusa.
+
+    Flag desligada vale 404 até para o primeiro admin. Só o primeiro admin
+    (menor id entre os admins, mesmo desativado) passa.
+    """
+    config = current_app.config["SI_CONFIG"]
+    if not config.implantacao_secundaria:
+        return _nao_encontrado()
+    if g.usuario["id"] != implantacao.primeiro_admin_id(_db()):
+        return _erro("sem permissao", 403)
+    return None
+
+
+@bp.get("/api/implantacao", endpoint="implantacao")
+def estado_implantacao():
+    recusa = _acesso_limpeza()
+    if recusa is not None:
+        return recusa
+    dados = implantacao.resumo(_db(), current_app.config["SI_CONFIG"])
+    ultima = dados.pop("ultima_limpeza")
+    return jsonify({"secundaria": True, "resumo": dados, "ultima_limpeza": ultima})
+
+
+@bp.post("/api/implantacao/limpar")
+def limpar_implantacao():
+    recusa = _acesso_limpeza()
+    if recusa is not None:
+        return recusa
+    dados = _json()
+    # tudo é validado antes de qualquer remoção
+    if dados.get("confirmacao") != FRASE_LIMPEZA:
+        return _erro("confirmacao invalida")
+    apagar_backups = dados.get("apagar_backups", True)
+    if type(apagar_backups) is not bool:
+        return _erro("apagar_backups invalido")
+    senha = dados.get("senha")
+    conn = _db()
+    # a mesma checagem do login: erros contam tentativas e há bloqueio
+    if (not isinstance(senha, str) or len(senha) > SENHA_MAX
+            or auth.autenticar(conn, g.usuario["nome"], senha,
+                               datetime.now(timezone.utc)) != g.usuario["id"]):
+        return _erro("senha incorreta", 403)
+    resultado = implantacao.limpar(
+        conn, current_app.config["SI_CONFIG"], g.usuario["id"], apagar_backups)
+    avisos = resultado.pop("avisos")
+    publicar(None)
+    corpo = {"ok": True, "removidos": resultado}
+    if avisos:
+        corpo["avisos"] = avisos
+    return jsonify(corpo)
 
 
 from .routes_mapa import registrar_coord
