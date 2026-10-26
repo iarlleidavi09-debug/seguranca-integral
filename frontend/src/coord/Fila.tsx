@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { listarCasos, mensagemErroCoord, ErroApi, obterQuestionarioV3 } from '../shared/api';
 import type { CasoFila, FiltrosFila } from '../shared/api';
 import type { GrupoV3 } from '../shared/v3';
@@ -41,6 +42,21 @@ function Retorno() {
     </svg>
     Voltou a acontecer
   </span>;
+}
+
+type ChipCaso = { chave: string; texto: string; no: ReactNode };
+/** Selos de um caso, do mais grave ao menos grave: só os dois primeiros aparecem, o resto vai para o "+N". */
+function chipsDoCaso(c: CasoFila): ChipCaso[] {
+  const lista: ChipCaso[] = [];
+  const texto = (chave: string, t: string, classe: string) => lista.push({ chave, texto: t, no: <span className={classe}>{t}</span> });
+  if (c.status === 'resolvido' && c.atencao?.includes('mensagem_pendente')) texto('volta', 'Aluno voltou a pedir ajuda', 'selo-recorrencia');
+  if (c.em_andamento) texto('agora', 'Ocorrendo agora', 'selo-neutro');
+  for (const m of c.atencao ?? []) { const t = MOTIVOS_ATENCAO[m] ?? m; lista.push({ chave: `atencao:${m}`, texto: t, no: <span className="casos-motivo">{t}</span> }); }
+  if (c.recorrencia_pendente) lista.push({ chave: 'retorno', texto: 'Voltou a acontecer', no: <Retorno /> });
+  if (c.canal === 'acolhimento') texto('acolhimento', 'Acolhimento anônimo', 'selo-neutro');
+  if (!c.simulacao && demoraPrimeiroAcesso(c)) texto('demora', 'Sem primeiro acesso há mais de 24 horas', 'selo-recorrencia');
+  if (c.simulacao) lista.push({ chave: 'simulacao', texto: 'simulação', no: <Simulacao /> });
+  return lista;
 }
 
 export default function Fila({ modo, meuId, filtros, aoFiltrar, aoAbrir }: Props) {
@@ -190,10 +206,15 @@ export default function Fila({ modo, meuId, filtros, aoFiltrar, aoAbrir }: Props
         {exibidos.map(c => {
           const novas = c.mensagens_novas ?? 0;
           const estadoConversa = c.conversa_estado ?? 'sem_mensagem';
-          const motivosAtencao = (c.atencao ?? []).map(m => MOTIVOS_ATENCAO[m] ?? m);
           const porque = motivoRelevante(c);
-          const raros = c.canal === 'acolhimento' || c.recorrencia_pendente || c.em_andamento || c.simulacao
-            || (c.status === 'resolvido' && c.atencao?.includes('mensagem_pendente')) || (!c.simulacao && demoraPrimeiroAcesso(c));
+          const chips = chipsDoCaso(c);
+          const visiveis = chips.slice(0, 2);
+          const ocultos = chips.slice(2);
+          const textoResponsavel = `Responsável: ${c.responsavel?.nome ?? 'Não atribuído'}${c.responsavel && !c.responsavel.ativo ? ' (conta desativada)' : ''}`
+            + `${c.proxima_acao ? ` · ${c.proxima_acao}${c.prazo_acao ? ` · até ${prazoLegivel(c.prazo_acao)}` : ''}` : ''}`
+            + `${novas === 0 && estadoConversa !== 'sem_mensagem' ? ` · ${CONVERSAS[estadoConversa]}` : ''}`;
+          const textoPrevia = c.ultima_mensagem
+            ? `${c.ultima_mensagem.autor === 'aluno' ? 'Aluno' : 'Equipe'} · ${dataLegivel(c.ultima_mensagem.criado_em)}: ${c.ultima_mensagem.texto.slice(0, 180)}` : '';
           return <tr key={c.id} role="row" className="casos-linha" data-gravidade={c.prioridade} onClick={e => {
             // um só caminho por caso para teclado e leitor de tela (o botão do assunto); o clique na linha é só para quem usa mouse ou toque
             if ((e.target as HTMLElement).closest('button, a, summary, input, select, textarea, label')) return;
@@ -205,26 +226,15 @@ export default function Fila({ modo, meuId, filtros, aoFiltrar, aoAbrir }: Props
                 <button type="button" className="casos-assunto" aria-label={`Caso ${c.id}. Abrir.`} onClick={() => aoAbrir(c.id)}>{assuntos(c)}</button>
                 {novas > 0 && <span className="selo-neutro casos-novas">{`${novas} ${novas === 1 ? 'mensagem nova' : 'mensagens novas'}`}</span>}
               </div>
-              <span className="casos-resumo">{c.resumo}</span>
-              <span className="casos-meta">
-                <span>Responsável: {c.responsavel?.nome ?? 'Não atribuído'}{c.responsavel && !c.responsavel.ativo ? ' (conta desativada)' : ''}
-                  {c.proxima_acao && <> · {c.proxima_acao}{c.prazo_acao && ` · até ${prazoLegivel(c.prazo_acao)}`}</>}</span>
-                {novas === 0 && estadoConversa !== 'sem_mensagem' && <span> · {CONVERSAS[estadoConversa]}</span>}
-                {c.ultima_mensagem && <>{' · '}<time dateTime={c.ultima_mensagem.criado_em}>{c.ultima_mensagem.autor === 'aluno' ? 'Aluno' : 'Equipe'} · {dataLegivel(c.ultima_mensagem.criado_em)}</time>
-                  {': '}<span>{c.ultima_mensagem.texto.slice(0, 180)}</span></>}
-                {porque && <span className="casos-porque"> · Por que: {motivo(porque)}</span>}
-              </span>
-              {(motivosAtencao.length > 0 || raros) && <div className="casos-selos">
-                {!!motivosAtencao.length && <span className="casos-motivos">
-                  {motivosAtencao.slice(0, 2).map(m => <span key={m} className="casos-motivo">{m}</span>)}
-                  {motivosAtencao.length > 2 && <span className="casos-mais" title={motivosAtencao.slice(2).join(' · ')}><span aria-hidden="true">+{motivosAtencao.length - 2}</span><span className="so-leitor">e mais: {motivosAtencao.slice(2).join('; ')}</span></span>}
-                </span>}
-                {c.canal === 'acolhimento' && <span className="selo-neutro">Acolhimento anônimo</span>}
-                {c.recorrencia_pendente && <Retorno />}
-                {c.status === 'resolvido' && c.atencao?.includes('mensagem_pendente') && <span className="selo-recorrencia">Aluno voltou a pedir ajuda</span>}
-                {!c.simulacao && demoraPrimeiroAcesso(c) && <span className="selo-recorrencia">Sem primeiro acesso há mais de 24 horas</span>}
-                {c.em_andamento && <span className="selo-neutro">Ocorrendo agora</span>}
-                {c.simulacao && <Simulacao />}
+              <span className="casos-resumo" title={`${c.resumo}${porque ? ` Por que: ${motivo(porque)}` : ''}`}>{c.resumo}</span>
+              {porque && <span className="so-leitor casos-porque">Por que: {motivo(porque)}</span>}
+              <span className="casos-meta" title={textoResponsavel}>{textoResponsavel}</span>
+              {c.ultima_mensagem && <span className="casos-previa" title={textoPrevia}>
+                <time dateTime={c.ultima_mensagem.criado_em}>{c.ultima_mensagem.autor === 'aluno' ? 'Aluno' : 'Equipe'} · {dataLegivel(c.ultima_mensagem.criado_em)}</time>
+                {': '}<span>{c.ultima_mensagem.texto.slice(0, 180)}</span></span>}
+              {chips.length > 0 && <div className="casos-selos">
+                {visiveis.map(x => <span key={x.chave} className="casos-chip">{x.no}</span>)}
+                {ocultos.length > 0 && <span className="casos-mais" title={ocultos.map(x => x.texto).join(' · ')}><span aria-hidden="true">+{ocultos.length}</span><span className="so-leitor">e mais: {ocultos.map(x => x.texto).join('; ')}</span></span>}
               </div>}
             </td>
             <td role="cell" className="casos-prioridade"><Prioridade valor={c.prioridade} /></td>
