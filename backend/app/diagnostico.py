@@ -9,7 +9,7 @@ from datetime import datetime
 
 from flask import abort, jsonify, request
 
-VERSAO = '3.0.0'
+VERSAO = '3.1.0'
 PRODUTO = 'seguranca-integral'
 
 

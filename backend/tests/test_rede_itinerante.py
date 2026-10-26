@@ -104,7 +104,7 @@ function Start-Sleep {}
 function Invoke-RestMethod {
  param($Uri, $TimeoutSec)
  Add-Content (Join-Path $Pasta 'ordem.txt') $Uri
- [pscustomobject]@{produto='seguranca-integral';versao='3.0.0';portal=$(if($Uri -match ':3300/'){'aluno'}else{'coordenacao'});banco=@{ok=($Saudavel -eq 'sim')}}
+ [pscustomobject]@{produto='seguranca-integral';versao='3.1.0';portal=$(if($Uri -match ':3300/'){'aluno'}else{'coordenacao'});banco=@{ok=($Saudavel -eq 'sim')}}
 }
 try { Atualizar-Rede -PastaPrograma $Pasta -DataDir $Pasta -SaidaEnderecos (Join-Path $Pasta 'enderecos.txt'); exit 0 }
 catch { exit 1 }

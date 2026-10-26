@@ -62,7 +62,7 @@ def test_backup_failure_is_observed_without_exception_text(config, monkeypatch):
 
 
 def diagnostico(portal):
-    return {'produto': 'seguranca-integral', 'versao': '3.0.0', 'portal': portal,
+    return {'produto': 'seguranca-integral', 'versao': '3.1.0', 'portal': portal,
             'uptime_s': 5, 'banco': {'ok': True},
             'backup': {'estado': 'pendente', 'em': None}, 'eventos': {'assinantes': 0}}
 

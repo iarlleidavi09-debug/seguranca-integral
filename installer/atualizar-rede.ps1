@@ -23,7 +23,7 @@ function Atualizar-Rede {
         for ($i = 0; $i -lt 15; $i++) {
             try {
                 $estado = Invoke-RestMethod -Uri "http://127.0.0.1:$($portal.porta)/api/servidor" -TimeoutSec 2
-                $ok = ($estado.produto -eq 'seguranca-integral' -and $estado.versao -eq '3.0.0' -and $estado.portal -eq $portal.nome -and $estado.banco.ok -eq $true)
+                $ok = ($estado.produto -eq 'seguranca-integral' -and $estado.versao -eq '3.1.0' -and $estado.portal -eq $portal.nome -and $estado.banco.ok -eq $true)
             } catch { $ok = $false }
             if ($ok) { break }
             Start-Sleep -Milliseconds 500

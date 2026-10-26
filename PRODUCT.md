@@ -1,4 +1,4 @@
-# Segurança Integral 3.0.0
+# Segurança Integral 3.1.0
 
 Contexto confirmado pelo usuário em 16/10/2026, consolidado da especificação v3 aprovada. Não é uma nova entrevista nem altera o escopo aprovado.
 

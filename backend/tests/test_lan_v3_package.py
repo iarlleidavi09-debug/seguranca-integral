@@ -18,13 +18,13 @@ def test_default_build_is_lan_and_never_installs_dependencies_or_runs_setup():
 def test_all_v3_versions_and_json_resources_are_packaged():
     for name in ['package.json', 'package-lock.json']:
         dados = json.loads((RAIZ / 'frontend' / name).read_text())
-        assert dados['version'] == '3.0.0'
+        assert dados['version'] == '3.1.0'
     iss = (RAIZ / 'installer/instalador.iss').read_text(encoding='utf-8-sig')
-    assert '#define AppVersao "3.0.0"' in iss
+    assert '#define AppVersao "3.1.0"' in iss
     spec = (RAIZ / 'installer/seguranca.spec').read_text()
     for name in ['questionario.json', 'questionario_v3.json', 'risk_terms.json']:
         assert name in spec
     assert "version=os.path.join(SPECPATH, 'versao.txt')" in spec
     versao = (RAIZ / 'installer/versao.txt').read_text()
-    assert 'filevers=(3, 0, 0, 0)' in versao
-    assert '3.0.0' in (RAIZ / 'PRODUCT.md').read_text(encoding='utf-8')
+    assert 'filevers=(3, 1, 0, 0)' in versao
+    assert '3.1.0' in (RAIZ / 'PRODUCT.md').read_text(encoding='utf-8')

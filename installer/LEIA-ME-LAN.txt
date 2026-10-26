@@ -82,7 +82,7 @@ Painel de Controle > Programas. A regra do firewall é removida. As informaçõe
 (casos, contas) continuam em C:\ProgramData\SegurancaIntegral, e o instalador
 pergunta se você quer apagá-las.
 
-6. DIAGNÓSTICO LOCAL - VERSÃO 3.0.0
+6. DIAGNÓSTICO LOCAL - VERSÃO 3.1.0
 ----------------------------------
 
 No terminal deste computador (com acesso à pasta protegida), execute:

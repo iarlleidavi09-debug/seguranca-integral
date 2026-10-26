@@ -19,7 +19,7 @@
 #endif
 
 #define AppNome "TETRA-GUARD"
-#define AppVersao "3.0.0"
+#define AppVersao "3.1.0"
 #ifndef LAN
   #ifndef TUNNEL
     #define LAN 1

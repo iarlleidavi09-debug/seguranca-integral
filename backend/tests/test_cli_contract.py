@@ -52,7 +52,7 @@ def test_local_diagnostic_is_an_allowlist_without_case_or_account_data(student_c
     assert set(result.json) == {'produto', 'versao', 'portal', 'uptime_s', 'banco', 'backup', 'eventos'}
     assert result.json['produto'] == 'seguranca-integral'
     assert result.json['portal'] == 'aluno'
-    assert result.json['versao'] == '3.0.0'
+    assert result.json['versao'] == '3.1.0'
     assert result.json['banco']['ok'] is True
     assert result.json['backup']['estado'] == 'pendente'
 

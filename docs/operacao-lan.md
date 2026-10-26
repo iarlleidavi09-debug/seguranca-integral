@@ -1,4 +1,4 @@
-# Operação LAN — Segurança Integral 3.0.0
+# Operação LAN — Segurança Integral 3.1.0
 
 O instalador padrão é `dist/SegurancaIntegral-Setup-LAN.exe`. O programa atende dois portais em um processo gevent e usa SQLite local. Não precisa de internet, túnel ou serviços externos para operar. Uma instalação nova escuta `0.0.0.0`, nas portas 3000 (aluno) e 4000 (coordenação). O instalador libera essas portas somente nos perfis Privada e Domínio do Windows, preserva portas, dados e regras locais durante atualização e renova os endereços permitidos pelo helper LAN.
 
@@ -20,7 +20,7 @@ Sem `--data-dir`, usa a pasta padrão do Windows. O monitor não cria pasta, ban
 
 | Estado | Significado e ação local | Saída |
 | --- | --- | --- |
-| `saudavel` | Ambos os portais respondem com identidade `seguranca-integral`, versão `3.0.0`, portal correto, banco íntegro e backup sem erro observado. | 0 |
+| `saudavel` | Ambos os portais respondem com identidade `seguranca-integral`, versão `3.1.0`, portal correto, banco íntegro e backup sem erro observado. | 0 |
 | `offline` | Pasta ausente ou nenhuma porta respondeu. Confira a pasta e a tarefa `SegurancaIntegral` no Agendador de Tarefas. | 1 |
 | `degradado` | Uma porta falhou, há serviço desconhecido/incompatível, banco indisponível ou erro de backup. Confira os estados individuais. | 1 |
 | `servico_desconhecido` em um portal | HTTP respondeu sem o contrato esperado, com outra versão/produto/portal, ou resposta incompleta. Confira o processo que usa a porta e a versão instalada. | 1 |
