@@ -30,9 +30,14 @@ export default function Navegacao({ tela, admin, pendencias, aoIr }: {
 }) {
   const atual = useRef<HTMLButtonElement>(null);
   // na barra rolável do celular, o item atual precisa estar à vista
+  // o selo da contagem chega depois e desloca os itens: rola de novo quando ele muda e depois que o layout assenta
   useEffect(() => {
-    atual.current?.scrollIntoView?.({ inline: 'nearest', block: 'nearest' });
-  }, [tela.nome]);
+    const rolar = () => atual.current?.scrollIntoView?.({ inline: 'nearest', block: 'nearest' });
+    rolar();
+    let segundo = 0;
+    const primeiro = requestAnimationFrame(() => { segundo = requestAnimationFrame(rolar); });
+    return () => { cancelAnimationFrame(primeiro); cancelAnimationFrame(segundo); };
+  }, [tela.nome, pendencias]);
   return <nav aria-label="Principal" className="coord-nav">
     {ITENS.filter(i => admin || i.nome !== 'usuarios').map(i => {
       // o detalhe de um caso pertence ao item Casos
