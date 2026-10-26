@@ -261,7 +261,6 @@ export default function Caso({ id, aoVoltar, aoMudar, abaInicial = 'relato', ane
       {resolvido
         ? <div className="caso-meta-status">
           <p>Caso resolvido.</p>
-          {(caso.recorrencia_pendente || caso.atencao?.includes('mensagem_pendente')) && <p className="aviso">Há um retorno do aluno após a resolução. Confira a conversa e reabra a investigação se for necessário. O histórico será mantido.</p>}
           <button type="button" className="botao secundario" disabled={ocupado} onClick={() => trocarStatus('em_investigacao')}>Reabrir para investigação</button>
         </div>
         : <div className="caso-meta-status"><label htmlFor="caso-status">Status</label>
@@ -278,6 +277,7 @@ export default function Caso({ id, aoVoltar, aoMudar, abaInicial = 'relato', ane
           aoEditar={() => { if (revisaoResolucao.current === null) revisaoResolucao.current = revisaoAtual.current; setResolucaoEditando(true); }} />
       </details>}
     </div>
+    {resolvido && (caso.recorrencia_pendente || caso.atencao?.includes('mensagem_pendente')) && <p className="aviso caso-aviso-retorno">Há um retorno do aluno após a resolução. Confira a conversa e reabra a investigação se for necessário. O histórico será mantido.</p>}
     <Atendimento caso={caso} ocupado={ocupado}
       aoSalvar={(dados, revisao) => agir(() => salvarAtendimento(id, dados, revisao), 'Atendimento salvo.')}
       aoConcluir={revisao => agir(() => concluirAcao(id, revisao), 'Ação concluída.')} />

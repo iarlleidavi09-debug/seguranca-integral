@@ -231,6 +231,7 @@ select:disabled { background: var(--desabilitado-fundo); color: var(--desabilita
 .caso-acoes .resolucao-detalhes[open] { flex: 1 0 100%; order: 10; }
 .caso-acoes .resolucao-detalhes[open] > summary.botao { display: inline-flex; }
 .caso-acoes .resolucao-detalhes > :not(summary) { margin-top: var(--espaco-3); }
+.caso-aviso-retorno { margin: var(--espaco-3) 0 0; }
 .caso-meta-status { display: grid; gap: var(--espaco-1); min-width: 120px; max-width: 200px; flex: 1 1 120px; }
 .caso-meta-status label { margin-bottom: 0; }
 .caso-meta-status p { margin: 0; font-weight: 700; }
@@ -238,6 +239,8 @@ select:disabled { background: var(--desabilitado-fundo); color: var(--desabilita
 .caso-meta-acesso span { font-size: var(--texto-legenda); color: var(--texto-secundario); }
 .caso-meta-acesso b { color: var(--texto-principal); }
 .caso-dados summary { cursor: pointer; min-height: 44px; padding-block: 12px; box-sizing: border-box; color: var(--primaria-base); font-weight: 700; }
+.caso-dados summary { list-style: none; }
+.caso-dados summary::-webkit-details-marker { display: none; }
 .caso-dados summary::before { content: '+ '; }
 .caso-dados[open] > summary::before { content: '- '; }
 .caso-dados summary:focus-visible { outline: 3px solid var(--foco-anel); outline-offset: 3px; }

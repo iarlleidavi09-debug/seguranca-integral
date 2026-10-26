@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -722,5 +723,24 @@ describe('Caso: página reorganizada', () => {
     const painel = (await screen.findByRole('heading', { name: 'Por que esta prioridade?' })).closest('aside')!;
     expect(painel.querySelector('details')).toBeNull();
     expect(painel).toHaveTextContent('Prioridade atual: Média');
+  });
+});
+
+describe('Caso resolvido: aviso de retorno do aluno', () => {
+  it('o aviso fica numa linha própria abaixo da barra de ações, com o botão de reabrir na barra', async () => {
+    await abrirCaso({ status: 'resolvido', recorrencia_pendente: true, resolucoes: [resolucaoFalsa()] });
+    const aviso = await screen.findByText(/Há um retorno do aluno após a resolução/);
+    const barra = document.querySelector('.caso-acoes') as HTMLElement;
+    expect(barra).not.toContainElement(aviso);
+    expect(aviso.previousElementSibling).toBe(barra);
+    expect(within(barra).getByRole('button', { name: 'Reabrir para investigação' })).toBeInTheDocument();
+  });
+});
+
+describe('Caso: indicador de Dados do caso', () => {
+  it('esconde o marcador nativo para sobrar um só indicador', () => {
+    const css = readFileSync('src/coord/coord.css', 'utf8');
+    expect(css).toMatch(/\.caso-dados\s*>?\s*summary\s*\{[^}]*list-style:\s*none/);
+    expect(css).toMatch(/\.caso-dados\s*>?\s*summary::-webkit-details-marker\s*\{[^}]*display:\s*none/);
   });
 });
