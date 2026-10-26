@@ -60,3 +60,4 @@
 .mapa-rolagem { max-width:100%; }
 @media(max-width:1100px) { .mapa-corpo { grid-template-columns:minmax(0,1fr); } }
 .mapa .mapa-ambiente > rect.mapa-alca { fill:var(--primaria-base); stroke:var(--texto-sobre-primaria); stroke-width:2; }
+.coord-app .mapa .botao { min-height:44px; }

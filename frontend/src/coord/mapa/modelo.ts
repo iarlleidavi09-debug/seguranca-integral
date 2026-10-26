@@ -49,9 +49,16 @@ export function faixaTexto(a: Ambiente): { y: number; altura: number } {
  return { y: (a.rotacao ?? 0) >= 180 ? a.y + a.altura - altura : a.y, altura };
 }
 
-/** Posição vertical dos rótulos de um ambiente para o tamanho de fonte `fs` (unidades da planta).
- * Com fs = 20 reproduz os valores históricos (26, 52; limiares 32 e 60). Linha que não cabe vira null. */
-export function layoutRotulos(a: Ambiente, fs: number, comContagem: boolean): { nome: number | null; contagem: number | null } {
- const f = faixaTexto(a);
- return { nome: f.altura >= 1.6 * fs ? f.y + 1.3 * fs : null, contagem: comContagem && f.altura >= 3 * fs ? f.y + 2.6 * fs : null };
+/** Posição e texto dos rótulos de um ambiente para o tamanho de fonte `fs` (unidades da planta).
+ * Vertical: linhas em y + 1,3 fs e y + 2,6 fs, só se a altura comporta (1,6 fs e 3 fs).
+ * Horizontal: cada caractere ocupa 0,6 fs e há 12 unidades de margem em cada lado; o nome é truncado com
+ * reticências e a contagem some se não couber. Nada é desenhado fora do retângulo. */
+export function layoutRotulos(a: Ambiente, fs: number, nome: string, contagem: string | null): { nome: { y: number; texto: string } | null; contagem: { y: number; texto: string } | null } {
+ const f = faixaTexto(a), maximo = Math.floor((a.largura - 24) / (0.6 * fs));
+ let textoNome: string | null = nome.length <= maximo ? nome : maximo >= 2 ? `${nome.slice(0, maximo - 1)}…` : null;
+ if (f.altura < 1.6 * fs) textoNome = null;
+ return {
+  nome: textoNome === null ? null : { y: f.y + 1.3 * fs, texto: textoNome },
+  contagem: contagem !== null && textoNome !== null && f.altura >= 3 * fs && contagem.length <= maximo ? { y: f.y + 2.6 * fs, texto: contagem } : null,
+ };
 }

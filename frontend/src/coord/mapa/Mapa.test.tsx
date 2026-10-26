@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import Mapa from './Mapa';
 import { agregarAmbiente, ajustar, distribuicaoAmbiente, layoutRotulos, pontosL } from './modelo';
@@ -122,24 +123,30 @@ describe('Mapa escolar', () => {
   expect(screen.queryByText('A planta ainda está vazia')).toBeNull();
   expect(screen.getByRole('navigation', { name: 'Níveis da planta' })).toHaveClass('mapa-niveis-destaque');
  });
- it('layout dos rótulos: fs = 20 reproduz os valores históricos e fs grande esconde linhas que não cabem', () => {
-  const a = (altura: number) => ({ id: 'a', nome: 'A', tipo: 'sala' as const, pai_id: null, x: 0, y: 100, largura: 300, altura });
-  expect(layoutRotulos(a(200), 20, true)).toEqual({ nome: 126, contagem: 152 });
-  expect(layoutRotulos(a(31), 20, true)).toEqual({ nome: null, contagem: null });
-  expect(layoutRotulos(a(59), 20, true)).toEqual({ nome: 126, contagem: null });
-  expect(layoutRotulos(a(200), 20, false).contagem).toBeNull();
-  const g = layoutRotulos(a(100), 52.5, true);
-  expect(g.contagem).toBeNull();
-  expect(g.nome).toBeLessThan(100 + 100);
-  expect(layoutRotulos(a(60), 52.5, true)).toEqual({ nome: null, contagem: null });
-  const alto = layoutRotulos(a(300), 52.5, true);
-  expect(alto.contagem).toBeLessThan(100 + 300);
+ it('layout dos rótulos: altura baixa esconde linhas e largura estreita trunca ou esconde, sempre dentro da caixa', () => {
+  const a = (altura: number, largura = 300) => ({ id: 'a', nome: 'A', tipo: 'sala' as const, pai_id: null, x: 0, y: 100, largura, altura });
+  expect(layoutRotulos(a(200), 20, 'Sala', '0 casos')).toEqual({ nome: { y: 126, texto: 'Sala' }, contagem: { y: 152, texto: '0 casos' } });
+  expect(layoutRotulos(a(31), 20, 'Sala', '0 casos')).toEqual({ nome: null, contagem: null });
+  expect(layoutRotulos(a(59), 20, 'Sala', '0 casos')).toEqual({ nome: { y: 126, texto: 'Sala' }, contagem: null });
+  expect(layoutRotulos(a(200), 20, 'Sala', null).contagem).toBeNull();
+  expect(layoutRotulos(a(100), 52.5, 'Sala', '0 casos')).toMatchObject({ contagem: null });
+  expect(layoutRotulos(a(60), 52.5, 'Sala', '0 casos')).toEqual({ nome: null, contagem: null });
+  // largura 110 a fs 20: (110 - 24) / 12 = 7 caracteres
+  expect(layoutRotulos(a(200, 110), 20, 'Escadaria norte', '0 casos').nome?.texto).toBe('Escada…');
+  expect(layoutRotulos(a(200, 110), 20, 'Escadaria norte', '12 casos').contagem).toBeNull();
+  expect(layoutRotulos(a(200, 110), 20, 'Escadaria norte', '0 casos').contagem?.texto).toBe('0 casos');
+  // estreito demais para ao menos uma letra e a reticência: some o rótulo
+  expect(layoutRotulos(a(200, 40), 20, 'Escadaria', '0 casos')).toEqual({ nome: null, contagem: null });
+  for (const largura of [30, 50, 80, 120, 300]) for (const fs of [20, 40, 52.5]) {
+   const r = layoutRotulos(a(400, largura), fs, 'Escadaria norte', '12 casos');
+   for (const t of [r.nome?.texto, r.contagem?.texto]) if (t) expect(12 + t.length * 0.6 * fs).toBeLessThanOrEqual(largura);
+  }
  });
  it('em 320 px de largura escala fonte e posições dos rótulos e esconde linhas que não cabem', async () => {
   const original = Element.prototype.getBoundingClientRect;
   Element.prototype.getBoundingClientRect = function () { return { width: 320, height: 200, top: 0, left: 0, right: 320, bottom: 200, x: 0, y: 0, toJSON() {} } as DOMRect; };
-  const sala = (id: string, nome: string, altura: number, y: number) => ({ id, nome, tipo: 'sala', pai_id: null, x: 80, y, largura: 600, altura });
-  servidor({ 'GET /api/mapa': () => ({ corpo: { revisao: 1, ambientes: [sala('g', 'Grande', 300, 80), sala('m', 'Media', 100, 400), sala('p', 'Pequena', 60, 520)] } }),
+  const sala = (id: string, nome: string, altura: number, y: number, largura = 600) => ({ id, nome, tipo: 'sala', pai_id: null, x: 80, y, largura, altura });
+  servidor({ 'GET /api/mapa': () => ({ corpo: { revisao: 1, ambientes: [sala('g', 'Grande', 300, 80), sala('m', 'Media', 100, 400), sala('p', 'Pequena', 60, 520), sala('e', 'Estreita', 300, 700, 70)] } }),
    'GET /api/mapa/resumo': () => ({ corpo: { ...resumo, ambientes: [] } }) });
   try {
    render(<Mapa />);
@@ -150,8 +157,14 @@ describe('Mapa escolar', () => {
    expect(textos('g').map(t => t.getAttribute('y'))).toEqual(['148.25', '216.5']);
    expect(textos('m').map(t => t.getAttribute('y'))).toEqual(['468.25']);
    expect(textos('p')).toHaveLength(0);
+   expect(textos('e')).toHaveLength(0);
+   expect(screen.getByRole('button', { name: /Estreita/ })).toBeInTheDocument();
    expect(screen.getByRole('button', { name: /Pequena/ })).toBeInTheDocument();
   } finally { Element.prototype.getBoundingClientRect = original; }
+ });
+ it('botões do mapa têm alvo de pelo menos 44 px (regra mais específica que a do tema)', () => {
+  const css = readFileSync('src/coord/mapa/mapa.css', 'utf8');
+  expect(css).toMatch(/\.coord-app \.mapa \.botao\s*\{[^}]*min-height:\s*44px/);
  });
  it('preserva o rascunho quando há conflito de revisão', async () => {
   montar(true); const user = await criar();
