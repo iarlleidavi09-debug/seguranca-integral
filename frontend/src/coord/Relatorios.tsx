@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { mensagemErroCoord, obterRelatorio } from '../shared/api';
 import type { Relatorio } from '../shared/api';
 import { usePolling } from './polling';
@@ -65,7 +65,29 @@ export default function Relatorios() {
   </>;
   const linhasTabela = visualizacao === 'prioridade' ? seriePrioridades : serie;
   const legendaTabela = visualizacao === 'acumulado' ? 'Totais acumulados a partir do início do período' : visualizacao === 'prioridade' ? 'Pedidos por dia e prioridade atual' : 'Totais diários do período selecionado';
+  const area = useRef<HTMLDivElement>(null), grafico = useRef<SVGSVGElement>(null);
+  const [larguraGrafico, setLarguraGrafico] = useState(0);
   const pronto = dados?.inicio === periodo.inicio && dados?.fim === periodo.fim;
+  // Mede a largura renderizada do SVG (viewBox de 900): o texto encolhe junto com ele, então o tamanho da fonte
+  // em unidades do viewBox cresce para manter pelo menos 14 px efetivos (e nunca abaixo disso).
+  useEffect(() => {
+    const medir = () => setLarguraGrafico(grafico.current?.getBoundingClientRect?.()?.width ?? 0);
+    medir();
+    window.addEventListener('resize', medir);
+    return () => window.removeEventListener('resize', medir);
+  }, [pronto, visualizacao]);
+  const tamanhoRotulo = larguraGrafico > 0 && larguraGrafico < 900 ? 14 * 900 / larguraGrafico : 14;
+  // Ao montar e ao trocar visualização/período, a área rolável vai até o último dia com dados: é o trecho mais
+  // útil e evita mostrar uma linha zerada quando os dados estão à direita fora da janela.
+  const ultimoComDados = (dados?.evolucao ?? []).reduce((u, d, i) => d.recebidos > 0 || d.resolvidos > 0 ? i : u, -1);
+  const totalDias = dados?.evolucao.length ?? 0;
+  useEffect(() => {
+    const el = area.current;
+    if (!el || !pronto || ultimoComDados < 0) return;
+    const escala = larguraGrafico > 0 ? larguraGrafico / 900 : 1;
+    const x = 48 + ultimoComDados * 800 / Math.max(1, totalDias - 1);
+    el.scrollLeft = Math.max(0, (x + 24) * escala - (el.clientWidth ?? 0));
+  }, [pronto, visualizacao, periodo.inicio, periodo.fim, ultimoComDados, totalDias, larguraGrafico]);
   return <section className="relatorios" aria-labelledby="titulo-relatorios">
     <div className="relatorio-cabecalho"><div><h1 id="titulo-relatorios">Evolução do atendimento</h1>
       <p className="texto-secundario">Acompanhe a entrada de pedidos e a primeira resolução de cada caso.</p></div>
@@ -98,12 +120,12 @@ export default function Relatorios() {
         </div>
         <p className="grafico-explicacao" role="status">{visualizacao === 'acumulado' ? 'Soma progressiva a partir do início do período selecionado.' : visualizacao === 'prioridade' ? 'Pedidos recebidos no período, agrupados pela prioridade atual.' : 'Quantidade registrada em cada dia, sem somar os dias anteriores.'}</p>
         <div className="grafico-legenda">{linhas.map(l => <span key={l.campo}><svg width="26" height="10" viewBox="0 0 26 10" aria-hidden="true"><line x1="0" x2="26" y1="5" y2="5" stroke={l.cor} strokeWidth="3" strokeDasharray={l.traco} /></svg>{l.nome}</span>)}</div>
-        <div className="grafico-area" tabIndex={0} role="region" aria-label="Gráfico de evolução; use as setas para deslocar em telas pequenas"><svg key={visualizacao} viewBox="0 0 900 260" role="img" aria-label={`${tituloGrafico} de ${rotulo(dados.inicio)} a ${rotulo(dados.fim)}. Dados completos na tabela abaixo.`}>
+        <div ref={area} className="grafico-area" tabIndex={0} role="region" aria-label="Gráfico de evolução; use as setas para deslocar em telas pequenas"><svg ref={grafico} key={visualizacao} viewBox="0 0 900 260" role="img" aria-label={`${tituloGrafico} de ${rotulo(dados.inicio)} a ${rotulo(dados.fim)}. Dados completos na tabela abaixo.`}>
           {[0, 1, 2].map(n => <g key={n}><line x1="48" x2="848" y1={210 - n * 85} y2={210 - n * 85} stroke="var(--borda-suave)" />
-            <text x="32" y={215 - n * 85} textAnchor="end">{Math.round(maximo * n / 2)}</text></g>)}
+            <text x="32" y={215 - n * 85} textAnchor="end" fontSize={tamanhoRotulo}>{Math.round(maximo * n / 2)}</text></g>)}
           {linhas.map(l => <g key={l.campo}><polyline points={pontos(l.valores)} fill="none" stroke={l.cor} strokeWidth="3" strokeDasharray={l.traco} strokeLinejoin="round" />
             {l.valores.length === 1 && <circle cx="48" cy={210 - l.valores[0] * 170 / maximo} r="4" fill={l.cor} />}</g>)}
-          <text x="48" y="245">{rotulo(dados.inicio)}</text><text x="848" y="245" textAnchor="end">{rotulo(dados.fim)}</text>
+          <text x="48" y="245" fontSize={tamanhoRotulo}>{rotulo(dados.inicio)}</text><text x="848" y="245" textAnchor="end" fontSize={tamanhoRotulo}>{rotulo(dados.fim)}</text>
         </svg></div>
         {diasComDados > 0 && diasComDados < 3 && <p className="relatorio-pouco-historico">Ainda há pouco histórico: só existem dados em {diasComDados} {diasComDados === 1 ? 'dia' : 'dias'} neste período.</p>}
         {!dados.recebidos && !dados.resolvidos && <p className="vazio">Nenhum pedido recebido ou primeira resolução neste período. Escolha outras datas para consultar o histórico.</p>}

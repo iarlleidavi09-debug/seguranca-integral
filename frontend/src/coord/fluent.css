@@ -108,9 +108,9 @@
 .grafico-legenda svg { flex: 0 0 26px; width: 26px !important; height: 10px !important; min-height: 0 !important; min-width: 0 !important; }
 .grafico-legenda i { display: inline-block; width: 24px; border-top: 3px solid var(--primaria-base); }
 .grafico-legenda .serie-resolvidos { border-color: var(--sucesso-texto); border-top-style: dashed; }
-.relatorio-grafico svg { width: 100%; height: auto; min-height: 160px; }
+.relatorio-grafico svg { width: 100%; height: auto; min-height: 160px; min-width: 900px; }
 .grafico-area { overflow-x: auto; }
-.relatorio-grafico svg text { font: 14px var(--fonte); fill: var(--texto-secundario); }
+.relatorio-grafico svg text { font-family: var(--fonte); fill: var(--texto-secundario); }
 .grafico-cabecalho { display: flex; align-items: start; justify-content: space-between; flex-wrap: wrap; gap: 12px 24px; }
 .grafico-visualizacoes { display: inline-flex; flex-wrap: wrap; padding: 3px; gap: 3px; border: 1px solid var(--borda-suave); border-radius: 6px; background: var(--fundo-superficie-2); }
 .grafico-visualizacoes button { min-height: 36px; padding: 7px 12px; border: 1px solid transparent; border-radius: 4px; background: transparent; color: var(--texto-secundario); font-size: 14px; }
@@ -149,7 +149,6 @@
   .relatorio-filtros label { flex: 1 1 120px; }
   .relatorio-grafico { padding: 16px; }
   .relatorio-prioridades, .relatorio-tabela { padding: 16px; } /* 759px: layout geral; a lista empilhada troca em 599px (matchMedia no componente) */
-  .relatorio-grafico svg { min-width: 900px; }
 }
 @media print {
   .coord-app .coord-lateral, .coord-app .coord-topo, .relatorio-filtros, .relatorio-exportar, .pular { display: none !important; }

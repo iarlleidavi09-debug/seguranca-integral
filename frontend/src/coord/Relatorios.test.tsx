@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
 import { afterEach, expect, it, vi } from 'vitest';
 import Relatorios from './Relatorios';
@@ -148,13 +148,68 @@ it('a lista empilhada tem papel de lista explícito', async () => {
   expect(container.querySelector('ul.relatorio-lista')).toHaveAttribute('role', 'list');
 });
 
-it('mantém os rótulos do gráfico com pelo menos 12 px', () => {
-  // Lê o CSS como texto (jsdom não aplica folhas de estilo): procura todas as regras cujo seletor
-  // termina em "svg text" dentro de .relatorio-grafico e exige font/font-size em px >= 12.
+function medirGrafico(larguraSvg: number, larguraArea: number) {
+  const rect = Element.prototype.getBoundingClientRect;
+  Element.prototype.getBoundingClientRect = function () { return { width: larguraSvg, height: 200, top: 0, left: 0, right: larguraSvg, bottom: 200, x: 0, y: 0, toJSON() {} } as DOMRect; };
+  const cw = Object.getOwnPropertyDescriptor(Element.prototype, 'clientWidth');
+  Object.defineProperty(Element.prototype, 'clientWidth', { configurable: true, get: () => larguraArea });
+  const rolagens: number[] = [];
+  const sl = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollLeft');
+  Object.defineProperty(Element.prototype, 'scrollLeft', { configurable: true, get: () => 0, set: (v: number) => { rolagens.push(v); } });
+  return { rolagens, restaurar: () => {
+    Element.prototype.getBoundingClientRect = rect;
+    if (cw) Object.defineProperty(Element.prototype, 'clientWidth', cw); else delete (Element.prototype as { clientWidth?: unknown }).clientWidth;
+    if (sl) Object.defineProperty(Element.prototype, 'scrollLeft', sl); else delete (Element.prototype as { scrollLeft?: unknown }).scrollLeft;
+  } };
+}
+const dadosEsparsos = Array.from({ length: 30 }, (_, i) => ({ data: `2026-09-${String(i + 1).padStart(2, '0')}`, recebidos: i === 20 ? 4 : 0, resolvidos: 0 }));
+
+it.each([320, 768, 1280])('rótulos do eixo têm tamanho efetivo de pelo menos 12 px com o SVG renderizado em %i px', async largura => {
+  const m = medirGrafico(largura, 300);
+  try {
+    relatorio(dadosEsparsos);
+    const { container } = render(<Relatorios />);
+    await screen.findByRole('link', { name: 'Exportar CSV / Excel' });
+    const textos = () => [...container.querySelectorAll('.grafico-area svg text')];
+    await waitFor(() => expect(Number(textos()[0]?.getAttribute('font-size')) * Math.min(1, largura / 900)).toBeGreaterThanOrEqual(12));
+    expect(textos().length).toBeGreaterThan(0);
+    for (const t of textos()) {
+      expect(t).not.toHaveAttribute('style');
+      const fs = Number(t.getAttribute('font-size'));
+      expect(fs * Math.min(1, largura / 900)).toBeGreaterThanOrEqual(12);
+      if (largura >= 900) expect(fs).toBe(14);
+    }
+  } finally { m.restaurar(); }
+});
+
+it('rola a área do gráfico até o último dia com dados ao montar e ao trocar a visualização', async () => {
+  const m = medirGrafico(900, 300);
+  try {
+    relatorio(dadosEsparsos);
+    render(<Relatorios />);
+    await screen.findByRole('link', { name: 'Exportar CSV / Excel' });
+    // dia 20 de 30: x = 48 + 20 * 800 / 29 = 599,7; rolagem = 599,7 + 24 - 300 = 323,7
+    await waitFor(() => expect(m.rolagens.at(-1)).toBeCloseTo(323.7, 0));
+    const antes = m.rolagens.length;
+    fireEvent.click(screen.getByRole('button', { name: 'Acumulado' }));
+    await waitFor(() => expect(m.rolagens.length).toBeGreaterThan(antes));
+    expect(m.rolagens.at(-1)).toBeCloseTo(323.7, 0);
+  } finally { m.restaurar(); }
+});
+
+it('sem medidas disponíveis (jsdom) o gráfico renderiza com 14 e não quebra', async () => {
+  relatorio(dadosEsparsos);
+  const { container } = render(<Relatorios />);
+  await screen.findByRole('link', { name: 'Exportar CSV / Excel' });
+  expect(container.querySelector('.grafico-area svg text')).toHaveAttribute('font-size', '14');
+});
+
+it('o CSS não fixa o tamanho dos rótulos do gráfico, para valer o atributo font-size', () => {
+  // Lê o CSS como texto (jsdom não aplica folhas de estilo). Uma declaração font/font-size na regra
+  // `.relatorio-grafico svg text` sobreporia o atributo de apresentação SVG.
   const css = readFileSync('src/coord/fluent.css', 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
   const regras = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].filter(m => /\.relatorio-grafico\s+svg\s+text\s*$/.test(m[1].trim()));
   expect(regras.length).toBeGreaterThan(0);
-  const tamanhos = regras.flatMap(m => [...m[2].matchAll(/font(?:-size)?\s*:\s*(?:[\w\s-]*?\s)?(\d+(?:\.\d+)?)px/g)].map(t => Number(t[1])));
-  expect(tamanhos.length).toBeGreaterThan(0);
-  tamanhos.forEach(t => expect(t).toBeGreaterThanOrEqual(12));
+  for (const m of regras) expect(m[2]).not.toMatch(/(^|[;\s])font(-size)?\s*:/);
+  expect(css).toMatch(/\.relatorio-grafico svg\s*\{[^}]*min-width:\s*900px/);
 });
