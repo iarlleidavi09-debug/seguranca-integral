@@ -186,6 +186,8 @@ describe('Caso', () => {
     const user = await abrirCaso();
     const relato = await screen.findByRole('tab', { name: 'Relato e investigação' });
     expect(relato).toHaveAttribute('aria-selected', 'true');
+    // o foco inicial do título chega depois do carregamento: espera para não roubar o foco da aba
+    await waitFor(() => expect(screen.getByRole('heading', { level: 1 })).toHaveFocus());
     relato.focus();
     await user.keyboard('{ArrowRight}');
     const conversa = screen.getByRole('tab', { name: 'Conversa' });

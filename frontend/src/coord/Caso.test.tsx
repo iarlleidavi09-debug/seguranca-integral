@@ -684,6 +684,8 @@ describe('Caso: página reorganizada', () => {
     Element.prototype.scrollIntoView = rolar;
     const user = await abrirCaso();
     const relato = await screen.findByRole('tab', { name: 'Relato e investigação' });
+    // o foco inicial do título chega depois do carregamento: espera para não roubar o foco da aba
+    await waitFor(() => expect(screen.getByRole('heading', { level: 1 })).toHaveFocus());
     relato.focus();
     await user.keyboard('{ArrowRight}');
     expect(screen.getByRole('tab', { name: 'Conversa' })).toHaveAttribute('aria-selected', 'true');
