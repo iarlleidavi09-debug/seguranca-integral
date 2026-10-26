@@ -39,7 +39,7 @@ export default function MenuMensagem({ itens, desabilitado, gatilhoRef }: {
 
   return <div ref={raiz} className="mensagem-menu">
     <button ref={gatilhoRef} type="button" className="mensagem-menu-gatilho" aria-haspopup="menu" aria-expanded={aberto}
-      aria-label="Ações da mensagem" disabled={desabilitado} onClick={() => setAberto(a => !a)}>⋯</button>
+      aria-label="Ações da mensagem" aria-disabled={desabilitado || undefined} onClick={() => { if (!desabilitado) setAberto(a => !a); }}>⋯</button>
     {aberto && <ul role="menu" aria-label="Ações da mensagem" className="mensagem-menu-lista" onKeyDown={teclas}>
       {itens.map((item, i) => <li key={item.rotulo} role="none">
         <button ref={el => { botoes.current[i] = el; }} type="button" role="menuitem" tabIndex={-1} onClick={() => escolher(item)}>{item.rotulo}</button>

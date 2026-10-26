@@ -325,3 +325,35 @@ describe('Conversa: campo de nova mensagem no celular', () => {
     expect(campoMensagem().closest('form')).not.toHaveClass('resposta-fixa-coord');
   });
 });
+
+describe('Conversa: foco durante cargas', () => {
+  it('o gatilho do menu não fica disabled enquanto as versões carregam e mantém o foco', async () => {
+    const user = userEvent.setup();
+    let liberar!: (v: never[]) => void;
+    const aoVerVersoes = vi.fn(() => new Promise<never[]>(r => { liberar = r; }));
+    montar([item({ editada: true })], { aoVerVersoes });
+    await escolher(user, 'Ver versões');
+    expect(gatilho()).not.toBeDisabled();
+    expect(gatilho()).toHaveAttribute('aria-disabled', 'true');
+    await user.click(gatilho());
+    expect(screen.queryByRole('menu')).toBeNull();
+    liberar([]);
+    await screen.findByRole('list', { name: 'Versões anteriores' });
+    expect(gatilho()).not.toHaveAttribute('aria-disabled');
+    expect(gatilho()).toHaveFocus();
+  });
+
+  it('o botão de enviar não fica disabled durante o envio e o foco volta ao campo, já limpo, ao terminar', () => {
+    const props = { titulo: 'C', campo: 'c', rotulo: 'Mensagem', ajuda: 'a', botao: 'Enviar', itens: [], aoMudar: () => {} };
+    const aoEnviar = vi.fn();
+    const { rerender } = render(<Conversa {...props} texto="Olá" enviando={false} aoEnviar={aoEnviar} />);
+    rerender(<Conversa {...props} texto="Olá" enviando aoEnviar={aoEnviar} />);
+    const botao = screen.getByRole('button', { name: 'Enviar' });
+    expect(botao).not.toBeDisabled();
+    expect(botao).toHaveAttribute('aria-disabled', 'true');
+    botao.click();
+    expect(aoEnviar).not.toHaveBeenCalled();
+    rerender(<Conversa {...props} texto="" enviando={false} aoEnviar={aoEnviar} />);
+    expect(screen.getByRole('textbox', { name: 'Mensagem' })).toHaveFocus();
+  });
+});

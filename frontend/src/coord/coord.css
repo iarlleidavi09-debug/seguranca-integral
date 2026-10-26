@@ -74,6 +74,7 @@ select {
   background: var(--fundo-superficie); color: var(--texto-principal);
 }
 select:disabled { background: var(--desabilitado-fundo); color: var(--desabilitado-texto); }
+.botao[aria-disabled='true'], .mensagem-menu-gatilho[aria-disabled='true'] { background: var(--desabilitado-fundo); color: var(--desabilitado-texto); cursor: not-allowed; }
 .perigo { color: var(--texto-sobre-perigo); background: var(--perigo-base); }
 .perigo:hover:not(:disabled) { filter: brightness(0.92); }
 .so-leitor { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

@@ -139,19 +139,26 @@ export default function Conversa({ titulo, campo, rotulo, ajuda, botao, itens, t
   aoMudar: (valor: string) => void; aoEnviar: () => void;
 } & Acoes) {
   const estreita = useTelaEstreita();
+  const area = useRef<HTMLTextAreaElement>(null);
+  const antes = useRef(enviando);
+  // aria-disabled (e não disabled) mantém o foco no botão durante o envio; ao terminar com sucesso o foco vai para o campo já limpo
+  useEffect(() => {
+    if (antes.current && !enviando && texto === '') area.current?.focus();
+    antes.current = enviando;
+  }, [enviando]);
   const linhas = estreita ? Math.min(6, Math.max(2, texto.split('\n').length)) : 4;
   return <div>
     <h2 className="titulo-painel">{titulo}</h2>
     {itens.length === 0 ? <p className="vazio">Nada por aqui ainda.</p> : <ul className="mensagens">
       {itens.map(i => <ItemMensagem key={i.chave} item={i} aoEditar={aoEditar} aoExcluir={aoExcluir} aoVerVersoes={aoVerVersoes} />)}
     </ul>}
-    <form className={estreita ? 'resposta resposta-fixa-coord' : 'resposta'} onSubmit={e => { e.preventDefault(); aoEnviar(); }}>
+    <form className={estreita ? 'resposta resposta-fixa-coord' : 'resposta'} onSubmit={e => { e.preventDefault(); if (!enviando) aoEnviar(); }}>
       <label htmlFor={campo}>{rotulo}</label>
       <p id={`${campo}-ajuda`} className={estreita ? 'so-leitor' : 'texto-pequeno'}>{ajuda}</p>
-      <textarea id={campo} rows={linhas} maxLength={TEXTO_MAX} aria-describedby={`${campo}-ajuda`} value={texto} onChange={e => aoMudar(e.target.value)} />
+      <textarea id={campo} ref={area} rows={linhas} maxLength={TEXTO_MAX} aria-describedby={`${campo}-ajuda`} value={texto} onChange={e => aoMudar(e.target.value)} />
       <div className="resposta-rodape">
         <p className="texto-pequeno contador">{texto.length} de {TEXTO_MAX}</p>
-        <button type="submit" className="botao principal" disabled={enviando}>{botao}</button>
+        <button type="submit" className="botao principal" aria-disabled={enviando || undefined}>{botao}</button>
       </div>
     </form>
   </div>;
