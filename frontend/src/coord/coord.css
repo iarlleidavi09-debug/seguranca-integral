@@ -205,7 +205,9 @@ select:disabled { background: var(--desabilitado-fundo); color: var(--desabilita
   display: inline-block; border-radius: var(--raio-pill); background: var(--fundo-superficie-2);
   color: var(--texto-principal); font-weight: 700; border: var(--linha-fina) solid var(--borda-suave);
 }
-.casos-mais { position: relative; }
+.casos-mais { min-height: 24px; min-width: 24px; cursor: pointer; font: inherit; font-size: var(--texto-legenda); }
+.casos-chip-extra { display: none; }
+.casos-selos[data-aberto='true'] .casos-chip-extra { display: inline-block; }
 .casos-assunto {
   min-height: 44px; min-width: 44px; padding: var(--espaco-1) 0; background: transparent; border: none; border-radius: var(--raio-sm);
   color: var(--texto-principal); font: inherit; font-weight: 700; text-align: left; cursor: pointer; overflow-wrap: anywhere;
@@ -377,6 +379,8 @@ select:disabled { background: var(--desabilitado-fundo); color: var(--desabilita
   .casos-resumo { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .casos-assunto { min-height: 0; padding: var(--espaco-1) var(--espaco-2); margin-left: calc(var(--espaco-2) * -1); }
   .casos-selos { display: flex; padding-top: var(--espaco-1); }
+  .casos-chip-extra, .casos-selos[data-aberto='true'] .casos-chip-extra { display: inline-block; }
+  .casos-mais { display: none; }
   .casos-acesso::before { content: none; }
   .casos-linha td:first-child { border-left: var(--linha-fina) solid var(--borda-suave); border-radius: var(--raio-sm) 0 0 var(--raio-sm); }
   .casos-linha td:last-child { border-right: var(--linha-fina) solid var(--borda-suave); border-radius: 0 var(--raio-sm) var(--raio-sm) 0; }

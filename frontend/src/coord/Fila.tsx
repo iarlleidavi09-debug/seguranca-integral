@@ -51,10 +51,10 @@ function chipsDoCaso(c: CasoFila): ChipCaso[] {
   const texto = (chave: string, t: string, classe: string) => lista.push({ chave, texto: t, no: <span className={classe}>{t}</span> });
   if (c.status === 'resolvido' && c.atencao?.includes('mensagem_pendente')) texto('volta', 'Aluno voltou a pedir ajuda', 'selo-recorrencia');
   if (c.em_andamento) texto('agora', 'Ocorrendo agora', 'selo-neutro');
+  if (!c.simulacao && demoraPrimeiroAcesso(c)) texto('demora', 'Sem primeiro acesso há mais de 24 horas', 'selo-recorrencia');
   for (const m of c.atencao ?? []) { const t = MOTIVOS_ATENCAO[m] ?? m; lista.push({ chave: `atencao:${m}`, texto: t, no: <span className="casos-motivo">{t}</span> }); }
   if (c.recorrencia_pendente) lista.push({ chave: 'retorno', texto: 'Voltou a acontecer', no: <Retorno /> });
   if (c.canal === 'acolhimento') texto('acolhimento', 'Acolhimento anônimo', 'selo-neutro');
-  if (!c.simulacao && demoraPrimeiroAcesso(c)) texto('demora', 'Sem primeiro acesso há mais de 24 horas', 'selo-recorrencia');
   if (c.simulacao) lista.push({ chave: 'simulacao', texto: 'simulação', no: <Simulacao /> });
   return lista;
 }
@@ -72,6 +72,7 @@ export default function Fila({ modo, meuId, filtros, aoFiltrar, aoAbrir }: Props
   const [atualizando, setAtualizando] = useState(false);
   const [erro, setErro] = useState('');
   const [anuncio, setAnuncio] = useState('');
+  const [expandidos, setExpandidos] = useState<Set<number>>(new Set());
   const [grupos, setGrupos] = useState<GrupoV3[]>([]);
   const [erroCatalogo, setErroCatalogo] = useState('');
   useEffect(() => {
@@ -159,7 +160,7 @@ export default function Fila({ modo, meuId, filtros, aoFiltrar, aoAbrir }: Props
           <option value="">Todas as conversas</option><option value="com_mensagem">Com mensagem</option>
           {Object.entries(CONVERSAS).map(([valor, nome]) => <option key={valor} value={valor}>{nome}</option>)}
         </select></div>
-      <details className="filtros-detalhados"><summary>Filtros detalhados{filtrosAtivos > 0 ? ` (${filtrosAtivos} ativos)` : ''}</summary>
+      <details className="filtros-detalhados"><summary>Filtros detalhados{filtrosAtivos > 0 ? ` (${filtrosAtivos} ${filtrosAtivos === 1 ? 'ativo' : 'ativos'})` : ''}</summary>
       <div className="filtros">
       {!pos && <p className="filtros-ajuda texto-pequeno">Resolvidos também aparecem em atenção quando há mensagem sem resposta, recorrência ou ação vencida. As contagens consideram os filtros selecionados.</p>}
       {!pos && <div><label htmlFor="filtro-atencao">Motivo de atenção</label>
@@ -208,11 +209,12 @@ export default function Fila({ modo, meuId, filtros, aoFiltrar, aoAbrir }: Props
           const estadoConversa = c.conversa_estado ?? 'sem_mensagem';
           const porque = motivoRelevante(c);
           const chips = chipsDoCaso(c);
-          const visiveis = chips.slice(0, 2);
-          const ocultos = chips.slice(2);
-          const textoResponsavel = `Responsável: ${c.responsavel?.nome ?? 'Não atribuído'}${c.responsavel && !c.responsavel.ativo ? ' (conta desativada)' : ''}`
-            + `${c.proxima_acao ? ` · ${c.proxima_acao}${c.prazo_acao ? ` · até ${prazoLegivel(c.prazo_acao)}` : ''}` : ''}`
-            + `${novas === 0 && estadoConversa !== 'sem_mensagem' ? ` · ${CONVERSAS[estadoConversa]}` : ''}`;
+          const ocultos = Math.max(0, chips.length - 2);
+          const aberto = expandidos.has(c.id);
+          const idFaixa = `selos-${c.id}`;
+          const textoResponsavel = `${novas === 0 && estadoConversa !== 'sem_mensagem' ? `${CONVERSAS[estadoConversa]} · ` : ''}`
+            + `Responsável: ${c.responsavel?.nome ?? 'Não atribuído'}${c.responsavel && !c.responsavel.ativo ? ' (conta desativada)' : ''}`
+            + `${c.proxima_acao ? ` · ${c.proxima_acao}${c.prazo_acao ? ` · até ${prazoLegivel(c.prazo_acao)}` : ''}` : ''}`;
           const textoPrevia = c.ultima_mensagem
             ? `${c.ultima_mensagem.autor === 'aluno' ? 'Aluno' : 'Equipe'} · ${dataLegivel(c.ultima_mensagem.criado_em)}: ${c.ultima_mensagem.texto.slice(0, 180)}` : '';
           return <tr key={c.id} role="row" className="casos-linha" data-gravidade={c.prioridade} onClick={e => {
@@ -232,9 +234,11 @@ export default function Fila({ modo, meuId, filtros, aoFiltrar, aoAbrir }: Props
               {c.ultima_mensagem && <span className="casos-previa" title={textoPrevia}>
                 <time dateTime={c.ultima_mensagem.criado_em}>{c.ultima_mensagem.autor === 'aluno' ? 'Aluno' : 'Equipe'} · {dataLegivel(c.ultima_mensagem.criado_em)}</time>
                 {': '}<span>{c.ultima_mensagem.texto.slice(0, 180)}</span></span>}
-              {chips.length > 0 && <div className="casos-selos">
-                {visiveis.map(x => <span key={x.chave} className="casos-chip">{x.no}</span>)}
-                {ocultos.length > 0 && <span className="casos-mais" title={ocultos.map(x => x.texto).join(' · ')}><span aria-hidden="true">+{ocultos.length}</span><span className="so-leitor">e mais: {ocultos.map(x => x.texto).join('; ')}</span></span>}
+              {chips.length > 0 && <div className="casos-selos" id={idFaixa} data-aberto={aberto}>
+                {chips.map((x, i) => <span key={x.chave} className={i < 2 ? 'casos-chip' : 'casos-chip casos-chip-extra'}>{x.no}</span>)}
+                {ocultos > 0 && <button type="button" className="casos-mais" aria-expanded={aberto} aria-controls={idFaixa}
+                  aria-label={aberto ? `Mostrar menos: esconder ${ocultos} ${ocultos === 1 ? 'selo' : 'selos'}` : `Mostrar mais ${ocultos} ${ocultos === 1 ? 'selo' : 'selos'}`}
+                  onClick={() => setExpandidos(atual => { const novo = new Set(atual); if (novo.has(c.id)) novo.delete(c.id); else novo.add(c.id); return novo; })}>+{ocultos}</button>}
               </div>}
             </td>
             <td role="cell" className="casos-prioridade"><Prioridade valor={c.prioridade} /></td>

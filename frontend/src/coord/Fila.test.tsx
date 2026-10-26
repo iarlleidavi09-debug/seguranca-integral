@@ -342,36 +342,56 @@ describe('Fila compacta', () => {
     expect(within(linhas()[0]).getByText('Preciso conversar hoje')).toBeInTheDocument();
   });
 
-  it('mostra no máximo dois motivos de atenção e "+N" para o resto', async () => {
+  it('mostra dois chips e um botão "+N" que expande os escondidos na própria linha', async () => {
     servidor({ 'GET /api/casos': () => ({ corpo: { casos: [
-      caso(1, { atencao: ['sem_resposta', 'mensagem_pendente', 'acao_vencida'], ultimo_acesso_por: 'Ana', ultimo_acesso_em: '2026-10-14T12:00:00+00:00' }),
+      caso(1, { atencao: ['sem_responsavel', 'sem_resposta', 'mensagem_pendente', 'acao_vencida'], ultimo_acesso_por: 'Ana', ultimo_acesso_em: '2026-10-14T12:00:00+00:00' }),
     ] } }) });
     render(<Harness />);
     await screen.findByText('Resumo do caso 1');
-    const motivos = linhas()[0].querySelector('.casos-selos')!;
-    expect(motivos.querySelectorAll('.casos-chip')).toHaveLength(2);
-    const mais = motivos.querySelector('.casos-mais') as HTMLElement;
-    expect(mais).toHaveTextContent('+1');
-    expect(mais.querySelector('.so-leitor')).toHaveTextContent('e mais: Ação vencida');
+    const faixa = linhas()[0].querySelector('.casos-selos') as HTMLElement;
+    expect(faixa.querySelectorAll('.casos-chip:not(.casos-chip-extra)')).toHaveLength(2);
+    const mais = within(faixa).getByRole('button', { name: /mais 2/i });
+    expect(mais).toHaveTextContent('+2');
+    expect(mais).toHaveAttribute('aria-expanded', 'false');
+    expect(faixa).toHaveAttribute('data-aberto', 'false');
+    expect(faixa.querySelectorAll('.casos-chip-extra')).toHaveLength(2);
+    fireEvent.click(mais);
+    expect(mais).toHaveAttribute('aria-expanded', 'true');
+    expect(faixa).toHaveAttribute('data-aberto', 'true');
+    expect(mais).toHaveAttribute('aria-controls', faixa.id);
+    fireEvent.click(mais);
+    expect(mais).toHaveAttribute('aria-expanded', 'false');
   });
 
-  it('junta motivos e selos raros numa faixa só: 2 chips e "+N" com o resto no texto de leitor, em no máximo 4 linhas', async () => {
+  it('o clique no "+N" não abre o caso', async () => {
+    const aoAbrir = vi.fn();
+    servidor({ 'GET /api/casos': () => ({ corpo: { casos: [caso(1, { atencao: ['sem_responsavel', 'sem_resposta', 'acao_vencida'], ultimo_acesso_por: 'Ana', ultimo_acesso_em: '2026-10-14T12:00:00+00:00' })] } }) });
+    render(<Harness aoAbrir={aoAbrir} />);
+    await screen.findByText('Resumo do caso 1');
+    fireEvent.click(within(linhas()[0]).getByRole('button', { name: /mais 1/i }));
+    expect(aoAbrir).not.toHaveBeenCalled();
+  });
+
+  it('ordena os chips: voltou a pedir ajuda, ocorrendo agora, sem primeiro acesso, depois acolhimento e motivos de atenção', async () => {
     servidor({ 'GET /api/casos': () => ({ corpo: { casos: [
-      caso(1, { atencao: ['sem_responsavel', 'sem_resposta', 'mensagem_pendente', 'acao_vencida'], em_andamento: true, canal: 'acolhimento', status: 'resolvido' }),
+      caso(1, { atencao: ['sem_resposta', 'mensagem_pendente'], em_andamento: true, canal: 'acolhimento', status: 'resolvido' }),
     ] } }) });
     render(<Harness />);
     await screen.findByText('Resumo do caso 1');
-    const td = linhas()[0].querySelector('td.casos-caso')!;
-    const faixa = td.querySelector('.casos-selos')!;
-    const chips = faixa.querySelectorAll('.casos-chip');
-    expect(chips).toHaveLength(2);
-    expect(chips[0]).toHaveTextContent('Aluno voltou a pedir ajuda');
-    expect(chips[1]).toHaveTextContent('Ocorrendo agora');
-    const mais = faixa.querySelector('.casos-mais')!;
-    expect(mais.querySelector('[aria-hidden]')).toHaveTextContent('+6');
-    const oculto = mais.querySelector('.so-leitor')!;
-    for (const t of ['Sem responsável ativo', 'Sem primeira resposta', 'Ação vencida', 'Acolhimento anônimo', 'Sem primeiro acesso há mais de 24 horas']) expect(oculto).toHaveTextContent(t);
-    expect(Array.from(td.children).filter(el => !el.classList.contains('so-leitor'))).toHaveLength(4);
+    const faixa = linhas()[0].querySelector('.casos-selos') as HTMLElement;
+    expect(Array.from(faixa.querySelectorAll('.casos-chip')).map(c => c.textContent)).toEqual([
+      'Aluno voltou a pedir ajuda', 'Ocorrendo agora', 'Sem primeiro acesso há mais de 24 horas',
+      'Sem primeira resposta', 'Mensagem do aluno aguardando resposta', 'Acolhimento anônimo',
+    ]);
+    expect(within(faixa).getByRole('button', { name: /mais 4/i })).toHaveTextContent('+4');
+    expect(Array.from(linhas()[0].querySelector('td.casos-caso')!.children).filter(el => !el.classList.contains('so-leitor'))).toHaveLength(4);
+  });
+
+  it('o estado da conversa vem no começo da linha 3', async () => {
+    servidor({ 'GET /api/casos': () => ({ corpo: { casos: [caso(1, { conversa_estado: 'aguardando_equipe', proxima_acao: 'Conversar' })] } }) });
+    render(<Harness />);
+    await screen.findByText('Resumo do caso 1');
+    expect(linhas()[0].querySelector('.casos-meta')!.textContent!.startsWith('Aguardando resposta da equipe · Responsável:')).toBe(true);
   });
 
   it('a linha 3 e a prévia da mensagem têm o texto completo no title e "Por que" fica só para leitor de tela no resumo', async () => {
@@ -403,7 +423,9 @@ describe('Fila compacta', () => {
     expect(detalhes).toContainElement(document.querySelector('.filtros-ajuda') as HTMLElement);
     expect(detalhes.querySelector('summary')).toHaveTextContent('Filtros detalhados');
     fireEvent.change(screen.getByLabelText('Prioridade'), { target: { value: 'alta' } });
-    expect(detalhes.querySelector('summary')).toHaveTextContent('Filtros detalhados (1 ativos)');
+    expect(detalhes.querySelector('summary')).toHaveTextContent('Filtros detalhados (1 ativo)');
+    fireEvent.change(screen.getByLabelText('Tipo'), { target: { value: 'golpe' } });
+    expect(detalhes.querySelector('summary')).toHaveTextContent('Filtros detalhados (2 ativos)');
   });
 
   it('as visões ficam em uma linha rolável e a região de status continua', async () => {
