@@ -108,7 +108,7 @@ function ItemMensagem({ item, aoEditar, aoExcluir, aoVerVersoes }: { item: Item 
         <button ref={botaoManter} type="button" className="botao secundario" disabled={ocupado} onClick={fechar}>Cancelar</button>
       </div>
     </div>}
-    {modo === 'ver' && itensMenu.length > 0 && <div className="mensagem-acoes"><MenuMensagem itens={itensMenu} desabilitado={ocupado} gatilhoRef={gatilho} /></div>}
+    {modo === 'ver' && itensMenu.length > 0 && <div className="mensagem-acoes"><MenuMensagem itens={itensMenu} desabilitado={ocupado} gatilhoRef={gatilho} rotulo={`Ações da mensagem de ${item.autor}, ${dataLegivel(item.criado_em)}`} /></div>}
     {erro && <p className="erro" role="alert">{erro}</p>}
     {versoes && <ul className="mensagem-versoes" aria-label="Versões anteriores">
       {versoes.length === 0 ? <li className="texto-pequeno">Nenhuma versão anterior.</li> : versoes.map(v => <li key={v.id}>
@@ -154,7 +154,7 @@ export default function Conversa({ titulo, campo, rotulo, ajuda, botao, itens, t
     </ul>}
     <form className={estreita ? 'resposta resposta-fixa-coord' : 'resposta'} onSubmit={e => { e.preventDefault(); if (!enviando) aoEnviar(); }}>
       <label htmlFor={campo}>{rotulo}</label>
-      <p id={`${campo}-ajuda`} className={estreita ? 'so-leitor' : 'texto-pequeno'}>{ajuda}</p>
+      <p id={`${campo}-ajuda`} className="texto-pequeno resposta-ajuda">{ajuda}</p>
       <textarea id={campo} ref={area} rows={linhas} maxLength={TEXTO_MAX} aria-describedby={`${campo}-ajuda`} value={texto} onChange={e => aoMudar(e.target.value)} />
       <div className="resposta-rodape">
         <p className="texto-pequeno contador">{texto.length} de {TEXTO_MAX}</p>

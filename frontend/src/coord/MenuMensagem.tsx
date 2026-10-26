@@ -4,8 +4,8 @@ import type { KeyboardEvent, RefObject } from 'react';
 export type ItemMenu = { rotulo: string; aoEscolher: () => void; devolveFoco?: boolean };
 
 /** Menu "⋯" de uma mensagem: botão-gatilho e lista role="menu" com navegação por teclado. */
-export default function MenuMensagem({ itens, desabilitado, gatilhoRef }: {
-  itens: ItemMenu[]; desabilitado: boolean; gatilhoRef: RefObject<HTMLButtonElement | null>;
+export default function MenuMensagem({ itens, desabilitado, gatilhoRef, rotulo = 'Ações da mensagem' }: {
+  itens: ItemMenu[]; desabilitado: boolean; rotulo?: string; gatilhoRef: RefObject<HTMLButtonElement | null>;
 }) {
   const [aberto, setAberto] = useState(false), [acima, setAcima] = useState(false);
   const raiz = useRef<HTMLDivElement>(null);
@@ -39,7 +39,7 @@ export default function MenuMensagem({ itens, desabilitado, gatilhoRef }: {
 
   return <div ref={raiz} className="mensagem-menu">
     <button ref={gatilhoRef} type="button" className="mensagem-menu-gatilho" aria-haspopup="menu" aria-expanded={aberto}
-      aria-label="Ações da mensagem" aria-disabled={desabilitado || undefined} onClick={() => {
+      aria-label={rotulo} aria-disabled={desabilitado || undefined} onClick={() => {
         if (desabilitado) return;
         // Mensagem na metade inferior da tela: abre para cima para não cobrir o compositor fixo.
         const topo = gatilhoRef.current?.getBoundingClientRect?.()?.top;

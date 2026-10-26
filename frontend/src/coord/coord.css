@@ -321,7 +321,10 @@ select:disabled { background: var(--desabilitado-fundo); color: var(--desabilita
 .resposta-rodape { display: flex; align-items: center; justify-content: space-between; gap: var(--espaco-3); }
 .resposta-rodape .contador { margin: 0; }
 @media (max-width: 760px) {
+  html { scroll-padding-bottom: calc(var(--espaco-16) * 4); }
   .painel-aba .resposta-fixa-coord { position: sticky; bottom: 0; z-index: 1; margin-top: var(--espaco-4); padding: var(--espaco-2) 0 calc(var(--espaco-2) + env(safe-area-inset-bottom)); background: var(--fundo-base); border-top: var(--linha-fina) solid var(--borda-forte); }
+  .resposta-fixa-coord .resposta-ajuda { margin: 0 0 var(--espaco-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .resposta-fixa-coord label { margin-bottom: 0; }
   .resposta-fixa-coord textarea { width: 100%; box-sizing: border-box; line-height: 1.5; resize: none; }
   .resposta-fixa-coord .resposta-rodape { margin-top: var(--espaco-1); }
   .resposta-fixa-coord .resposta-rodape .botao { min-height: 44px; margin: 0; flex: none; white-space: nowrap; padding-inline: var(--espaco-4); }

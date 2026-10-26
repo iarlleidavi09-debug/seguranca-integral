@@ -11,7 +11,7 @@ const montar = (itens: Item[], props: Partial<Parameters<typeof Conversa>[0]> = 
     aoMudar={() => {}} aoEnviar={() => {}} {...props} />);
 
 type Usuario = ReturnType<typeof userEvent.setup>;
-const gatilho = () => screen.getByRole('button', { name: 'Ações da mensagem' });
+const gatilho = () => screen.getByRole('button', { name: /^Ações da mensagem de /  });
 const escolher = async (user: Usuario, nome: string) => {
   await user.click(gatilho());
   await user.click(screen.getByRole('menuitem', { name: nome }));
@@ -23,7 +23,7 @@ describe('Conversa: editar e excluir', () => {
     montar([item(), item({ chave: 1, id: 8, podeAlterar: false })], { aoEditar: async () => {}, aoExcluir: async () => {} });
     expect(screen.queryByRole('button', { name: 'Editar' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Excluir' })).toBeNull();
-    expect(screen.getAllByRole('button', { name: 'Ações da mensagem' })).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: /^Ações da mensagem de /  })).toHaveLength(1);
     await user.click(gatilho());
     expect(screen.getByRole('menuitem', { name: 'Editar' })).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: 'Excluir' })).toBeInTheDocument();
@@ -32,7 +32,7 @@ describe('Conversa: editar e excluir', () => {
   it('sem as ações o componente não mostra gatilho nem botões de alteração', () => {
     montar([item()]);
     expect(screen.queryByRole('button', { name: 'Editar' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Ações da mensagem' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Ações da mensagem de /  })).toBeNull();
   });
 
   it('Editar abre o campo com o texto atual e foco; Salvar chama aoEditar com o texto novo', async () => {
@@ -135,7 +135,7 @@ describe('Conversa: editar e excluir', () => {
     expect(screen.getByText('Mensagem apagada')).toBeInTheDocument();
     expect(screen.queryByText('segredo')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Editar' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Ações da mensagem' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Ações da mensagem de /  })).toBeNull();
   });
 
   it('item editado mostra "editada" e Ver versões lista as versões', async () => {
@@ -294,7 +294,7 @@ describe('Conversa: menu de ações da mensagem', () => {
   it('sem permissão e sem versões não há gatilho; editada sem permissão tem só Ver versões', async () => {
     const user = userEvent.setup();
     const { unmount } = montar([item({ podeAlterar: false })], { ...acoes, aoVerVersoes: async () => [] });
-    expect(screen.queryByRole('button', { name: 'Ações da mensagem' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Ações da mensagem de /  })).toBeNull();
     unmount();
     montar([item({ podeAlterar: false, editada: true })], { ...acoes, aoVerVersoes: async () => [] });
     await user.click(gatilho());
@@ -323,6 +323,30 @@ describe('Conversa: campo de nova mensagem no celular', () => {
     vi.unstubAllGlobals();
     montar([]);
     expect(campoMensagem().closest('form')).not.toHaveClass('resposta-fixa-coord');
+  });
+});
+
+describe('Conversa: rótulos', () => {
+  it('cada gatilho do menu leva o autor e a data no nome', () => {
+    montar([item({ autor: 'Marina', criado_em: '2026-10-14T10:00:00+00:00' }), item({ chave: 1, id: 8, autor: 'Paulo', criado_em: '2026-10-15T10:00:00+00:00' })], { aoEditar: async () => {} });
+    const nomes = screen.getAllByRole('button', { name: /^Ações da mensagem de / }).map(b => b.getAttribute('aria-label'));
+    expect(nomes[0]).toMatch(/^Ações da mensagem de Marina, .*14/);
+    expect(nomes[1]).toMatch(/^Ações da mensagem de Paulo, .*15/);
+  });
+
+  it('em tela estreita a ajuda fica visível, curta, e continua como descrição do campo', () => {
+    vi.stubGlobal('matchMedia', (consulta: string) => ({ matches: true, media: consulta, addEventListener: () => {}, removeEventListener: () => {} }));
+    try {
+      for (const ajuda of ['O aluno lê esta mensagem no acompanhamento.', 'Só a coordenação vê. O aluno nunca recebe esta nota.']) {
+        const { unmount } = montar([], { ajuda });
+        const texto = screen.getByText(ajuda);
+        expect(texto).not.toHaveClass('so-leitor');
+        expect(texto).toHaveClass('texto-pequeno');
+        expect(texto).toHaveClass('resposta-ajuda');
+        expect(screen.getByRole('textbox', { name: 'Mensagem' })).toHaveAccessibleDescription(ajuda);
+        unmount();
+      }
+    } finally { vi.unstubAllGlobals(); }
   });
 });
 
