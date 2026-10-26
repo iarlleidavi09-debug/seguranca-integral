@@ -213,3 +213,17 @@ it('o CSS não fixa o tamanho dos rótulos do gráfico, para valer o atributo fo
   for (const m of regras) expect(m[2]).not.toMatch(/(^|[;\s])font(-size)?\s*:/);
   expect(css).toMatch(/\.relatorio-grafico svg\s*\{[^}]*min-width:\s*900px/);
 });
+
+it('na impressão o gráfico cabe na página: sem largura mínima e sem rolagem', () => {
+  const css = readFileSync('src/coord/fluent.css', 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  const impressao = css.slice(css.search(/@media\s+print/));
+  expect(impressao).toMatch(/\.relatorio-grafico svg\s*\{[^}]*min-width:\s*0[^}]*width:\s*100%/);
+  expect(impressao).toMatch(/\.grafico-area\s*\{[^}]*overflow:\s*visible/);
+});
+
+it('o aviso de pouco histórico usa borda completa fina, sem acento lateral', () => {
+  const css = readFileSync('src/coord/fluent.css', 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  const regra = css.match(/\.relatorio-pouco-historico\s*\{([^}]*)\}/)![1];
+  expect(regra).not.toMatch(/border-left/);
+  expect(regra).toMatch(/border:\s*var\(--linha-fina\)\s+solid\s+var\(--borda-suave\)/);
+});
