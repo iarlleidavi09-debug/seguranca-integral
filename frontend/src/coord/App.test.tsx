@@ -106,7 +106,7 @@ describe('Casca da coordenação', () => {
 });
 
 describe('Casca: barra lateral e cabeçalho', () => {
-  it('a barra lateral tem marca, rodapé com a sessão e navegação no HTML (rodapé antes da navegação para o Tab no celular; no desktop a ordem visual é por CSS)', async () => {
+  it('a barra lateral tem, nesta ordem, marca, navegação e rodapé com a sessão', async () => {
     const { container } = abrir(admin);
     const nav = await screen.findByRole('navigation', { name: 'Principal' });
     const lateral = container.querySelector('.coord-lateral') as HTMLElement;
@@ -116,8 +116,8 @@ describe('Casca: barra lateral e cabeçalho', () => {
     const rodape = lateral.querySelector('.coord-lateral-rodape') as HTMLElement;
     const iRodape = filhos.indexOf(rodape);
     expect(marca).toBeGreaterThanOrEqual(0);
-    expect(marca).toBeLessThan(iRodape);
-    expect(iRodape).toBeLessThan(iNav);
+    expect(marca).toBeLessThan(iNav);
+    expect(iNav).toBeLessThan(iRodape);
     expect(within(rodape).getByText('Marina')).toBeInTheDocument();
     expect(within(rodape).getByRole('button', { name: 'Sair' })).toBeInTheDocument();
     expect(within(rodape).getByRole('button', { name: 'Pausar efeito' })).toBeInTheDocument();
