@@ -7,7 +7,7 @@ export type ItemMenu = { rotulo: string; aoEscolher: () => void; devolveFoco?: b
 export default function MenuMensagem({ itens, desabilitado, gatilhoRef }: {
   itens: ItemMenu[]; desabilitado: boolean; gatilhoRef: RefObject<HTMLButtonElement | null>;
 }) {
-  const [aberto, setAberto] = useState(false);
+  const [aberto, setAberto] = useState(false), [acima, setAcima] = useState(false);
   const raiz = useRef<HTMLDivElement>(null);
   const botoes = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -39,8 +39,14 @@ export default function MenuMensagem({ itens, desabilitado, gatilhoRef }: {
 
   return <div ref={raiz} className="mensagem-menu">
     <button ref={gatilhoRef} type="button" className="mensagem-menu-gatilho" aria-haspopup="menu" aria-expanded={aberto}
-      aria-label="Ações da mensagem" aria-disabled={desabilitado || undefined} onClick={() => { if (!desabilitado) setAberto(a => !a); }}>⋯</button>
-    {aberto && <ul role="menu" aria-label="Ações da mensagem" className="mensagem-menu-lista" onKeyDown={teclas}>
+      aria-label="Ações da mensagem" aria-disabled={desabilitado || undefined} onClick={() => {
+        if (desabilitado) return;
+        // Mensagem na metade inferior da tela: abre para cima para não cobrir o compositor fixo.
+        const topo = gatilhoRef.current?.getBoundingClientRect?.()?.top;
+        setAcima(topo !== undefined && topo > window.innerHeight / 2);
+        setAberto(a => !a);
+      }}>⋯</button>
+    {aberto && <ul role="menu" aria-label="Ações da mensagem" className={acima ? 'mensagem-menu-lista abre-para-cima' : 'mensagem-menu-lista'} onKeyDown={teclas}>
       {itens.map((item, i) => <li key={item.rotulo} role="none">
         <button ref={el => { botoes.current[i] = el; }} type="button" role="menuitem" tabIndex={-1} onClick={() => escolher(item)}>{item.rotulo}</button>
       </li>)}
