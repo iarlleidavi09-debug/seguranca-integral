@@ -51,7 +51,7 @@ LIVRES = {"coord.api_desconhecida", "coord.spa"}
 # rotas que dispensam sessão, mas ainda exigem JSON quando alteram estado
 SEM_SESSAO = {"coord.login", "coord.saude", "coord.setup_estado", "coord.setup"}
 # rotas só do administrador
-SO_ADMIN = {"coord.usuarios", "coord.criar_usuario", "coord.desativar",
+SO_ADMIN = {"coord.usuarios", "coord.criar_usuario", "coord.desativar", "coord.remover_usuario",
             "coord.implantacao", "coord.limpar_implantacao"}
 # cabeçalhos que o túnel acrescenta: pedido que os traz não veio da máquina
 CABECALHOS_DE_PROXY = ("CF-Connecting-IP", "X-Forwarded-For", "X-Forwarded-Proto",
@@ -616,6 +616,21 @@ def desativar(usuario_id: int):
     if existe is None:
         return _nao_encontrado()
     auth.desativar_usuario(conn, usuario_id)
+    publicar(None)
+    return jsonify({"ok": True})
+
+
+@bp.delete("/api/usuarios/<int:usuario_id>")
+def remover_usuario(usuario_id: int):
+    resultado = auth.remover_usuario(_db(), usuario_id, atual_id=g.usuario["id"])
+    if resultado == "inexistente":
+        return _nao_encontrado()
+    if resultado != "ok":
+        return _erro({
+            "propria": "nao e possivel remover a propria conta",
+            "primeiro_admin": "nao e possivel remover o primeiro administrador",
+            "ultimo_admin": "nao e possivel remover o ultimo administrador ativo",
+        }[resultado])
     publicar(None)
     return jsonify({"ok": True})
 

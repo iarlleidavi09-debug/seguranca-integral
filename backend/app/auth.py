@@ -227,3 +227,49 @@ def gerar_senha_inicial() -> str:
         senha = "".join(secrets.choice(_ALFABETO_SENHA) for _ in range(16))
         if any(c.isdigit() for c in senha) and any(c.isalpha() for c in senha):
             return senha
+
+
+def remover_usuario(conn: sqlite3.Connection, usuario_id: int, *, atual_id: int) -> str:
+    """Remove a conta de vez, mantendo o histórico dos casos sem autor.
+
+    Devolve "ok", "inexistente", "propria", "primeiro_admin" ou "ultimo_admin".
+    As colunas que apontam para o usuário viram NULL (o caso continua; só some
+    o nome de quem agiu) e as linhas que dependem só dele (leituras) saem por
+    ON DELETE CASCADE. Tudo numa transação.
+    """
+    if usuario_id == atual_id:
+        return "propria"
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        alvo = conn.execute(
+            "SELECT papel, ativo FROM usuarios WHERE id = ?", (usuario_id,)
+        ).fetchone()
+        if alvo is None:
+            conn.rollback()
+            return "inexistente"
+        if alvo["papel"] == "admin":
+            primeiro = conn.execute(
+                "SELECT MIN(id) FROM usuarios WHERE papel = 'admin'").fetchone()[0]
+            if usuario_id == primeiro:
+                conn.rollback()
+                return "primeiro_admin"
+            outros = conn.execute(
+                "SELECT COUNT(*) FROM usuarios WHERE papel = 'admin' AND ativo = 1 AND id <> ?",
+                (usuario_id,)).fetchone()[0]
+            if alvo["ativo"] and outros == 0:
+                conn.rollback()
+                return "ultimo_admin"
+        tabelas = [t[0] for t in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")]
+        for tabela in tabelas:
+            for fk in conn.execute(f'PRAGMA foreign_key_list("{tabela}")').fetchall():
+                if fk["table"] == "usuarios" and fk["on_delete"].upper() != "CASCADE":
+                    conn.execute(
+                        f'UPDATE "{tabela}" SET "{fk["from"]}" = NULL WHERE "{fk["from"]}" = ?',
+                        (usuario_id,))
+        conn.execute("DELETE FROM usuarios WHERE id = ?", (usuario_id,))
+        conn.commit()
+    except BaseException:
+        conn.rollback()
+        raise
+    return "ok"

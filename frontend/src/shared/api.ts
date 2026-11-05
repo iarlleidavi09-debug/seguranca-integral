@@ -160,6 +160,7 @@ export type QuestionarioCaso = {
   dimensoes: { id: string; rotulo: string; itens: { pergunta: string; respostas: string[] }[] }[];
 };
 export type CasoDetalhe = Omit<CasoFila, 'resumo' | 'ultimo_acesso_por' | 'ultimo_acesso_em'> & {
+  codigo_acompanhamento?: string | null;
   relato: string; quando: string | null; onde: string | null;
   nome: string | null; turma: string | null; prioridade_original: Prioridade;
   ano_relator?: string | null; sala_relator?: string | null; local_id?: string | null; local_nome?: string | null; local_outro?: string | null;
@@ -292,6 +293,7 @@ export async function listarUsuarios(sinal?: AbortSignal): Promise<UsuarioLista[
 }
 export const criarUsuario = (nome: string, senha: string) => coord<{ id: number; nome: string }>('POST', '/api/usuarios', { nome, senha });
 export const desativarUsuario = (usuarioId: number) => coord<{ ok: boolean }>('POST', `/api/usuarios/${id(usuarioId)}/desativar`);
+export const removerUsuario = (usuarioId: number) => coord<{ ok: boolean }>('DELETE', `/api/usuarios/${id(usuarioId)}`, {});
 export const carregarSimulacao = () => coord<{ criados: number }>('POST', '/api/simulacao/carregar');
 export const removerSimulacao = () => coord<{ removidos: number }>('DELETE', '/api/simulacao');
 

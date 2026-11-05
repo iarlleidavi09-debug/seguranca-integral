@@ -276,6 +276,20 @@ describe('Usuários e ensaio', () => {
     expect(envio.corpo).toEqual({});
   });
 
+  it('remove uma conta só depois de confirmar e não oferece remover a própria', async () => {
+    const user = await abrir('/#usuarios', { 'DELETE /api/usuarios/3': () => ({ corpo: { ok: true } }) });
+    expect(await screen.findByText('Rita')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Remover Marina' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Remover Rita' }));
+    expect(chamadasA('DELETE', '/api/usuarios/3')).toHaveLength(0);
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(chamadasA('DELETE', '/api/usuarios/3')).toHaveLength(0);
+    await user.click(screen.getByRole('button', { name: 'Remover Rita' }));
+    await user.click(screen.getByRole('button', { name: 'Confirmar remoção' }));
+    await screen.findByText('Usuário Rita removido.');
+    expect(chamadasA('DELETE', '/api/usuarios/3')).toHaveLength(1);
+  });
+
   it('mostra o papel de cada pessoa em texto', async () => {
     await abrir('/#usuarios');
     const itens = (await screen.findAllByRole('listitem')).filter(li => li.classList.contains('usuario'));
