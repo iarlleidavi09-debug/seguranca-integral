@@ -6,6 +6,7 @@ import {
 } from '../shared/api';
 import type { CasoDetalhe, DadosResolucao, Prioridade as ValorPrioridade } from '../shared/api';
 import Anexos from './Anexos';
+import Integridade from './Integridade';
 import Conversa, { TEXTO_MAX } from './Conversa';
 import RespostasAluno from './RespostasAluno';
 import PosResolucao from './PosResolucao';
@@ -343,6 +344,7 @@ export default function Caso({ id, aoVoltar, aoMudar, abaInicial = 'relato', ane
             </section>}
             <h2 className={caso.anexos.length === 0 ? 'so-leitor' : undefined}>Anexos</h2>
             <Anexos caso={caso} anexoInicial={anexoInicial} imagemPrevia={imagemPrevia} />
+            {caso.anexos.length > 0 && <Integridade casoId={caso.id} />}
           </>}
           {aba === 'conversa' && <Conversa titulo="Conversa com o aluno" campo="texto-mensagem" rotulo="Mensagem ao aluno" ajuda="O aluno lê esta mensagem no acompanhamento."
             ferramenta={<ModelosResposta key={id} textoAtual={rascunho.mensagens} ocupado={ocupado} aoInserir={texto => setRascunho(r => ({ ...r, mensagens: texto }))} />}

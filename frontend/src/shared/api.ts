@@ -246,6 +246,13 @@ export const obterRelatorio = (inicio: string, fim: string, sinal?: AbortSignal)
 export const detalheCaso = (casoId: number, sinal?: AbortSignal) => coord<CasoDetalhe>('GET', `/api/casos/${id(casoId)}`, undefined, sinal);
 export const registrarLeituraConversa = (casoId: number, ultimo_id: number) => coord<{ ok: boolean }>('POST', `/api/casos/${id(casoId)}/conversa/lida`, { ultimo_id });
 export const urlExportacao = (casoId: number) => `/api/casos/${id(casoId)}/exportacao`;
+export type EstadoIntegridade = 'integro' | 'divergente' | 'sem_registro' | 'ausente';
+export type IntegridadeCaso = {
+  anexos: { id: number; recebido_em: string | null; sha256: string | null; estado: EstadoIntegridade }[];
+  pode_exportar: boolean;
+};
+export const integridadeCaso = (casoId: number, sinal?: AbortSignal) => coord<IntegridadeCaso>('GET', `/api/casos/${id(casoId)}/integridade`, undefined, sinal);
+export const urlDossie = (casoId: number) => `/api/casos/${id(casoId)}/dossie`;
 export type DadosAtendimento = { responsavel_id: number | null; proxima_acao: string; prazo_acao: string | null };
 export const listarEquipe = (sinal?: AbortSignal) => coord<{ usuarios: { id: number; nome: string }[] }>('GET', '/api/equipe', undefined, sinal);
 export const salvarAtendimento = (casoId: number, dados: DadosAtendimento, revisao_estado: number) => coord('POST', `/api/v3/casos/${id(casoId)}/atendimento`, { ...dados, revisao_estado });

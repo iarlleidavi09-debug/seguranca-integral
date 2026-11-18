@@ -94,6 +94,8 @@ def _escapar(texto: str) -> bytes:
 
 
 def _quebrar(linha: str) -> list[str]:
+    # caracteres de controle (de nomes de usuário, por exemplo) viram espaço
+    linha = "".join(" " if ord(c) < 32 or ord(c) == 127 else c for c in linha)
     if not linha:
         return [""]
     return [linha[i:i + _COLUNAS] for i in range(0, len(linha), _COLUNAS)]
