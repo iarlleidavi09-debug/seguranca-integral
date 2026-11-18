@@ -1,4 +1,4 @@
-# Segurança Integral 3.1.0
+# TETRAGUARD 3.1.0
 
 Contexto confirmado pelo usuário em 16/10/2026, consolidado da especificação v3 aprovada. Não é uma nova entrevista nem altera o escopo aprovado.
 
@@ -8,13 +8,13 @@ Canal escolar de pedidos de ajuda e acompanhamento. Alunos relatam situações v
 
 ## Superfícies
 
-- Portal do aluno: celular e desktop na LAN escolar; situação, perguntas opcionais, relato, provas/revisão, confirmação e conversa pelo código.
+- Portal do aluno: celular e desktop; situação, perguntas opcionais, relato, provas/revisão, confirmação e conversa pelo código.
 - Coordenação: visão geral, casos, detalhe, conversa, notas internas, histórico, resolução, pós-resolução, usuários e ensaio.
-- Operação: servidor Windows com dois portais, instalador LAN e monitor CLI somente leitura.
+- Operação vigente: sistema hospedado para uma escola. O instalador Windows, os recursos LAN e o monitor CLI presentes nesta base registram a distribuição anterior.
 
 ## Objetivos confirmados
 
-Categorias colapsáveis com descrições simples, perguntas sem repetição, cada opção e resposta com peso, coordenação trabalhando simultaneamente com atualização automática, funcionamento sem serviços externos na rede local.
+Categorias colapsáveis com descrições simples, perguntas sem repetição, cada opção e resposta com peso, coordenação trabalhando simultaneamente com atualização automática. Em 16/11/2026, o usuário confirmou a operação hospedada para uma escola e identificou esta pasta como a base principal a atualizar.
 
 ## Compromissos
 

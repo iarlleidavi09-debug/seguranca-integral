@@ -37,9 +37,9 @@ describe('Início do aluno', () => {
     expect(screen.queryByText('Como usar este canal')).not.toBeInTheDocument();
     expect(screen.queryByText('Já conversou com a gente?')).not.toBeInTheDocument();
   });
-  it('abertura tem uma frase só', () => {
+  it('abertura explica que o aluno pode relatar no próprio ritmo e sem informar o nome', () => {
     render(<Inicio onAjuda={() => {}} onAcompanhar={() => {}} />);
-    expect(screen.getByText('Se algo está te preocupando, na escola, na internet ou em casa, conte para a coordenação. No seu tempo e sem precisar dizer seu nome.')).toBeInTheDocument();
+    expect(screen.getByText('Se algo está te preocupando, na escola, na internet ou em casa, você pode começar contando o que consegue. Não precisa saber o nome da situação nem ter todas as respostas. A coordenação pode conversar com você por aqui, e seu nome é opcional.')).toBeInTheDocument();
     expect(screen.queryByText(/Para iniciar uma denúncia, toque em/)).not.toBeInTheDocument();
   });
   it('linha de privacidade sempre visível', () => {
@@ -70,11 +70,13 @@ describe('Início do aluno', () => {
     await user.click(screen.getByRole('button', { name: 'Acompanhar' }));
     expect(onAcompanhar).toHaveBeenCalledWith('k7m2 9qxd');
   });
-  it('o consentimento explica uso na LAN, registros de rede e prazo do rascunho', () => {
+  it('o consentimento explica o canal escolar, registros de acesso e prazo do rascunho', () => {
     const { container } = render(<Inicio onAjuda={() => {}} onAcompanhar={() => {}} />);
     const bloco = container.querySelectorAll('details.recolhivel')[1] as HTMLElement;
-    expect(bloco).toHaveTextContent('Ao enviar, a escola guarda seu relato, as imagens e as mensagens para cuidar do caso. Seu nome é opcional. Na denúncia, ano e sala são obrigatórios; no acolhimento anônimo, não pedimos nome, ano ou turma.');
-    expect(bloco).toHaveTextContent('Este canal funciona na rede local da escola. Mesmo sem informar seu nome, horários de acesso podem aparecer nos registros da rede.');
+    expect(bloco).toHaveTextContent('Ao enviar, a escola guarda seu relato, as imagens aceitas e as mensagens para acompanhar o caso. Seu nome é opcional no pedido de ajuda, mas ano e sala são obrigatórios. No acolhimento sem identificação, não pedimos nome, ano ou turma.');
+    expect(bloco).toHaveTextContent('Mesmo sem informar seu nome, o relato pode conter detalhes que identifiquem você ou outras pessoas.');
+    expect(bloco).toHaveTextContent('quem tiver esse código poderá acessar a conversa do caso.');
+    expect(bloco).toHaveTextContent('Este é um canal da sua escola. Mesmo sem informar seu nome, horários de acesso podem aparecer nos registros do serviço ou da rede.');
     expect(bloco).not.toHaveTextContent('anonimato total');
     expect(bloco).toHaveTextContent('O texto do rascunho fica neste navegador por até 24 horas ou até o envio. As imagens não ficam no rascunho. Evite usar um aparelho compartilhado.');
   });

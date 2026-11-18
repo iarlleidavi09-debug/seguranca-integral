@@ -15,6 +15,7 @@ import MetalLiquido from './MetalLiquido';
 import type { Tela } from './Navegacao';
 import { useTempoReal } from '../shared/tempoReal';
 import { limparRascunhosAtendimento } from './rascunhosAtendimento';
+import './qualidadedevida-fila.css';
 
 const FILTROS_VAZIOS: FiltrosFila = { status: '', prioridade: '', tipo: '', q: '' };
 
@@ -49,6 +50,7 @@ export default function App() {
   const [filtrosMeus, setFiltrosMeus] = useState<FiltrosFila>(FILTROS_VAZIOS);
   const [filtrosPos, setFiltrosPos] = useState<FiltrosFila>(FILTROS_VAZIOS);
   const [tela, setTela] = useState<Tela>(telaDoEndereco);
+  const [origemFila, setOrigemFila] = useState<{ tela: 'atendimento' | 'casos' | 'pos'; ids: number[]; id: number; rolagem: number } | null>(null);
   const main = useRef<HTMLElement>(null);
   const atual = useRef(sessao);
   atual.current = sessao;
@@ -57,6 +59,7 @@ export default function App() {
     // qualquer chamada que responda 401 devolve a pessoa ao Login
     ouvirSessaoPerdida(() => {
       limparRascunhosAtendimento();
+      setOrigemFila(null);
       if (atual.current !== null && atual.current !== 'verificando') setPerdida(true);
       setSessao(null);
     });
@@ -127,6 +130,7 @@ export default function App() {
 
   async function encerrar() {
     limparRascunhosAtendimento();
+    setOrigemFila(null);
     try { await sair(); } catch { /* o cookie vence sozinho; a tela de entrada aparece de qualquer forma */ }
     limparRascunhosAtendimento();
     setPerdida(false); setSessao(null); setMapaVisitado(false); setTela({ nome: 'geral' }); setFiltros(FILTROS_VAZIOS); setFiltrosPos(FILTROS_VAZIOS); setFiltrosMeus(FILTROS_VAZIOS);
@@ -143,12 +147,24 @@ export default function App() {
   }
 
   const admin = sessao.papel === 'admin';
-  const abrirCaso = (id: number) => ir({ nome: 'caso', id });
+  const abrirCaso = (id: number, orderedIds?: number[]) => {
+    if (orderedIds && (telaVisivel.nome === 'atendimento' || telaVisivel.nome === 'casos' || telaVisivel.nome === 'pos')) {
+      setOrigemFila({ tela: telaVisivel.nome, ids: orderedIds, id, rolagem: window.scrollY });
+    } else setOrigemFila(null);
+    ir({ nome: 'caso', id });
+  };
+  const indiceCaso = telaVisivel.nome === 'caso' ? origemFila?.ids.indexOf(telaVisivel.id) ?? -1 : -1;
+  const navegarCaso = (passo: number) => {
+    const id = origemFila?.ids[indiceCaso + passo];
+    if (id === undefined || !origemFila) return;
+    setOrigemFila({ ...origemFila, id });
+    ir({ nome: 'caso', id });
+  };
   return <div className="coord-app">
     <a className="pular" href="#conteudo" onClick={e => { e.preventDefault(); main.current?.focus(); }}>Pular para o conteúdo</a>
     <div className="coord-layout">
       <div className="coord-lateral">
-        <div className="coord-marca-linha"><p className="marca">TETRA-GUARD <span>Coordenação</span></p></div>
+        <div className="coord-marca-linha"><p className="marca">TETRAGUARD <span>Coordenação</span></p><p className="coord-proposito">Cuidado e convivência escolar</p></div>
         <Navegacao tela={telaVisivel} admin={admin} pendencias={pendencias} aoIr={ir} />
         <div className="coord-lateral-rodape">
           <div className="sessao"><span className="sessao-nome">{sessao.nome}</span>
@@ -161,10 +177,20 @@ export default function App() {
           <span className="texto-pequeno" role="status">{conexao === 'online' ? 'Atualizações ao vivo' : conexao === 'conectando' ? 'Conectando às atualizações' : 'Reconectando; atualização a cada 8 segundos'}</span></div>
         <main id="conteudo" ref={main} tabIndex={-1} className="painel">
           {telaVisivel.nome === 'geral' && <Geral aoVerCasos={verCasos} aoAbrirCaso={abrirCaso} />}
-          {telaVisivel.nome === 'atendimento' && <Fila modo="casos" meuId={sessao.id} filtros={filtrosMeus} aoFiltrar={setFiltrosMeus} aoAbrir={abrirCaso} />}
-          {telaVisivel.nome === 'casos' && <Fila modo="casos" filtros={filtros} aoFiltrar={setFiltros} aoAbrir={abrirCaso} />}
-          {telaVisivel.nome === 'pos' && <Fila modo="pos" filtros={filtrosPos} aoFiltrar={setFiltrosPos} aoAbrir={abrirCaso} />}
-          {telaVisivel.nome === 'caso' && <Caso key={telaVisivel.id} id={telaVisivel.id} aoVoltar={() => ir({ nome: 'casos' })} aoMudar={atualizarResumo} />}
+          {telaVisivel.nome === 'atendimento' && <Fila modo="casos" userId={sessao.id} meuId={sessao.id} filtros={filtrosMeus} aoFiltrar={setFiltrosMeus} aoAbrir={abrirCaso} retorno={origemFila?.tela === 'atendimento' ? origemFila : undefined} />}
+          {telaVisivel.nome === 'casos' && <Fila modo="casos" userId={sessao.id} filtros={filtros} aoFiltrar={setFiltros} aoAbrir={abrirCaso} retorno={origemFila?.tela === 'casos' ? origemFila : undefined} />}
+          {telaVisivel.nome === 'pos' && <Fila modo="pos" userId={sessao.id} filtros={filtrosPos} aoFiltrar={setFiltrosPos} aoAbrir={abrirCaso} retorno={origemFila?.tela === 'pos' ? origemFila : undefined} />}
+          {telaVisivel.nome === 'caso' && <>
+            {origemFila && indiceCaso >= 0 && <div className="fila-navegar" role="group" aria-label="Navegar nos casos da fila">
+              <p className="texto-pequeno">{origemFila.tela === 'atendimento' ? 'Meu atendimento' : origemFila.tela === 'pos' ? 'Pós-resolução' : 'Casos'} · {indiceCaso + 1} de {origemFila.ids.length} na fila selecionada</p>
+              <div><button type="button" className="botao secundario" disabled={indiceCaso === 0} onClick={() => navegarCaso(-1)}>Caso anterior</button>
+              <button type="button" className="botao secundario" disabled={indiceCaso === origemFila.ids.length - 1} onClick={() => navegarCaso(1)}>Próximo caso</button></div>
+            </div>}
+            <Caso key={telaVisivel.id} id={telaVisivel.id} aoVoltar={() => {
+              if (origemFila) setOrigemFila({ ...origemFila, id: telaVisivel.id });
+              ir({ nome: origemFila?.tela ?? 'casos' });
+            }} aoMudar={atualizarResumo} />
+          </>}
           {telaVisivel.nome === 'usuarios' && <Usuarios meuId={sessao.id} aoLimpar={atualizarResumo} />}
           {telaVisivel.nome === 'ensaio' && <Ensaio />}
           {telaVisivel.nome === 'relatorios' && <Relatorios />}

@@ -1,0 +1,103 @@
+ATUALIZAÇÃO DE TEXTO 1 DE 4: NOME E APRESENTAÇÃO
+
+No projeto já existente na Imagi, adote TETRAGUARD como nome oficial, sempre sem hífen. Substitua o nome exibido em cabeçalhos, menus, títulos das abas, metadados, rodapés e textos de arquivos exportados. Não troque chaves de armazenamento, códigos de acompanhamento ou identificadores técnicos que preservam dados existentes. Não invente um significado para a palavra TETRAGUARD nem explique seu nome como uma sigla.
+
+Reescreva a apresentação com o conteúdo abaixo. Preserve as funções, rotas e identidade visual existentes. Ajuste a composição para comportar os parágrafos sem comprimi-los em cartões pequenos. Não transforme os formulários do estudante em textos institucionais longos. Os títulos e textos a seguir são conteúdo da página; as orientações deste primeiro bloco não devem aparecer na interface. Não publique nem compartilhe com a turma.
+
+IDENTIFICAÇÃO
+Nome: TETRAGUARD
+Descrição curta: Pedidos de ajuda e acompanhamento escolar.
+Identificação desta versão: Protótipo interativo com dados fictícios.
+Título da aba: TETRAGUARD | Escuta e acompanhamento escolar
+Descrição da página: Conheça a proposta do TETRAGUARD: facilitar pedidos de ajuda e organizar a conversa, o registro das providências e o acompanhamento pela equipe escolar. Explore uma demonstração com dados fictícios.
+
+ABERTURA
+Título: A escola precisa ouvir o que nem sempre é fácil contar.
+
+Texto principal:
+Contar uma situação difícil pode envolver vergonha, medo de exposição ou a dúvida sobre quem procurar. Do outro lado, a equipe escolar precisa compreender o que aconteceu, conversar com quem pediu ajuda e acompanhar as providências. O TETRAGUARD foi pensado para aproximar essas duas necessidades: oferecer um caminho para o estudante se expressar e ajudar a coordenação a organizar o cuidado com cada caso.
+
+Texto de apoio:
+Nesta demonstração, você pode fazer um pedido fictício, receber um código de acompanhamento e conhecer o trabalho da coordenação. As ações acontecem neste navegador e não são encaminhadas a uma escola.
+
+Ação principal: Experimentar como estudante
+Ação secundária: Conhecer a coordenação
+Link de apoio: Acompanhar um caso de exemplo
+
+O PROBLEMA
+Título: O que buscamos enfrentar
+
+Texto:
+Humilhações, exclusões, ameaças, agressões e situações de exposição na internet podem ser difíceis de explicar, principalmente quando a pessoa ainda está tentando entender o que viveu ou presenciou. Exigir um relato perfeito ou uma classificação do ocorrido pode tornar esse primeiro contato ainda mais difícil. Queremos permitir que o estudante comece com o que consegue dizer e encontre orientações compreensíveis ao longo do caminho.
+
+O pedido de ajuda também precisa ter continuidade. Depois do primeiro relato, a equipe escolar precisa reunir informações, registrar conversas e providências, definir quem acompanha o caso e verificar se a situação voltou a acontecer. Buscamos organizar esse percurso para que a resposta da escola possa ser acompanhada ao longo do atendimento.
+
+OBJETIVO
+Título: Facilitar o primeiro contato e dar continuidade ao acompanhamento
+
+Texto:
+O objetivo do TETRAGUARD é oferecer um canal de pedidos de ajuda com linguagem acessível e uma área de trabalho para a coordenação. O estudante pode relatar com suas próprias palavras, responder apenas às perguntas que desejar e voltar à conversa usando um código. A equipe encontra o relato, as mensagens e os registros do atendimento no mesmo caso.
+
+Queremos apoiar o trabalho de quem acolhe e acompanha estudantes. A equipe escolar continua responsável por avaliar cada situação, conversar com as pessoas envolvidas e decidir as providências adequadas. O sistema organiza informações e apresenta sinais de atenção; a decisão sobre o atendimento permanece com as pessoas responsáveis.
+
+PERCURSO
+Título: Do pedido de ajuda ao acompanhamento
+
+1. Contar o que aconteceu
+O estudante escolhe situações que se aproximam do que viveu ou presenciou, responde a perguntas opcionais e escreve seu relato. Também pode começar por uma conversa sem questionário. Não precisa conhecer termos jurídicos nem ter todas as respostas para dar esse primeiro passo.
+
+2. Guardar o código e voltar à conversa
+Após o envio, o estudante recebe um código para consultar o caso e conversar com a equipe. Esse código permite retomar o contato. Quem o possui pode acessar a conversa correspondente, por isso ele deve ser guardado com cuidado.
+
+3. Organizar o atendimento
+Na coordenação, a equipe consulta os pedidos, conversa com o estudante, registra informações internas e acompanha responsáveis e providências. O conteúdo destinado ao estudante fica separado das anotações internas da equipe.
+
+4. Acompanhar o que acontece depois
+A coordenação registra um resumo público da conclusão e o estudante pode informar que precisa de ajuda novamente. O acompanhamento após a resolução permite que a equipe reavalie o caso quando a situação persiste ou volta a acontecer.
+
+DUAS ÁREAS DO MESMO ATENDIMENTO
+Título: Um espaço para quem pede ajuda e outro para quem acompanha
+
+Para estudantes:
+Um percurso com explicações simples, perguntas opcionais e espaço para relatar no próprio ritmo. O nome é opcional no pedido de ajuda, que solicita ano e sala de quem está relatando. O acolhimento sem identificação permite iniciar uma conversa sem questionário, nome, ano ou sala.
+
+Para a coordenação:
+Uma visão dos casos, das conversas e das ações registradas. A equipe pode organizar o atendimento, consultar o histórico, separar mensagens públicas de notas internas e acompanhar situações que precisam de nova atenção. Os indicadores apresentados na demonstração são calculados a partir de casos fictícios.
+
+CRITÉRIOS E CUIDADO
+Título: Informações para apoiar a equipe, com limites claros
+
+Sobre a prioridade:
+A prioridade sugerida ajuda a destacar pedidos que merecem atenção. Ela deve ser lida junto com o relato e o contexto de cada caso. A coordenação pode reavaliá-la com uma justificativa; o sistema não determina culpa, diagnóstico ou conclusão da apuração.
+
+Sobre o mapa:
+A planta esquemática relaciona os casos aos ambientes informados. Ela permite observar registros por local e orientar a leitura da equipe. A visualização não identifica estudantes nem comprova que um ambiente seja seguro ou perigoso. Nesta demonstração, todos os ambientes e registros são fictícios.
+
+Sobre a identificação:
+Não informar o nome é uma opção, mas o próprio relato pode conter detalhes que identifiquem alguém. O acesso por código também exige cuidado. A proposta não deve ser apresentada como promessa de anonimato absoluto ou de sigilo que a implementação não possa assegurar.
+
+CONTRIBUIÇÃO ESPERADA
+Título: O que queremos tornar possível
+
+Texto:
+Queremos que pedir ajuda seja uma ação compreensível e que o estudante tenha um caminho para acompanhar a conversa. Para a escola, buscamos uma organização que ajude a manter o histórico do atendimento e a registrar o que precisa ser feito depois de cada contato.
+
+Esses são objetivos do projeto, ainda sujeitos à avaliação em uso. A demonstração apresenta como esse percurso pode funcionar; ela não comprova redução de violência, melhora no tempo de resposta ou resultados de uma implantação real. Avaliar esses resultados exige uso acompanhado, critérios definidos pela escola e cuidado com as informações das pessoas envolvidas.
+
+SOBRE O PROTÓTIPO
+Título: O que você vai experimentar aqui
+
+Texto:
+Esta versão reúne os dois lados de um atendimento simulado. Você pode alternar entre o portal do estudante e a coordenação para observar como um pedido, uma resposta e uma conclusão aparecem em cada área. Use apenas informações fictícias.
+
+Os casos desta demonstração ficam no navegador utilizado. Eles não são encaminhados à escola, não constituem um registro oficial e não representam uma fila real de atendimento. O projeto original foi desenvolvido para uso em rede local escolar; essa condição não deve ser atribuída automaticamente à versão online da Imagi.
+
+Se você precisa de ajuda em uma situação real ou não se sente em segurança, procure pessoalmente um adulto de confiança ou a equipe responsável da escola. Esta demonstração não recebe pedidos reais de ajuda.
+
+ENCERRAMENTO
+Título: Conheça o percurso de um pedido de ajuda
+Texto: Comece pelo portal do estudante e depois abra a coordenação. Você poderá acompanhar o mesmo caso fictício, observar a troca de mensagens e conhecer os registros que apoiam o trabalho da equipe.
+Ações: Experimentar como estudante / Conhecer a coordenação
+
+VERIFICAÇÃO DESTA ETAPA
+Confirme que todos os botões levam às funções existentes, que TETRAGUARD aparece sem hífen e que os parágrafos ficam legíveis em celular e desktop. Não invente depoimentos, números de usuários, parceiros, certificações ou resultados de impacto. Não adicione funcionalidades novas para justificar o texto. Informe o que foi efetivamente alterado.

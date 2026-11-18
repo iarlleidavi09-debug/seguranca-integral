@@ -1,0 +1,32 @@
+.coord-app .botao.secundario:disabled,
+.coord-app .botao.secundario[aria-disabled='true'] {
+  color: var(--desabilitado-texto);
+  background: var(--desabilitado-fundo);
+  border-color: var(--borda-suave);
+  cursor: not-allowed;
+}
+.coord-app .rascunho-conversa-aviso {
+  margin: 12px 0 8px;
+  padding-inline-start: 12px;
+  border-inline-start: 2px solid var(--primaria-base);
+  color: var(--texto-secundario);
+  font-size: 13px;
+  line-height: 1.5;
+  max-width: 65ch;
+}
+@media (max-width: 959px) {
+  .coord-app .casos-linha:has(.agenda-acoes) .casos-meta {
+    flex-basis: 100%;
+    white-space: normal;
+    overflow: visible;
+    margin-block: 4px;
+  }
+}
+@media (max-width: 759px) {
+  .coord-app .botao,
+  .coord-app input:not([type='checkbox'], [type='radio']),
+  .coord-app select { min-height: 44px; }
+  .coord-app input:not([type='checkbox'], [type='radio']),
+  .coord-app textarea,
+  .coord-app select { font-size: 16px; }
+}

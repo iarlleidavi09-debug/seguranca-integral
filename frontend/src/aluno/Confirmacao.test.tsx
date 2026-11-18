@@ -4,6 +4,16 @@ import { describe, expect, it, vi } from 'vitest';
 import Confirmacao from './Confirmacao';
 
 describe('Confirmação', () => {
+  it('oferece comprovante para impressão contendo apenas código e instruções de retorno', async () => {
+    const user = userEvent.setup();
+    const imprimir = vi.spyOn(window, 'print').mockImplementation(() => {});
+    render(<Confirmacao resultado={{ codigo: 'K7M2-9QXD' }} onAcompanhar={() => {}} />);
+    const comprovante = screen.getByRole('region', { name: 'Comprovante de acompanhamento' });
+    expect(comprovante).toHaveTextContent('K7M2-9QXD');
+    expect(comprovante).toHaveTextContent('Abra o portal TETRAGUARD da sua escola');
+    await user.click(screen.getByRole('button', { name: 'Imprimir ou salvar comprovante' }));
+    expect(imprimir).toHaveBeenCalledOnce();
+  });
   it('acolhe, mostra o código em destaque e explica acesso salvo e cuidado em aparelho compartilhado', () => {
     render(<Confirmacao resultado={{ codigo: 'K7M2-9QXD' }} onAcompanhar={() => {}} />);
     expect(screen.getByRole('heading', { level: 1, name: 'Você deu o primeiro passo.' })).toBeInTheDocument();

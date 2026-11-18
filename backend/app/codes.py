@@ -25,7 +25,7 @@ def normalizar_codigo(texto: str) -> str | None:
 
 
 def hash_codigo(codigo_normalizado: str, secret_key: str) -> str:
-    """HMAC-SHA256 em hex; só o hash é guardado no banco."""
+    """HMAC-SHA256 em hex usado na autenticação pelo código original."""
     return hmac.new(
         secret_key.encode("utf-8"),
         codigo_normalizado.encode("utf-8"),

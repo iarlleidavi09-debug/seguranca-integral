@@ -6,6 +6,9 @@ import type { GrupoV3 } from '../shared/v3';
 import { usePolling } from './polling';
 import { categoriaAgenda, demoraPrimeiroAcesso } from './agenda';
 import { MOTIVOS_ATENCAO, prazoLegivel } from './Atendimento';
+import FavoritosFila from './FavoritosFila';
+import AcaoAgenda from './AcaoAgenda';
+import './qualidadedevida-fila.css';
 import {
   Prioridade, PRIORIDADES, Simulacao, STATUS, Status, TIPOS, assuntos, acessoLegivel, dataLegivel, motivo, rotuloPrioridade, rotuloStatus,
 } from './rotulos';
@@ -23,9 +26,11 @@ export function filtrarConversa(caso: CasoFila, filtro: string): boolean {
 type Props = {
   modo: 'casos' | 'pos';
   meuId?: number;
+  userId?: number;
   filtros: FiltrosFila;
   aoFiltrar: (filtros: FiltrosFila) => void;
-  aoAbrir: (id: number) => void;
+  aoAbrir: (id: number, orderedIds?: number[]) => void;
+  retorno?: { id: number; rolagem: number };
 };
 
 /** Ordenação estável: a API já entrega do mais antigo ao mais novo; aqui só se reforça a ordem de atenção. */
@@ -59,7 +64,7 @@ function chipsDoCaso(c: CasoFila): ChipCaso[] {
   return lista;
 }
 
-export default function Fila({ modo, meuId, filtros, aoFiltrar, aoAbrir }: Props) {
+export default function Fila({ modo, meuId, userId, filtros, aoFiltrar, aoAbrir, retorno }: Props) {
   const pos = modo === 'pos';
   // a Pós-resolução não filtra por status na API: traz resolvidos e reabertos com recorrência pendente, e o filtro é feito aqui
   const status = pos ? '' : filtros.status;
@@ -75,6 +80,9 @@ export default function Fila({ modo, meuId, filtros, aoFiltrar, aoAbrir }: Props
   const [expandidos, setExpandidos] = useState<Set<number>>(new Set());
   const [grupos, setGrupos] = useState<GrupoV3[]>([]);
   const [erroCatalogo, setErroCatalogo] = useState('');
+  const [recarregar, setRecarregar] = useState(0);
+  const retornou = useRef(false);
+  const tabela = useRef<HTMLTableElement>(null);
   useEffect(() => {
     let ativo = true;
     obterQuestionarioV3().then(def => { if (ativo) setGrupos(def.grupos); }).catch(() => {
@@ -120,7 +128,7 @@ export default function Fila({ modo, meuId, filtros, aoFiltrar, aoAbrir }: Props
       if (falha instanceof ErroApi && falha.status === 401) return;
       setErro(mensagemErroCoord(falha));
     } finally { if (ativo()) setAtualizando(false); }
-  }, [status, prioridade, tipo, q, grupo, opcao, modo, pos]);
+  }, [status, prioridade, tipo, q, grupo, opcao, modo, pos, recarregar]);
 
   const conversa = filtros.conversa ?? '';
   const filtrando = Boolean((pos ? '' : filtros.status) || prioridade || tipo || filtros.q || busca || grupo || opcao || conversa);
@@ -143,15 +151,18 @@ export default function Fila({ modo, meuId, filtros, aoFiltrar, aoAbrir }: Props
   const casosDaVisao = meuId ? casos?.filter(c => c.responsavel?.id === meuId) ?? null : casos;
   const exibidos = casosDaVisao?.filter(c => (visoes.find(v => v.id === visao)?.aceita(c) ?? true)
     && (!motivoAtencao || c.atencao?.includes(motivoAtencao)) && filtrarConversa(c, conversa)) ?? null;
+  const abrir = (id: number) => aoAbrir(id, exibidos?.map(c => c.id) ?? []);
+  useEffect(() => {
+    if (!retorno || retornou.current || casos === null) return;
+    retornou.current = true;
+    tabela.current?.querySelector<HTMLButtonElement>(`[data-caso-id="${retorno.id}"] .casos-assunto`)?.focus({ preventScroll: true });
+    window.scrollTo({ top: retorno.rolagem, behavior: 'instant' });
+  }, [casos, retorno]);
 
   return <section aria-labelledby="titulo-fila" className="casos" aria-busy={atualizando}>
     <h1 id="titulo-fila" tabIndex={-1}>{meuId ? 'Meu atendimento' : pos ? 'O cuidado continua.' : 'Casos'}</h1>
     {meuId && <p className="casos-intro">Casos atribuídos a você. Prazos seguem o horário de Brasília.</p>}
     {pos && <p className="casos-intro">Resolvidos e recorrências, com as pendências primeiro.</p>}
-    {!pos && <div className="fila-visoes" role="group" aria-label="Organização dos casos">
-      {visoes.map(v => <button key={v.id} type="button" className="botao secundario" aria-pressed={visao === v.id}
-        onClick={() => mudar({ visao: v.id, status: '' })}>{v.nome} ({casos === null ? '…' : casos.filter(c => v.aceita(c) && (!motivoAtencao || c.atencao?.includes(motivoAtencao)) && filtrarConversa(c, conversa)).length})</button>)}
-    </div>}
     <form className="busca-casos" role="search" aria-label="Buscar e filtrar casos" onSubmit={e => e.preventDefault()}>
       <div className="filtro-busca"><label htmlFor="filtro-busca">Buscar por assunto ou número do caso</label>
         <input id="filtro-busca" type="search" maxLength={TAMANHO_BUSCA} autoComplete="off" value={busca} onChange={e => setBusca(e.target.value)} /></div>
@@ -160,6 +171,17 @@ export default function Fila({ modo, meuId, filtros, aoFiltrar, aoAbrir }: Props
           <option value="">Todas as conversas</option><option value="com_mensagem">Com mensagem</option>
           {Object.entries(CONVERSAS).map(([valor, nome]) => <option key={valor} value={valor}>{nome}</option>)}
         </select></div>
+      {(filtrando || visao || motivoAtencao) && <button type="button" className="botao-texto" onClick={limpar}>Limpar filtros</button>}
+    </form>
+
+    <p className="fila-contexto texto-pequeno">Visão: {pos ? 'Pós-resolução' : visoes.find(v => v.id === visao)?.nome ?? 'Todos'}{filtrosAtivos > 0 ? ` · ${filtrosAtivos} ${filtrosAtivos === 1 ? 'filtro ativo' : 'filtros ativos'}` : ''}</p>
+    <details className="acoes-recolhidas fila-organizacao">
+      <summary>Organizar fila</summary>
+      <div className="acoes-recolhidas-conteudo">
+    {!pos && <div className="fila-visoes" role="group" aria-label="Organização dos casos">
+      {visoes.map(v => <button key={v.id} type="button" className="botao secundario" aria-pressed={visao === v.id}
+        onClick={() => mudar({ visao: v.id, status: '' })}>{v.nome} ({casos === null ? '…' : casos.filter(c => v.aceita(c) && (!motivoAtencao || c.atencao?.includes(motivoAtencao)) && filtrarConversa(c, conversa)).length})</button>)}
+    </div>}
       <details className="filtros-detalhados"><summary>Filtros detalhados{filtrosAtivos > 0 ? ` (${filtrosAtivos} ${filtrosAtivos === 1 ? 'ativo' : 'ativos'})` : ''}</summary>
       <div className="filtros">
       {!pos && <p className="filtros-ajuda texto-pequeno">Resolvidos também aparecem em atenção quando há mensagem sem resposta, recorrência ou ação vencida. As contagens consideram os filtros selecionados.</p>}
@@ -188,8 +210,9 @@ export default function Fila({ modo, meuId, filtros, aoFiltrar, aoAbrir }: Props
           <option value="">Todas as situações</option>{grupos.filter(g => !grupo || g.id === grupo).flatMap(g => g.opcoes).map(o => <option key={o.id} value={o.id}>{o.texto}</option>)}
         </select></div>
       </div></details>
-      {(filtrando || visao || motivoAtencao) && <button type="button" className="botao-texto" onClick={limpar}>Limpar filtros</button>}
-    </form>
+    {userId !== undefined && <FavoritosFila key={`${userId}:${meuId ? 'meus' : modo}`} usuario={userId} fila={meuId ? 'meus' : modo} filtros={filtros} aoAplicar={novos => { setBusca(''); aoFiltrar(novos); }} />}
+      </div>
+    </details>
     {erroCatalogo && <p className="aviso" role="status">{erroCatalogo}</p>}
     <p className="so-leitor" role="status" aria-live="polite">{anuncio}</p>
     {atualizando && casos !== null && <p role="status">Atualizando casos…</p>}
@@ -198,7 +221,9 @@ export default function Fila({ modo, meuId, filtros, aoFiltrar, aoAbrir }: Props
     {casos === null && !erro && <p className="vazio">Carregando a fila.</p>}
     {exibidos !== null && <p className="texto-pequeno" role="status">{exibidos.length} {exibidos.length === 1 ? 'caso exibido' : 'casos exibidos'}.</p>}
     {exibidos !== null && exibidos.length === 0 && <p className="vazio">{filtrando || visao || motivoAtencao ? 'Nenhum caso com esses filtros.' : pos ? 'Nenhum caso resolvido ou com recorrência ainda.' : 'Nenhum caso na fila.'}</p>}
-    {exibidos !== null && exibidos.length > 0 && <table className="casos-tabela" role="table" aria-labelledby="titulo-fila">
+    {retorno && exibidos?.some(c => c.id === retorno.id) && <p className="so-leitor" role="status">De volta à fila. Caso {retorno.id} selecionado.</p>}
+    {retorno && exibidos !== null && !exibidos.some(c => c.id === retorno.id) && <p className="aviso" role="status">O caso {retorno.id} não aparece nos filtros atuais. A fila foi atualizada.</p>}
+    {exibidos !== null && exibidos.length > 0 && <table ref={tabela} className="casos-tabela" role="table" aria-labelledby="titulo-fila">
       <thead role="rowgroup"><tr role="row">
         <th role="columnheader" scope="col">Caso e situação</th><th role="columnheader" scope="col">Prioridade</th>
         <th role="columnheader" scope="col">Status</th><th role="columnheader" scope="col">Último acesso</th>
@@ -217,20 +242,21 @@ export default function Fila({ modo, meuId, filtros, aoFiltrar, aoAbrir }: Props
             + `${c.proxima_acao ? ` · ${c.proxima_acao}${c.prazo_acao ? ` · até ${prazoLegivel(c.prazo_acao)}` : ''}` : ''}`;
           const textoPrevia = c.ultima_mensagem
             ? `${c.ultima_mensagem.autor === 'aluno' ? 'Aluno' : 'Equipe'} · ${dataLegivel(c.ultima_mensagem.criado_em)}: ${c.ultima_mensagem.texto.slice(0, 180)}` : '';
-          return <tr key={c.id} role="row" className="casos-linha" data-gravidade={c.prioridade} onClick={e => {
+          return <tr key={c.id} role="row" className="casos-linha" data-gravidade={c.prioridade} data-caso-id={c.id} data-retorno={retorno?.id === c.id || undefined} onClick={e => {
             // um só caminho por caso para teclado e leitor de tela (o botão do assunto); o clique na linha é só para quem usa mouse ou toque
             if ((e.target as HTMLElement).closest('button, a, summary, input, select, textarea, label')) return;
             if (window.getSelection()?.toString()) return;
-            aoAbrir(c.id);
+            abrir(c.id);
           }}>
             <td role="cell" className="casos-caso">
               <div className="casos-linha1">
-                <button type="button" className="casos-assunto" aria-label={`Caso ${c.id}. Abrir.`} onClick={() => aoAbrir(c.id)}>{assuntos(c)}</button>
+                <button type="button" className="casos-assunto" aria-label={`Caso ${c.id}. Abrir.`} onClick={() => abrir(c.id)}>{assuntos(c)}</button>
                 {novas > 0 && <span className="selo-neutro casos-novas">{`${novas} ${novas === 1 ? 'mensagem nova' : 'mensagens novas'}`}</span>}
               </div>
               <span className="casos-resumo" title={`${c.resumo}${porque ? ` Por que: ${motivo(porque)}` : ''}`}>{c.resumo}</span>
               {porque && <span className="so-leitor casos-porque">Por que: {motivo(porque)}</span>}
               <span className="casos-meta" title={textoResponsavel}>{textoResponsavel}</span>
+              {meuId && c.responsavel?.ativo && <AcaoAgenda caso={c} aoAtualizar={() => setRecarregar(n => n + 1)} />}
               {c.ultima_mensagem && <span className="casos-previa" title={textoPrevia}>
                 <time dateTime={c.ultima_mensagem.criado_em}>{c.ultima_mensagem.autor === 'aluno' ? 'Aluno' : 'Equipe'} · {dataLegivel(c.ultima_mensagem.criado_em)}</time>
                 {': '}<span>{c.ultima_mensagem.texto.slice(0, 180)}</span></span>}

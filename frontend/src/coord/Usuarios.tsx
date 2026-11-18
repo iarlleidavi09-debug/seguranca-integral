@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { criarUsuario, desativarUsuario, ErroApi, ErroCoord, listarUsuarios, mensagemErroCoord } from '../shared/api';
+import { criarUsuario, desativarUsuario, removerUsuario, ErroApi, ErroCoord, listarUsuarios, mensagemErroCoord } from '../shared/api';
 import type { UsuarioLista } from '../shared/api';
 import LimparImplantacao from './LimparImplantacao';
 
@@ -13,6 +13,7 @@ export default function Usuarios({ meuId, confirmarInicial = null, aoLimpar = ()
   const [nome, setNome] = useState('');
   const [senha, setSenha] = useState('');
   const [confirmando, setConfirmando] = useState<number | null>(confirmarInicial);
+  const [removendo, setRemovendo] = useState<number | null>(null);
   const [ocupado, setOcupado] = useState(false);
   const trabalhando = useRef(false);
   const montado = useRef(true);
@@ -63,6 +64,22 @@ export default function Usuarios({ meuId, confirmarInicial = null, aoLimpar = ()
     finally { trabalhando.current = false; if (montado.current) setOcupado(false); }
   }
 
+  async function remover(usuario: UsuarioLista) {
+    if (trabalhando.current) return;
+    trabalhando.current = true; setOcupado(true); setErro(''); setAviso('');
+    try {
+      await removerUsuario(usuario.id);
+      setRemovendo(null); setAviso(`Usuário ${usuario.nome} removido.`);
+      await carregar();
+      titulo.current?.focus();
+    } catch (falha) {
+      if (semSessao(falha)) return;
+      setRemovendo(null);
+      setErro(falha instanceof ErroCoord && falha.status === 400 && falha.detalhe
+        ? `Não foi possível remover: ${falha.detalhe}.` : mensagemErroCoord(falha));
+    } finally { trabalhando.current = false; if (montado.current) setOcupado(false); }
+  }
+
   return <section aria-labelledby="titulo-usuarios">
     <h1 id="titulo-usuarios" ref={titulo} tabIndex={-1}>Usuários</h1>
     <div aria-live="polite" role="status" className="resultado-acao">{aviso}</div>
@@ -84,6 +101,16 @@ export default function Usuarios({ meuId, confirmarInicial = null, aoLimpar = ()
           </div>
           : <button type="button" ref={el => { gatilhos.current[u.id] = el; }} className="botao secundario" onClick={() => setConfirmando(u.id)} aria-label={`Desativar ${u.nome}`}>Desativar</button>)}
         {u.id === meuId && <p className="texto-pequeno">Você não pode desativar a própria conta.</p>}
+        {u.id !== meuId && (removendo === u.id
+          ? <div className="confirmar" role="group" aria-label={`Confirmar remoção de ${u.nome}`}
+            onKeyDown={e => { if (e.key === 'Escape') setRemovendo(null); }}>
+            <p>Remover {u.nome} para sempre? A conta não volta. O histórico dos casos fica, sem o nome de quem agiu.</p>
+            <div className="acoes">
+              <button type="button" autoFocus className="botao perigo" disabled={ocupado} onClick={() => void remover(u)}>Confirmar remoção</button>
+              <button type="button" className="botao secundario" onClick={() => setRemovendo(null)}>Cancelar</button>
+            </div>
+          </div>
+          : <button type="button" className="botao secundario" onClick={() => { setConfirmando(null); setRemovendo(u.id); }} aria-label={`Remover ${u.nome}`}>Remover</button>)}
       </li>)}
     </ul>}
     <h2>Novo usuário</h2>

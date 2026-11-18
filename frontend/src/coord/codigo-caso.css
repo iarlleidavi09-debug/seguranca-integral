@@ -1,0 +1,22 @@
+.caso-codigo {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  padding: 16px 20px;
+  margin-block: 16px 20px;
+  border: 1px solid var(--borda-suave);
+  border-inline-start: 3px solid var(--primaria-base);
+  border-radius: var(--raio-md);
+  background: var(--fundo-superficie);
+}
+.caso-codigo > div { flex: 1 1 220px; min-width: 0; }
+.caso-codigo-rotulo { display: block; color: var(--texto-secundario); font-size: 13px; }
+.caso-codigo-valor { display: block; margin-top: 4px; font-size: 22px; letter-spacing: .12em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; user-select: all; }
+.caso-codigo-indisponivel { display: block; margin-top: 4px; font-size: 14px; color: var(--texto-secundario); }
+.caso-codigo-aviso { flex-basis: 100%; margin: 0; font-size: 14px; }
+.coord-app .caso-codigo .botao { min-height: 44px; white-space: normal; }
+@media (max-width: 480px) {
+  .caso-codigo { padding: 16px; gap: 12px; }
+  .caso-codigo .botao { width: 100%; }
+}

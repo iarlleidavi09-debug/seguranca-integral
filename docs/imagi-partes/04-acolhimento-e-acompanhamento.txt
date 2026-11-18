@@ -1,0 +1,12 @@
+PARTE 4 DE 7 — Acolhimento e acompanhamento por código
+
+Continue o projeto TETRAGUARD já criado nesta conta Imagi. Implemente somente esta etapa, reutilizando os componentes e o estado compartilhado existentes. Preserve as funções anteriores. Use português brasileiro e apenas dados fictícios, com aviso de simulação. Não adicione backend ou autenticação real, não publique nem compartilhe com a turma. Corrija erros antes de terminar e informe o que conseguiu verificar.
+
+ACOLHIMENTO SEM IDENTIFICAÇÃO
+Página curta com textarea da primeira mensagem, sem questionário/nome/ano/sala. Criar caso tipo "Acolhimento anônimo" com código e conversa, também visível à coordenação.
+
+ACOMPANHAMENTO
+Código digitado em formulário, nunca em parâmetros/URL. Caso fictício DEMO-2026 pré-carregado sob ação explícita, com 4-5 mensagens de exemplo rotuladas dados fictícios. Etapas compactas Recebido / Em acompanhamento / Resolvido, código em details fechado, chat agrupado por autor, mensagens estudante/coordenação, horário, composer fixo no rodapé com limite 2000 caracteres. Enviar mensagem atualiza o MESMO caso na coordenação. Coordenação responde e a resposta aparece ao alternar ao portal aluno (sincronização em estado/localStorage e storage event). Não usar respostas fingindo um atendente humano real. Separar "Resposta simulada" se houver sugestão de mensagem. Apenas mensagens públicas aqui, nunca notas internas, prioridade interna, nomes/fotos de autores apontados ou dados de investigação.
+Pós-resolução com resumo público e "Preciso de ajuda de novo", reabrindo o caso.
+
+Ative os links de acolhimento e acompanhamento no portal, na apresentação e na confirmação. Reutilize os pedidos criados na etapa anterior. Verifique código recém-gerado, normalização de entrada, caso inexistente, mensagens e recarga. A coordenação será implementada na próxima etapa; prepare o mesmo contrato de dados, sem criar respostas automáticas como se uma pessoa real estivesse atendendo.

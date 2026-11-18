@@ -22,5 +22,5 @@ it('envia apenas texto e recibo e mantém recibo ao tentar novamente', async () 
 
 it('avisa que a rede da escola pode registrar os horários de acesso', () => {
  render(<Acolhimento onCriado={() => {}} onEnviando={() => {}} />);
- expect(screen.getByText(/rede escolar pode registrar os horários de acesso/)).toHaveClass('texto-pequeno');
+ expect(screen.getByText(/serviço ou a rede podem registrar os horários de acesso/)).toHaveClass('texto-pequeno');
 });

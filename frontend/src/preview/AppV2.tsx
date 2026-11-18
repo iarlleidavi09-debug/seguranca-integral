@@ -34,7 +34,7 @@ export default function AppV2() {
         <span className="marca-simbolo" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3 4.5 6v5.5c0 4.4 3.1 7.6 7.5 9.5 4.4-1.9 7.5-5.1 7.5-9.5V6L12 3Z" /><path d="m9 12 2.2 2.2L15.5 10" /></svg>
         </span>
-        TETRA-GUARD
+        TETRAGUARD
       </button>
       <nav className="navegacao" aria-label="Principal">
         {item('Início', 'inicio', inicio)}

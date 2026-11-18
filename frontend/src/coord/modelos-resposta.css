@@ -1,0 +1,9 @@
+.modelos-resposta { margin-block: var(--espaco-4); border-block: var(--linha-fina) solid var(--borda-suave); }
+.modelos-resposta > summary { min-height: 44px; padding: var(--espaco-3) var(--espaco-1); color: var(--primaria-base); font-weight: 700; cursor: pointer; }
+.modelos-resposta-corpo { display: grid; gap: var(--espaco-4); padding-block: var(--espaco-2) var(--espaco-4); }
+.modelos-resposta-corpo > .ajuda { margin: 0; }
+.modelos-resposta select, .modelos-resposta textarea { width: 100%; min-width: 0; font: inherit; }
+.modelos-resposta textarea { resize: vertical; }
+.modelos-resposta .botao { justify-self: start; min-height: 44px; }
+.modelos-resposta .botao:disabled { cursor: not-allowed; }
+@media (max-width: 600px) { .modelos-resposta .botao { width: 100%; } }

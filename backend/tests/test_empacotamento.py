@@ -45,7 +45,13 @@ def test_spec_inclui_static_e_termos():
     assert "datas=dados" in spec
     assert "entrada.py" in spec
     assert "name='SegurancaIntegral'" in spec or 'name="SegurancaIntegral"' in spec
-    assert re.search(r"console\s*=\s*True", spec)
+    servidor = spec.split("exe = EXE(", 1)[1].split("\n)", 1)[0]
+    assert re.search(r"console\s*=\s*False", servidor)
+    assert "name='SegurancaIntegral-cli'" in spec
+    cli = spec.split("exe_cli = EXE(", 1)[1].split("\n)", 1)[0]
+    assert re.search(r"console\s*=\s*True", cli)
+    assert re.search(r"COLLECT\(\s*exe,\s*exe_cli,", spec)
+    assert 'Source: "..\\dist\\SegurancaIntegral\\SegurancaIntegral-cli.exe"' in _ler(ISS)
     # build sem os portais compilados precisa falhar, não gerar exe vazio
     assert "index.html" in spec and "raise SystemExit" in spec
 

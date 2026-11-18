@@ -88,6 +88,8 @@ export function instalarDadosDePrevia() {
       const usuario: UsuarioLista = { id: usuarios.length + 1, nome: corpo.nome, ativo: true, papel: 'coordenador' };
       usuarios.push(usuario); return resposta(usuario);
     }
+    const removerU = /^\/api\/usuarios\/(\d+)$/.exec(url);
+    if (removerU && metodo === 'DELETE') { usuarios = usuarios.filter(u => u.id !== Number(removerU[1])); return resposta({ ok: true }); }
     const desativar = /^\/api\/usuarios\/(\d+)\/desativar$/.exec(url);
     if (desativar) { usuarios = usuarios.map(u => u.id === Number(desativar[1]) ? { ...u, ativo: false } : u); return resposta({ ok: true }); }
     if (url === '/api/simulacao/carregar') { const criados = simulacao ? 0 : 1; simulacao = true; return resposta({ criados }); }

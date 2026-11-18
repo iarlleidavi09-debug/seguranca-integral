@@ -58,7 +58,7 @@ def criar_caso(conn: sqlite3.Connection, config: Config, dados: dict,
                respostas: dict | None = None) -> str:
     """Grava o caso, a triagem, os anexos e o evento `criado` numa transação.
 
-    Devolve o código em claro; só o hash fica no banco. Denúncia anônima
+    Guarda o código original para o detalhe autenticado da equipe. Denúncia anônima
     nunca guarda nome nem turma. `simulacao` e `criado_em` só são usados
     pelo modo de ensaio; o caso já nasce marcado, no mesmo INSERT.
     `respostas` é o dicionário já validado do questionário (ou None).
@@ -92,6 +92,8 @@ def criar_caso(conn: sqlite3.Connection, config: Config, dados: dict,
                      json.dumps(respostas) if respostas else None),
                 )
                 caso_id = cur.lastrowid
+                conn.execute('UPDATE casos SET codigo_acompanhamento=? WHERE id=?',
+                             (codigo, caso_id))
                 for a in anexos:
                     conn.execute(
                         "INSERT INTO anexos (caso_id, nome_interno, tipo, tamanho, "
@@ -121,10 +123,16 @@ def caso_por_codigo(conn: sqlite3.Connection, config: Config,
     normalizado = normalizar_codigo(codigo)
     if normalizado is None:
         return None
-    return conn.execute(
+    caso = conn.execute(
         "SELECT * FROM casos WHERE codigo_hash = ?",
         (hash_codigo(normalizado, config.secret_key),),
     ).fetchone()
+    if caso is not None and caso['codigo_acompanhamento'] is None:
+        # Bancos antigos têm só HMAC: um acesso válido recupera o código original.
+        conn.execute('UPDATE casos SET codigo_acompanhamento=? WHERE id=? AND codigo_acompanhamento IS NULL',
+                     (normalizado, caso['id']))
+        conn.commit()
+    return caso
 
 
 def listar_mensagens(conn: sqlite3.Connection, caso_id: int) -> list[sqlite3.Row]:
@@ -415,6 +423,7 @@ def existe_caso(conn: sqlite3.Connection, caso_id: int) -> bool:
 # Colunas nomeadas: uma coluna sensível nova na tabela (como codigo_hash)
 # nunca vaza para a coordenação sem alguém incluí-la aqui de propósito.
 COLUNAS_DETALHE = (
+    "codigo_acompanhamento",
     "canal",
     "id", "tipo", "relato", "quando", "onde", "em_andamento", "anonimo",
     "nome", "turma", "prioridade", "prioridade_original", "pontos",

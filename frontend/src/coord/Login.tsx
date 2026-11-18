@@ -34,7 +34,7 @@ export default function Login({ aviso, aoEntrar }: { aviso?: string; aoEntrar: (
     } finally { setEnviando(false); }
   }
   return <main id="conteudo" className="login" tabIndex={-1}>
-    <p className="marca">TETRA-GUARD</p>
+    <p className="marca">TETRAGUARD</p>
     <h1>Portal da coordenação</h1>
     {aviso && <p className="aviso" role="status">{aviso}</p>}
     <form onSubmit={enviar} noValidate>

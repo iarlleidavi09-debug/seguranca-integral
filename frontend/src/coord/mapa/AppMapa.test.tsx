@@ -46,6 +46,7 @@ describe('Rascunho do mapa na sessão', () => {
   await user.type(await screen.findByLabelText('Nome'), 'Marina');
   await user.type(screen.getByLabelText('Senha'), 'uma-senha-longa');
   await user.click(screen.getByRole('button', { name: 'Entrar' }));
+  await user.click(await screen.findByText('Organização'));
   await user.click(await screen.findByRole('button', { name: 'Mapa da escola' }));
   expect(await screen.findByRole('button', { name: 'Editar planta' })).toBeInTheDocument();
   expect(screen.queryByLabelText('Nome do ambiente')).toBeNull();

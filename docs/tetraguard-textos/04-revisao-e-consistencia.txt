@@ -1,0 +1,45 @@
+ATUALIZAÇÃO DE TEXTO 4 DE 4: REVISÃO E CONSISTÊNCIA
+
+Revise os textos já aplicados ao TETRAGUARD neste mesmo projeto Imagi. Esta etapa corrige inconsistências e verifica a integração das três mensagens anteriores. Preserve as funções e os dados existentes; não recomece o projeto, não publique nem compartilhe com a turma.
+
+NOME
+Use TETRAGUARD, exatamente assim, nos nomes exibidos: cabeçalhos, menus, apresentação, títulos de abas, metadados, textos de exportação e identificação do produto. Não use Segurança Integral, TETRA-GUARD, TetraGuard ou Tetra Guard como marca atual. Uma referência histórica pode citar o nome anterior apenas quando houver motivo para isso.
+Não invente expansão da palavra ou significado para quatro letras/elementos. O nome informado pelo usuário é TETRAGUARD.
+Preserve chaves de localStorage, códigos de acompanhamento e identificadores técnicos que mantêm compatibilidade. Atualizar a marca não deve apagar acessos ou rascunhos nem recriar casos.
+
+VOZ
+Na apresentação, explique o problema, o objetivo, o funcionamento e os limites da proposta com parágrafos desenvolvidos. Na área do estudante, mantenha linguagem simples, sem cobrança ou julgamento, com instruções curtas junto dos campos. Na coordenação, use linguagem precisa sobre registros, responsabilidade e continuidade do atendimento.
+Corrija ortografia, concordância, pontuação, acentuação e repetições. Evite slogans vazios, alegações de inovação sem explicação, depoimentos inventados e frases que poderiam descrever qualquer aplicativo.
+Não altere o sentido das situações e perguntas nem os critérios de prioridade apenas para melhorar o estilo.
+
+MENSAGENS COMUNS
+Carregamento: Carregando as informações…
+Salvamento: Salvando…
+Sucesso: Alterações salvas.
+Falha ao salvar: Não foi possível salvar agora. Confira se suas alterações continuam preenchidas e tente novamente.
+Campo obrigatório: Preencha este campo para continuar.
+Nenhum resultado: Não encontramos resultados com os filtros atuais.
+Ação irreversível: A confirmação deve dizer qual informação será apagada e o que permanecerá. Evite textos vagos como Tem certeza? sem explicar o efeito.
+Falha de armazenamento local: Este navegador não conseguiu guardar as informações da demonstração. Evite recarregar ou fechar a página antes de concluir o que está fazendo.
+Use essas mensagens apenas quando corresponderem ao comportamento real da função.
+
+LIMITES DO PRODUTO
+A versão Imagi é uma demonstração com dados fictícios neste navegador. Não afirmar que mensagens chegam a uma escola, que existe atendimento humano em tempo real ou que há prazo garantido de resposta.
+Não prometer anonimato absoluto, segurança total, criptografia de ponta a ponta, certificações ou adequação legal que não tenham sido comprovadas.
+Nome opcional não significa que um relato nunca possa identificar alguém. Código de acompanhamento não deve aparecer na URL nem ser tratado como informação pública.
+Não apresentar prioridade como diagnóstico, sentença ou decisão automática. A equipe avalia o contexto e as providências.
+Não atribuir ao mapa capacidade de identificar pessoas, prever ocorrências ou comprovar segurança de ambientes.
+Não apresentar CSV ou TXT como registro oficial enviado a outro sistema.
+Não tratar os objetivos do projeto como resultados já alcançados. Indicadores da demonstração devem representar apenas seus dados fictícios.
+Não apresentar a versão online como operação offline ou em rede local. O projeto original possui outra forma de implantação.
+
+VERIFICAÇÃO
+1. Confirme o nome em todas as páginas e títulos.
+2. Leia a apresentação inteira e confira se ela responde: qual problema buscamos enfrentar, quem usa o programa, como funciona, qual é o papel da equipe e o que esta demonstração permite experimentar.
+3. Verifique formulários, revisão, confirmação, conversa, resolução, estados vazios, erros e ajuda. Cada texto precisa corresponder à ação disponível.
+4. Confira celular e desktop, inclusive quebras de TETRAGUARD, títulos e mensagens maiores. Verifique as larguras 375, 768 e 1280 nos temas implementados, mantendo contraste e foco visível.
+5. Percorra pedido → código → resposta na coordenação → acompanhamento do estudante → resumo público → reabertura. As notas e os registros internos não podem aparecer ao estudante.
+6. Confira reinício após enviar, nova tentativa após erro e proteção contra envio duplicado.
+7. Use as verificações permitidas pelo ambiente. Informe o que foi executado, o que passou e o que continua sem verificação. A revisão textual não comprova funcionalidades que não foram testadas.
+
+Ao concluir, apresente um resumo breve das alterações de texto e das limitações encontradas. Não substitua esse trabalho por uma lista de sugestões: aplique os textos no projeto existente.

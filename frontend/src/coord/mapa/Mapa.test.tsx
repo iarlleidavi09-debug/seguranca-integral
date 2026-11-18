@@ -22,6 +22,31 @@ async function criar(nome = 'Ala norte') {
  return user;
 }
 describe('Mapa escolar', () => {
+ it('recolhe resultados da busca junto com o campo e preserva a pesquisa', async () => {
+  montar(); const user = await criar('Ala Norte');
+  await user.click(screen.getByText('Ajustar visualização'));
+  await user.type(screen.getByLabelText('Buscar ambiente'), 'Ala');
+  const resultado = screen.getByRole('button', { name: 'Ala Norte' });
+  expect(resultado).toBeVisible();
+  await user.click(screen.getByText(/Ajustar visualização/));
+  expect(resultado).not.toBeVisible();
+  expect(screen.getByLabelText('Buscar ambiente')).not.toBeVisible();
+  await user.click(screen.getByText(/Ajustar visualização/));
+  expect(screen.getByLabelText('Buscar ambiente')).toHaveValue('Ala');
+  expect(resultado).toBeVisible();
+ });
+ it('recolhe ajustes de visualização sem perder zoom ao fechar', async () => {
+  montar(); const user = userEvent.setup();
+  await screen.findByRole('heading', { name: 'A planta ainda está vazia' });
+  expect(screen.getByRole('combobox', { name: 'Zoom' })).not.toBeVisible();
+  await user.click(screen.getByText('Ajustar visualização'));
+  const zoom = screen.getByRole('combobox', { name: 'Zoom' });
+  await user.selectOptions(zoom, '75');
+  await user.click(screen.getByText(/Ajustar visualização/));
+  expect(screen.getByRole('combobox', { name: 'Zoom' })).not.toBeVisible();
+  await user.click(screen.getByText(/Ajustar visualização/));
+  expect(screen.getByRole('combobox', { name: 'Zoom' })).toHaveValue('75');
+ });
  it('confere escadaria sem destino antes de enviar a planta e permite revisar', async () => {
   const salvo = montar(); const user = await criar('Escada');
   await user.selectOptions(screen.getByLabelText('Tipo do ambiente'), 'escadaria');
@@ -39,10 +64,12 @@ describe('Mapa escolar', () => {
  it('amplia a área de trabalho em duas direções e reduz a superfície com o zoom', async () => {
   montar(); const user = await criar();
   const planta = screen.getByRole('group', { name: 'Planta esquemática do nível atual' });
+  await user.click(screen.getByText('Tamanho da planta'));
   await user.click(screen.getByRole('button', { name: 'Ampliar para a direita' }));
   await user.click(screen.getByRole('button', { name: 'Ampliar para baixo' }));
   expect(planta).toHaveAttribute('viewBox', '0 0 1600 1200');
   expect(screen.getByRole('region', { name: 'Área rolável da planta' })).toHaveAttribute('tabindex', '0');
+  await user.click(screen.getByText('Ajustar visualização'));
   await user.selectOptions(screen.getByLabelText('Zoom'), '50');
   expect(parseFloat(planta.getAttribute('width')!)).toBeCloseTo(1600 / 1200 * 50);
  });

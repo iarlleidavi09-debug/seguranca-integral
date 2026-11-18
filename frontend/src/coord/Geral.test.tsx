@@ -28,6 +28,49 @@ const montar = (corpoResumo = resumo(), casos: unknown[] = fila) => {
 afterEach(() => { vi.useRealTimers(); });
 
 describe('Visão geral', () => {
+  it('identifica casos de ensaio nos pedidos, próximos passos e alerta de recorrência', async () => {
+    montar(resumo({ recorrencia_pendente: 1 }), [caso(9, { simulacao: true, recorrencia_pendente: true, proxima_acao: 'Rever as providências' })]);
+    const passos = await screen.findByRole('region', { name: 'Próximos passos' });
+    expect(within(passos).getByText('simulação')).toBeInTheDocument();
+    expect(within(screen.getByRole('list', { name: 'Onde concentrar a atenção' })).getByText('simulação')).toBeInTheDocument();
+    expect(within(screen.getByRole('alert')).getByText('simulação')).toBeInTheDocument();
+  });
+
+  it('ordena próximos passos por prazo antes de limitar, mantém empate da API e deixa sem prazo por último', async () => {
+    montar(resumo(), [
+      caso(8, { proxima_acao: 'Sem prazo definido' }),
+      ...Array.from({ length: 5 }, (_, i) => caso(10 + i, { prioridade: 'alta', proxima_acao: `Ação futura ${i + 1}`, prazo_acao: '2026-11-30' })),
+      caso(20, { prioridade: 'baixa', proxima_acao: 'Providência vencida', prazo_acao: '2026-11-01' }),
+    ]);
+    const passos = await screen.findByRole('region', { name: 'Próximos passos' });
+    expect(within(passos).getAllByRole('button').map(b => b.textContent?.split('. Abrir caso')[0].trim()))
+      .toEqual(['Providência vencida', 'Ação futura 1', 'Ação futura 2', 'Ação futura 3', 'Ação futura 4']);
+    const atencao = screen.getByRole('list', { name: 'Onde concentrar a atenção' });
+    expect(within(atencao).getAllByRole('button')[0]).toHaveTextContent('Caso 8. Abrir.');
+  });
+
+  it('mostra somente próximos passos reais de casos abertos, sem inventar responsável ou prazo', async () => {
+    const { aoAbrirCaso } = montar(resumo(), [
+      caso(9, { proxima_acao: 'Conversar com a família', prazo_acao: '2026-11-18', responsavel: { id: 1, nome: 'Ana', ativo: true } }),
+      caso(8, { proxima_acao: 'Rever as providências', prazo_acao: null, responsavel: null }),
+      caso(7, { status: 'resolvido', proxima_acao: 'Ação de caso encerrado' }),
+      caso(6),
+    ]);
+    const passos = await screen.findByRole('region', { name: 'Próximos passos' });
+    expect(passos).toHaveTextContent('Ana');
+    expect(passos).toHaveTextContent('18/11/2026');
+    expect(passos).toHaveTextContent('Sem responsável');
+    expect(passos).toHaveTextContent('Sem prazo registrado');
+    expect(within(passos).queryByText('Ação de caso encerrado')).toBeNull();
+    await userEvent.setup().click(within(passos).getByRole('button', { name: /Rever as providências/ }));
+    expect(aoAbrirCaso).toHaveBeenCalledWith(8);
+  });
+
+  it('explica quando não há próximos passos registrados', async () => {
+    montar();
+    expect(await screen.findByText('Nenhum próximo passo registrado nos casos em aberto.')).toBeInTheDocument();
+  });
+
   it('abre somente casos em aberto da prioridade clicada', async () => {
     const { aoVerCasos } = montar();
     const grupo = await screen.findByRole('list', { name: 'Por prioridade' });

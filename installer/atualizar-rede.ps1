@@ -43,7 +43,7 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
         exit $elevado.ExitCode
     } catch {
         $mensagem = New-Object -ComObject WScript.Shell
-        $null = $mensagem.Popup('A atualizacao da rede precisa da permissao de administrador. Nenhuma atualizacao foi confirmada.', 0, 'TETRA-GUARD', 48)
+        $null = $mensagem.Popup('A atualizacao da rede precisa da permissao de administrador. Nenhuma atualizacao foi confirmada.', 0, 'TETRAGUARD', 48)
         exit 1
     }
 }
@@ -57,6 +57,6 @@ try {
     if ($AbrirCoordenacao) { Start-Process "http://127.0.0.1:$porta" }
 } catch {
     $mensagem = New-Object -ComObject WScript.Shell
-    $null = $mensagem.Popup(('Nao foi possivel confirmar a atualizacao: ' + $_.Exception.Message + [Environment]::NewLine + 'Nao compartilhe enderecos antigos. Confira a conexao e tente novamente.'), 0, 'TETRA-GUARD', 16)
+    $null = $mensagem.Popup(('Nao foi possivel confirmar a atualizacao: ' + $_.Exception.Message + [Environment]::NewLine + 'Nao compartilhe enderecos antigos. Confira a conexao e tente novamente.'), 0, 'TETRAGUARD', 16)
     exit 1
 }

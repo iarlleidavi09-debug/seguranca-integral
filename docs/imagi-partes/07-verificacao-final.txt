@@ -1,0 +1,22 @@
+PARTE 7 DE 7 — Verificação final e correções
+
+Continue o projeto TETRAGUARD já criado nesta conta Imagi. Implemente somente esta etapa, reutilizando os componentes e o estado compartilhado existentes. Preserve as funções anteriores. Use português brasileiro e apenas dados fictícios, com aviso de simulação. Não adicione backend ou autenticação real, não publique nem compartilhe com a turma. Corrija erros antes de terminar e informe o que conseguiu verificar.
+
+Nesta etapa, revise e corrija o projeto implementado nas seis etapas anteriores, mantendo a identidade visual e o escopo já definidos. Não recomece o projeto. Priorize falhas de funcionamento e exposição indevida de dados internos.
+
+QUALIDADE E FINALIZAÇÃO
+Responsivo em 375/768/1280px sem overflow horizontal; alvos 44px, labels, foco visível, teclado/Escape, contraste AA, loading/erro/vazio, feedback em salvar/enviar/copiar/exportar/reiniciar. Todos os botões devem funcionar, sem href="#" e sem controles decorativos sem ação. Não colocar painéis de documentação técnica no caminho normal do estudante; somente aviso de demo curto e apresentação explicativa.
+Faça build e teste os fluxos na prévia: pedido -> código -> coordenação vê -> coordenação responde -> aluno vê -> resolver -> resumo público -> reabrir; acolhimento sem identificação; busca/filtros; mapa e exportação; reiniciar. Corrija erros antes de concluir. Ao finalizar descreva honestamente quais telas estão concluídas e qualquer limitação da simulação. Se o limite da rodada impedir terminar tudo, entregue o fluxo central funcionando e registre exatamente o que falta, sem botões que prometem funções inexistentes.
+
+CORREÇÕES JÁ APRENDIDAS QUE DEVEM EXISTIR NESTA RECRIAÇÃO
+- Reiniciar demonstração funciona mesmo com a página de confirmação ainda aberta: limpa os dados fictícios e códigos salvos, rascunho, imagens/URLs temporárias, erros, confirmação, estado de envio e trava. Sem sair da rota, o usuário consegue enviar outro pedido.
+- Começar do zero em um rascunho recuperado limpa texto, respostas, imagens, URLs temporárias e erros de formulário, imagens e armazenamento.
+- Se a criação de um pedido falhar, mostrar mensagem compreensível, preservar texto e anexos e liberar envio para nova tentativa. Limpar a mensagem de erro na nova tentativa.
+- Dois cliques rápidos em Enviar criam exatamente um caso. Após sucesso, não liberar a trava até reiniciar ou começar um novo pedido explicitamente.
+- Imagens aceitas: JPG, PNG ou WebP, até 5 MB por arquivo, no máximo 3. Nunca persistir as imagens no rascunho ou localStorage. Se o caso guardar apenas a quantidade, explique essa limitação sem sugerir que a equipe pode abrir anexos indisponíveis.
+- Só dados fictícios e simulação local. Não copiar dados pessoais nem conectar o banco da escola.
+
+VERIFICAÇÃO NESTA CONTA IMAGI
+Verifique o fluxo central e os quatro cenários de regressão acima no projeto criado aqui. Os testes de outro projeto não comprovam este. Use as verificações permitidas pelo ambiente e diferencie compilação automática, testes e build de produção explícito. Informe resultados reais e limitações. Não publique nem compartilhe com a turma automaticamente.
+
+Use apenas os comandos e verificações permitidos pelo ambiente. Se builds e typechecks forem gerenciados automaticamente, registre o sinal disponível e não alegue execução manual. Registre os percursos verificados, resultados, erros corrigidos e pendências em docs/VALIDACAO.md. Não apresente resultados de testes do outro projeto como evidência deste. Ao concluir, liste as funcionalidades prontas e limitações que ainda existem.

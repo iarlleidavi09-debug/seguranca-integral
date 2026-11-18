@@ -1,0 +1,6 @@
+.anexar-imagens { margin-block: var(--espaco-5, 1.25rem); }
+.anexar-imagens form { display: grid; gap: var(--espaco-3, .75rem); }
+.anexar-imagens input[type='file'] { max-width: 100%; min-width: 0; }
+.anexar-imagens .botao { justify-self: start; }
+.anexar-imagens li { overflow-wrap: anywhere; }
+.anexar-selecionados { padding-inline-start: 1.5rem; }

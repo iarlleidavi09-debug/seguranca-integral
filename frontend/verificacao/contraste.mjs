@@ -12,12 +12,12 @@ const ler = bloco => Object.fromEntries([...bloco.matchAll(/--([a-z0-9-]+):\s*(#
 const claro = ler(blocoClaro);
 const temaAluno = { claro, escuro: { ...claro, ...ler(blocoEscuro) } };
 
-// Tema da coordenação: o bloco .coord-app (claro) e o do @media escuro, em src/coord/coord.css.
-const cssCoord = readFileSync(fileURLToPath(new URL('../src/coord/coord.css', import.meta.url)), 'utf8');
+// A identidade importada por último define as cores vigentes da coordenação.
+const cssCoord = readFileSync(fileURLToPath(new URL('../src/coord/identidade.css', import.meta.url)), 'utf8');
 const iniEscuroCoord = cssCoord.indexOf('@media (prefers-color-scheme: dark)');
 const coordClaro = ler(cssCoord.slice(0, iniEscuroCoord));
 const fimTokens = cssCoord.indexOf('/* fim dos tokens do tema */');
-if (iniEscuroCoord < 0 || fimTokens < 0) throw new Error('coord.css: faltam o bloco escuro ou o marcador "/* fim dos tokens do tema */".');
+if (iniEscuroCoord < 0 || fimTokens < 0) throw new Error('identidade.css: faltam o bloco escuro ou o marcador "/* fim dos tokens do tema */".');
 const coordEscuro = ler(cssCoord.slice(iniEscuroCoord, fimTokens));
 // o escuro precisa redefinir tudo que o claro redefine, senão o claro vazaria para o escuro
 const faltando = Object.keys(coordClaro).filter(k => !(k in coordEscuro));
@@ -26,7 +26,7 @@ const temaCoord = {
   claro: { ...temaAluno.claro, ...coordClaro },
   escuro: { ...temaAluno.escuro, ...coordEscuro },
 };
-// Tema do portal do aluno (ameixa e pêssego): o bloco .aluno-app (claro) e o do @media escuro, em src/aluno/aluno.css.
+// Tokens neobrutalistas do aluno, incluindo o texto escuro sobre o destaque verde.
 const cssAluno = readFileSync(fileURLToPath(new URL('../src/aluno/aluno.css', import.meta.url)), 'utf8');
 const iniEscuroAluno = cssAluno.indexOf('@media (prefers-color-scheme: dark)');
 const fimTokensAluno = cssAluno.indexOf('/* fim dos tokens do tema */');
@@ -92,21 +92,20 @@ const paresCoord = [
 
 // pares do portal do aluno: o fundo dos cartões, do bilhete e das áreas suaves, o texto e a primária sobre eles
 const paresAluno = [
-  ...['fundo-base', 'fundo-superficie', 'fundo-superficie-2', 'primaria-suave', 'bilhete-fundo'].flatMap(f => [['texto-principal', f, T], ['texto-secundario', f, T]]),
-  ['primaria-base', 'fundo-base', T], ['primaria-base', 'fundo-superficie', T], ['primaria-base', 'fundo-superficie-2', T], ['primaria-base', 'primaria-suave', T], ['primaria-base', 'bilhete-fundo', T],
-  ['primaria-hover', 'fundo-superficie', T], ['primaria-hover', 'primaria-suave', T],
-  ['texto-sobre-primaria', 'primaria-base', T], ['texto-sobre-primaria', 'primaria-hover', T],
+  ...['fundo-base', 'fundo-superficie', 'fundo-superficie-2', 'bilhete-fundo'].flatMap(f => [['texto-principal', f, T], ['texto-secundario', f, T], ['primaria-base', f, T]]),
+  ['texto-destaque-verde', 'destaque', T], ['texto-destaque-verde', 'acento', T], ['texto-destaque-verde', 'primaria-suave', T],
   ['perigo-base', 'perigo-suave', T], ['perigo-base', 'fundo-base', T], ['perigo-base', 'fundo-superficie', T], ['texto-sobre-perigo', 'perigo-base', T],
-  ['foco-anel', 'fundo-base', G], ['foco-anel', 'fundo-superficie', G], ['foco-anel', 'primaria-suave', G], ['foco-anel', 'bilhete-fundo', G], ['foco-anel', 'fundo-superficie-2', G],
-  ['borda-forte', 'fundo-base', G], ['borda-forte', 'fundo-superficie', G], ['borda-forte', 'fundo-superficie-2', G], ['borda-forte', 'primaria-suave', G],
-  ['primaria-base', 'primaria-suave', G],
+  ...['fundo-base', 'fundo-superficie', 'fundo-superficie-2', 'bilhete-fundo'].flatMap(f => [['foco-anel', f, G], ['borda-forte', f, G]]),
+  ['aviso-texto', 'aviso-fundo', T], ['sucesso-texto', 'sucesso-fundo', T], ['info-texto', 'info-fundo', T],
+  ['desabilitado-texto', 'desabilitado-fundo', T],
 ];
 
 const linhas = [];
 let falhas = 0;
 for (const [nome, cores] of Object.entries(temas)) {
   const extras = nome.startsWith('coord') ? paresCoord : nome.startsWith('aluno') ? paresAluno : [];
-  for (const [a, b, minimo] of [...pares, ...extras]) {
+  for (const [a, b, minimo] of nome.startsWith('aluno') ? paresAluno : [...pares, ...extras]) {
+    if (!cores[a] || !cores[b]) throw new Error(`${nome}: token de contraste ausente: ${!cores[a] ? a : b}`);
     const r = razao(cores[a], cores[b]);
     const passou = r >= minimo;
     if (!passou) falhas += 1;

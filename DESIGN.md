@@ -1,6 +1,7 @@
 ---
-name: "Segurança Integral"
-description: "Canal escolar de pedidos de ajuda e acompanhamento, com leitura confortável e operação offline."
+name: "TETRAGUARD"
+description: "Canal escolar hospedado para uma escola; portal do aluno neobrutalista e coordenação verde/neutra, com leitura confortável."
+approved_direction: "16/11/2026: aluno sempre em neobrutalismo; coordenação com painel de 16 px. Tokens vigentes em aluno/aluno.css e coord/identidade.css prevalecem sobre o inventário histórico abaixo."
 colors:
   shared-light-fundo-base: "#F5F3EE"
   shared-light-fundo-superficie: "#FFFFFF"
@@ -273,7 +274,7 @@ components:
     rounded: "{rounded.sm}"
     padding: "8px 12px"
 ---
-# Design System: Segurança Integral
+# Design System: TETRAGUARD
 
 ## Overview
 
@@ -363,7 +364,7 @@ Transições observadas são de 150ms ease-out, apenas dentro de `prefers-reduce
 - **Do** preservar o contraste, o foco visível, as áreas de interação e os pares de cores de cada tema.
 - **Do** usar texto e forma para alertas, gravidade e estado atual.
 - **Do** verificar contraste e navegação real nas larguras 375, 768 e 1280 px.
-- **Do** manter a tipografia empacotada e o funcionamento offline.
+- **Do** manter a tipografia empacotada e as informações de conectividade coerentes com a operação hospedada.
 
 ### Don't:
 
@@ -371,3 +372,17 @@ Transições observadas são de 150ms ease-out, apenas dentro de `prefers-reduce
 - **Don't** introduzir imagens decorativas para preencher espaço, números fictícios ou classificação jurídica automática.
 - **Don't** introduzir estilo inline incompatível com CSP, CDN de fontes ou abertura coreografada.
 - **Don't** substituir a confirmação real do pedido por um sucesso fictício.
+
+## Direção aprovada em 16/11/2026
+
+O portal do aluno sempre usa neobrutalismo: cantos retos, bordas marcadas, sombras sólidas deslocadas e tipografia forte. A paleta aprovada combina creme, texto escuro e verde vivo; o destaque verde mantém texto escuro também no tema escuro. Essa direção se aplica a todos os fluxos, campos, mensagens e confirmações do aluno.
+
+A coordenação usa superfícies neutras e verde, sem a camada Fluent azul nem o efeito de metal animado da versão anterior. O conteúdo do painel tem espaçamento interno de **16 px**, estável em todas as telas e larguras. Estados e indicadores preservam rótulos, contraste e significado.
+
+O inventário anterior registra decisões históricas; os tokens atuais das folhas de estilo de cada portal são a referência para implementação. Nenhum dado fictício da prévia é introduzido no produto. Fluxos, APIs, anexos, rascunhos, códigos, permissões, mapa, relatórios e histórico permanecem conectados à implementação existente.
+
+### Coordenação: controles recolhíveis
+
+A navegação principal prioriza Visão geral, Meu atendimento e Casos. Organização reúne Pós-resolução, Mapa e Relatórios; Ferramentas reúne Usuários e Ensaio, preservando as permissões. A rota selecionada abre seu grupo, e a contagem de pendências também aparece no resumo recolhido.
+
+Organizar fila, Gerenciar caso, Ajustar visualização e Exportar relatório revelam controles secundários sob demanda. Usar details/summary nativos, foco visível e alvos de pelo menos 44 px. Recolher preserva valores e rascunhos porque os formulários continuam montados. Busca e contexto da fila, conversa, mensagens, alertas e salvar/cancelar uma edição ficam disponíveis no fluxo principal. Os três modos de gráfico são opções de um único seletor.

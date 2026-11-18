@@ -606,7 +606,8 @@ def test_acompanhar_caso_nao_resolvido_sem_resolucao(student_client, config):
     assert d["pos_resolucao"] is False
     assert d["ultima_situacao"] is None
     assert set(d) == {"status", "mensagens", "resolucao", "pos_resolucao",
-                      "ultima_situacao"}
+                      "ultima_situacao", "anexos_total"}
+    assert d["anexos_total"] == 0
 
 
 def test_acompanhar_resolvido_traz_ultima_resolucao_e_situacao(student_client, config):

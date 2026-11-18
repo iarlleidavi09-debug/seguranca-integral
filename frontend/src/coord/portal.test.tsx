@@ -276,6 +276,20 @@ describe('Usuários e ensaio', () => {
     expect(envio.corpo).toEqual({});
   });
 
+  it('remove uma conta só depois de confirmar e não oferece remover a própria', async () => {
+    const user = await abrir('/#usuarios', { 'DELETE /api/usuarios/3': () => ({ corpo: { ok: true } }) });
+    expect(await screen.findByText('Rita')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Remover Marina' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Remover Rita' }));
+    expect(chamadasA('DELETE', '/api/usuarios/3')).toHaveLength(0);
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(chamadasA('DELETE', '/api/usuarios/3')).toHaveLength(0);
+    await user.click(screen.getByRole('button', { name: 'Remover Rita' }));
+    await user.click(screen.getByRole('button', { name: 'Confirmar remoção' }));
+    await screen.findByText('Usuário Rita removido.');
+    expect(chamadasA('DELETE', '/api/usuarios/3')).toHaveLength(1);
+  });
+
   it('mostra o papel de cada pessoa em texto', async () => {
     await abrir('/#usuarios');
     const itens = (await screen.findAllByRole('listitem')).filter(li => li.classList.contains('usuario'));
@@ -366,6 +380,7 @@ describe('Primeiro acesso', () => {
     await user.type(screen.getByLabelText('Senha'), 'senha-forte-123');
     await user.type(screen.getByLabelText('Repita a senha'), 'senha-forte-123');
     await user.click(screen.getByRole('button', { name: 'Criar conta e entrar' }));
+    await user.click(await screen.findByText('Ferramentas'));
     expect(await screen.findByRole('button', { name: 'Usuários' })).toBeInTheDocument();
     expect(chamadasA('POST', '/api/setup')[0].corpo).toEqual({ nome: 'Diretora', senha: 'senha-forte-123' });
   });
@@ -411,9 +426,11 @@ describe('Primeiro acesso', () => {
   });
 
   it('coordenador sem papel de admin não vê a aba Usuários', async () => {
+    const user = userEvent.setup();
     servidor({ 'GET /api/eu': () => ({ corpo: { id: 2, nome: 'Paulo', papel: 'coordenador' } }), 'GET /api/casos': () => ({ corpo: { casos: [] } }) });
     render(<App />);
     expect(await screen.findByRole('button', { name: 'Casos' })).toBeInTheDocument();
+    await user.click(screen.getByText('Ferramentas'));
     expect(screen.queryByRole('button', { name: 'Usuários' })).toBeNull();
   });
 });

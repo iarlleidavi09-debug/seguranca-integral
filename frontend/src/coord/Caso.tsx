@@ -13,6 +13,10 @@ import RegistrarResolucao from './RegistrarResolucao';
 import ReavaliarPrioridade from './ReavaliarPrioridade';
 import Presenca from './Presenca';
 import Atendimento from './Atendimento';
+import CodigoCaso from './CodigoCaso';
+import { useRascunhoConversa } from './useRascunhoConversa';
+import { obterSessaoRascunhosConversa, removerRascunhoConversa } from './rascunhosConversa';
+import ModelosResposta from './ModelosResposta';
 import { usePolling } from './polling';
 import {
   Prioridade, Simulacao, STATUS, Status, acessoLegivel, dataLegivel, descricaoEvento, motivo, prioridade, rotuloStatus,
@@ -69,7 +73,8 @@ export default function Caso({ id, aoVoltar, aoMudar, abaInicial = 'relato', ane
   const [aviso, setAviso] = useState('');
   const [ocupado, setOcupado] = useState(false);
   const [aba, setAba] = useState<Aba>(abaInicial);
-  const [rascunho, setRascunho] = useState({ mensagens: '', notas: '' });
+  const [rascunho, setRascunho] = useRascunhoConversa(id);
+  const gestao = useRef<HTMLDetailsElement>(null);
   const titulo = useRef<HTMLHeadingElement>(null);
   const abas = useRef<Record<Aba, HTMLButtonElement | null>>({ relato: null, conversa: null, notas: null, historico: null });
   const trabalhando = useRef(false);
@@ -79,6 +84,9 @@ export default function Caso({ id, aoVoltar, aoMudar, abaInicial = 'relato', ane
   const revisaoPrioridade = useRef<number | null>(null);
   const revisaoResolucao = useRef<number | null>(null);
   const [resolucaoEditando, setResolucaoEditando] = useState(false);
+  useEffect(() => {
+    if (resolucaoEditando && gestao.current) gestao.current.open = true;
+  }, [resolucaoEditando]);
   // Maior id de mensagem já exibido na aba Conversa nesta visita (-1: nunca aberta). Serve ao ponto de mensagem nova.
   const [vistoAte, setVistoAte] = useState(-1);
   const abaAnterior = useRef<Aba>(abaInicial);
@@ -169,8 +177,10 @@ export default function Caso({ id, aoVoltar, aoMudar, abaInicial = 'relato', ane
     return limpo;
   }
   const enviarMensagem = () => {
+    const original = rascunho.mensagens;
+    const sessaoEnvio = obterSessaoRascunhosConversa();
     const texto = textoValido(rascunho.mensagens); if (texto === null) return;
-    void agir(() => enviarMensagemAoAluno(id, texto), 'Mensagem enviada ao aluno.', () => setRascunho(r => (r.mensagens.trim() === texto ? { ...r, mensagens: '' } : r)));
+    void agir(() => enviarMensagemAoAluno(id, texto), 'Mensagem enviada ao aluno.', () => removerRascunhoConversa(id, 'mensagens', original, sessaoEnvio));
   };
   async function editarMensagem(mensagemId: number, texto: string) {
     let motivo = '';
@@ -181,8 +191,10 @@ export default function Caso({ id, aoVoltar, aoMudar, abaInicial = 'relato', ane
     if (!await agir(() => excluirMensagemAoAluno(id, mensagemId), 'Mensagem excluída.', undefined, undefined, m => { motivo = m; })) throw new Error(motivo);
   }
   const enviarNota = () => {
+    const original = rascunho.notas;
+    const sessaoEnvio = obterSessaoRascunhosConversa();
     const texto = textoValido(rascunho.notas); if (texto === null) return;
-    void agir(() => criarNota(id, texto), 'Nota interna salva.', () => setRascunho(r => (r.notas.trim() === texto ? { ...r, notas: '' } : r)));
+    void agir(() => criarNota(id, texto), 'Nota interna salva.', () => removerRascunhoConversa(id, 'notas', original, sessaoEnvio));
   };
   const trocarStatus = (novo: 'novo' | 'em_investigacao') =>
     void agir(() => mudarStatus(id, novo, revisaoAtual.current), `Status alterado para ${rotuloStatus[novo]}.`);
@@ -243,6 +255,7 @@ export default function Caso({ id, aoVoltar, aoMudar, abaInicial = 'relato', ane
       <p className="caso-selos"><Prioridade valor={caso.prioridade} /><Status valor={caso.status} />
         {caso.canal === 'acolhimento' && <span className="selo-neutro">Acolhimento anônimo</span>}
         {caso.simulacao && <Simulacao />}{caso.em_andamento && <span className="selo-neutro">Ocorrendo agora</span>}</p>
+      <CodigoCaso key={caso.id} codigo={caso.codigo_acompanhamento} />
       <div className="caso-faixa">
         <p className="texto-pequeno caso-linha">Recebido em {dataLegivel(caso.criado_em)} · Tipo de denúncia: {tipo(caso.tipo)} · {caso.anonimo ? 'Denúncia anônima' : `Identificado: ${caso.nome ?? 'sem nome'}${caso.turma ? `, turma ${caso.turma}` : ''}`}</p>
         <Presenca casoId={id} atividade={aba === 'conversa' && rascunho.mensagens ? 'mensagem' : aba === 'notas' && rascunho.notas ? 'nota' : 'vendo'} />
@@ -257,7 +270,11 @@ export default function Caso({ id, aoVoltar, aoMudar, abaInicial = 'relato', ane
       <p className="texto-pequeno">{NOTA_ROE}</p>
       </details>
     </div>
-    <div className="caso-acoes">
+    <details ref={gestao} className="acoes-recolhidas caso-gestao" onToggle={e => {
+      if (!e.currentTarget.open && (resolucaoEditando || ocupado)) e.currentTarget.open = true;
+    }}>
+      <summary>Gerenciar caso</summary>
+      <div className="caso-acoes acoes-recolhidas-conteudo">
       {resolvido
         ? <div className="caso-meta-status">
           <p>Caso resolvido.</p>
@@ -276,7 +293,8 @@ export default function Caso({ id, aoVoltar, aoMudar, abaInicial = 'relato', ane
         <RegistrarResolucao aoConfirmar={resolver} ocupado={ocupado} resolvido={resolvido}
           aoEditar={() => { if (revisaoResolucao.current === null) revisaoResolucao.current = revisaoAtual.current; setResolucaoEditando(true); }} />
       </details>}
-    </div>
+      </div>
+    </details>
     {resolvido && (caso.recorrencia_pendente || caso.atencao?.includes('mensagem_pendente')) && <p className="aviso caso-aviso-retorno">Há um retorno do aluno após a resolução. Confira a conversa e reabra a investigação se for necessário. O histórico será mantido.</p>}
     <Atendimento caso={caso} ocupado={ocupado}
       aoSalvar={(dados, revisao) => agir(() => salvarAtendimento(id, dados, revisao), 'Atendimento salvo.')}
@@ -327,6 +345,7 @@ export default function Caso({ id, aoVoltar, aoMudar, abaInicial = 'relato', ane
             <Anexos caso={caso} anexoInicial={anexoInicial} imagemPrevia={imagemPrevia} />
           </>}
           {aba === 'conversa' && <Conversa titulo="Conversa com o aluno" campo="texto-mensagem" rotulo="Mensagem ao aluno" ajuda="O aluno lê esta mensagem no acompanhamento."
+            ferramenta={<ModelosResposta key={id} textoAtual={rascunho.mensagens} ocupado={ocupado} aoInserir={texto => setRascunho(r => ({ ...r, mensagens: texto }))} />}
             botao="Enviar ao aluno" texto={rascunho.mensagens} enviando={ocupado}
             aoMudar={valor => setRascunho(r => ({ ...r, mensagens: valor }))} aoEnviar={enviarMensagem}
             aoEditar={editarMensagem} aoExcluir={excluirMensagem} aoVerVersoes={mensagemId => versoesDaMensagem(id, mensagemId)}

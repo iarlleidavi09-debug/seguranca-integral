@@ -215,3 +215,5 @@ legend { margin-bottom: var(--espaco-4); padding: 0; }
   .anexos { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 @media (max-width: 374px) { .portal { padding-inline: var(--espaco-4); } .codigo { font-size: 30px; letter-spacing: 4px; } }
+/* O campo só existe durante a cópia em navegadores HTTP da rede local. */
+.copia-temporaria { position: fixed; top: 0; left: -10000px; width: 1px; height: 1px; }

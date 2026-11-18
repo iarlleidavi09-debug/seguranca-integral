@@ -1,4 +1,4 @@
-; Instalador do TETRA-GUARD (Inno Setup 6.3 ou mais novo).
+; Instalador do TETRAGUARD (Inno Setup 6.3 ou mais novo).
 ; Compilar com o build.ps1, que gera antes dist\SegurancaIntegral\ com o PyInstaller.
 ;
 ; O que faz, em ordem:
@@ -18,7 +18,7 @@
   #error É preciso o Inno Setup 6.3 ou mais novo (usa ExecAndCaptureOutput).
 #endif
 
-#define AppNome "TETRA-GUARD"
+#define AppNome "TETRAGUARD"
 #define AppVersao "3.1.0"
 #ifndef LAN
   #ifndef TUNNEL
@@ -73,36 +73,37 @@ Source: "LEIA-ME-LAN.txt"; DestDir: "{app}"; Flags: ignoreversion isreadme
 Source: "LEIA-ME.txt"; DestDir: "{app}"; Flags: ignoreversion isreadme
 #endif
 Source: "..\dist\SegurancaIntegral\_internal\*"; DestDir: "{app}\_internal"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\dist\SegurancaIntegral\SegurancaIntegral-cli.exe"; DestDir: "{app}"; Flags: ignoreversion
 ; por último: o AfterInstall precisa do programa inteiro já copiado
 Source: "..\dist\SegurancaIntegral\{#AppExe}"; DestDir: "{app}"; Flags: ignoreversion; AfterInstall: ConfigurarDados
 
 [INI]
 ; atalhos que abrem os portais no navegador padrão (o servidor roda em segundo
 ; plano, como tarefa agendada, e não tem janela própria)
-Filename: "{autodesktop}\TETRA-GUARD - Coordenação.url"; Section: "InternetShortcut"; Key: "URL"; String: "http://127.0.0.1:4000"
-Filename: "{autodesktop}\TETRA-GUARD - Portal do aluno.url"; Section: "InternetShortcut"; Key: "URL"; String: "http://127.0.0.1:3000"
-Filename: "{autoprograms}\TETRA-GUARD\Coordenação.url"; Section: "InternetShortcut"; Key: "URL"; String: "http://127.0.0.1:4000"
-Filename: "{autoprograms}\TETRA-GUARD\Portal do aluno.url"; Section: "InternetShortcut"; Key: "URL"; String: "http://127.0.0.1:3000"
+Filename: "{autodesktop}\TETRAGUARD - Coordenação.url"; Section: "InternetShortcut"; Key: "URL"; String: "http://127.0.0.1:4000"
+Filename: "{autodesktop}\TETRAGUARD - Portal do aluno.url"; Section: "InternetShortcut"; Key: "URL"; String: "http://127.0.0.1:3000"
+Filename: "{autoprograms}\TETRAGUARD\Coordenação.url"; Section: "InternetShortcut"; Key: "URL"; String: "http://127.0.0.1:4000"
+Filename: "{autoprograms}\TETRAGUARD\Portal do aluno.url"; Section: "InternetShortcut"; Key: "URL"; String: "http://127.0.0.1:3000"
 
 [Icons]
 ; liga a tarefa (pede administrador) e abre a coordenação quando o servidor já subiu
 #ifdef LAN
-Name: "{autoprograms}\TETRA-GUARD\Iniciar servidor"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\atualizar-rede.ps1"" -AbrirCoordenacao"; Comment: "Atualiza a rede, reinicia o servidor e abre a coordenação"
-Name: "{autoprograms}\TETRA-GUARD\Atualizar rede"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\atualizar-rede.ps1"""; Comment: "Atualiza os endereços após trocar de Wi-Fi e verifica os portais"
+Name: "{autoprograms}\TETRAGUARD\Iniciar servidor"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\atualizar-rede.ps1"" -AbrirCoordenacao"; Comment: "Atualiza a rede, reinicia o servidor e abre a coordenação"
+Name: "{autoprograms}\TETRAGUARD\Atualizar rede"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\atualizar-rede.ps1"""; Comment: "Atualiza os endereços após trocar de Wi-Fi e verifica os portais"
 #else
-Name: "{autoprograms}\TETRA-GUARD\Iniciar servidor"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command ""Start-Process -Verb RunAs -WindowStyle Hidden -FilePath schtasks.exe -ArgumentList '/Run','/TN','{#NomeTarefa}'; Start-Sleep -Seconds 6; Start-Process 'http://127.0.0.1:4000'"""; Comment: "Liga o servidor do TETRA-GUARD e abre a coordenação"
+Name: "{autoprograms}\TETRAGUARD\Iniciar servidor"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command ""Start-Process -Verb RunAs -WindowStyle Hidden -FilePath schtasks.exe -ArgumentList '/Run','/TN','{#NomeTarefa}'; Start-Sleep -Seconds 6; Start-Process 'http://127.0.0.1:4000'"""; Comment: "Liga o servidor do TETRAGUARD e abre a coordenação"
 #endif
 #ifdef LAN
-Name: "{autoprograms}\TETRA-GUARD\Endereços da rede"; Filename: "{app}\Enderecos-da-rede.txt"; Comment: "Endereços para compartilhar com os alunos"
+Name: "{autoprograms}\TETRAGUARD\Endereços da rede"; Filename: "{app}\Enderecos-da-rede.txt"; Comment: "Endereços para compartilhar com os alunos"
 
 [Run]
 Filename: "{app}\Enderecos-da-rede.txt"; Description: "Ver os endereços da rede"; Flags: postinstall shellexec skipifsilent
 #endif
 
 [UninstallDelete]
-Type: files; Name: "{autodesktop}\TETRA-GUARD - Coordenação.url"
-Type: files; Name: "{autodesktop}\TETRA-GUARD - Portal do aluno.url"
-Type: filesandordirs; Name: "{autoprograms}\TETRA-GUARD"
+Type: files; Name: "{autodesktop}\TETRAGUARD - Coordenação.url"
+Type: files; Name: "{autodesktop}\TETRAGUARD - Portal do aluno.url"
+Type: filesandordirs; Name: "{autoprograms}\TETRAGUARD"
 #ifdef LAN
 Type: files; Name: "{app}\Enderecos-da-rede.txt"
 #endif
