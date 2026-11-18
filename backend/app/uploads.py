@@ -6,8 +6,10 @@ aleatório, e a leitura posterior só aceita nomes nesse formato.
 """
 from __future__ import annotations
 
+import hashlib
 import re
 import secrets
+from datetime import datetime, timezone
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -35,6 +37,9 @@ class AnexoSalvo:
     nome_interno: str
     tipo: str
     tamanho: int
+    # registro de integridade: hash do conteúdo gravado e momento no servidor
+    sha256: str | None = None
+    recebido_em: str | None = None
 
 
 def detectar_tipo(dados: bytes) -> str | None:
@@ -299,7 +304,10 @@ def salvar_anexo(config: Config, dados: bytes) -> AnexoSalvo:
             continue
         except OSError as erro:
             raise AnexoInvalido("armazenamento indisponivel") from erro
-        return AnexoSalvo(nome_interno=nome, tipo=tipo, tamanho=len(dados))
+        return AnexoSalvo(
+            nome_interno=nome, tipo=tipo, tamanho=len(dados),
+            sha256=hashlib.sha256(dados).hexdigest(),
+            recebido_em=datetime.now(timezone.utc).isoformat(timespec="seconds"))
     raise AnexoInvalido("armazenamento indisponivel")
 
 

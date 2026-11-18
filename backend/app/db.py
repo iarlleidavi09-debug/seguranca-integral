@@ -164,6 +164,7 @@ def init_db(config: Config) -> None:
         _backup_pre_v4(conn, config)
         _backup_pre_v3(conn, config)
         _backup_pre_v2(conn, config)
+        _backup_pre_evidencias(conn, config)
         conn.executescript(SCHEMA)
         _migrar_papel(conn)
         _migrar_situacao_resolucao(conn)
@@ -176,6 +177,7 @@ def init_db(config: Config) -> None:
         _migrar_v4(conn)
         _migrar_atendimento(conn)
         _migrar_limpezas_implantacao(conn)
+        _migrar_evidencias(conn)
     finally:
         conn.close()
 
@@ -189,6 +191,46 @@ def _migrar_atendimento(conn: sqlite3.Connection) -> None:
                            ('canal', "TEXT NOT NULL DEFAULT 'relato'")):
             if name not in columns:
                 conn.execute(f'ALTER TABLE casos ADD COLUMN {name} {kind}')
+
+
+def _backup_pre_evidencias(conn: sqlite3.Connection, config: Config) -> None:
+    """Cópia antes de acrescentar o registro de integridade aos anexos."""
+    colunas = _colunas(conn, 'anexos')
+    if colunas and not {'sha256', 'recebido_em'} <= colunas:
+        _backup_atomico(conn, Path(str(config.db_path) + '.pre-evidencias.bak'))
+
+
+def _migrar_evidencias(conn: sqlite3.Connection) -> None:
+    """Trilha de evidências: hash e data de recebimento dos anexos e registro de acessos.
+
+    Anexos anteriores ficam com `sha256` e `recebido_em` nulos (sem registro de
+    integridade, sem data retroativa). A tabela de acessos é só de acréscimo:
+    o gatilho recusa qualquer UPDATE; a exclusão só ocorre em cascata, quando o
+    próprio caso é apagado.
+    """
+    conn.execute('BEGIN IMMEDIATE')
+    try:
+        colunas = _colunas(conn, 'anexos')
+        for nome in ('sha256', 'recebido_em'):
+            if nome not in colunas:
+                conn.execute(f'ALTER TABLE anexos ADD COLUMN {nome} TEXT')
+        conn.execute(
+            'CREATE TABLE IF NOT EXISTS acessos_anexo ('
+            'id INTEGER PRIMARY KEY AUTOINCREMENT, '
+            'caso_id INTEGER NOT NULL REFERENCES casos(id) ON DELETE CASCADE, '
+            'anexo_id INTEGER REFERENCES anexos(id) ON DELETE CASCADE, '
+            'usuario_id INTEGER REFERENCES usuarios(id), '
+            "acao TEXT NOT NULL CHECK (acao IN ('visualizar','exportar')), "
+            'criado_em TEXT NOT NULL)')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_acessos_anexo_caso ON acessos_anexo(caso_id)')
+        conn.execute(
+            'CREATE TRIGGER IF NOT EXISTS acessos_anexo_sem_update '
+            'BEFORE UPDATE ON acessos_anexo BEGIN '
+            "SELECT RAISE(ABORT, 'registro de acesso e imutavel'); END")
+        conn.commit()
+    except BaseException:
+        conn.rollback()
+        raise
 
 
 def _migrar_limpezas_implantacao(conn: sqlite3.Connection) -> None:
