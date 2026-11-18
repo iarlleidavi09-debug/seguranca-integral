@@ -8,6 +8,7 @@ from pathlib import Path
 from flask import Flask
 
 from ._comum import configurar_app
+from . import notificacoes
 from .config import Config
 from .db import init_db
 from .ratelimit import Limitador
@@ -82,4 +83,5 @@ def create_coord_app(config: Config, limites: dict | None = None, *, central: Ce
     app.register_blueprint(bp)
     app.register_blueprint(realtime)
     configurar_app(app)
+    notificacoes.iniciar(config)  # resumo diário, só se o SMTP estiver configurado
     return app

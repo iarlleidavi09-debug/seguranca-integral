@@ -8,6 +8,7 @@ import Caso from './Caso';
 import Usuarios from './Usuarios';
 import Setup from './Setup';
 import Ensaio from './Ensaio';
+import Alertas from './Alertas';
 import Navegacao from './Navegacao';
 import Mapa from './mapa/Mapa';
 import Relatorios from './Relatorios';
@@ -31,6 +32,7 @@ function telaDoEndereco(): Tela {
   if (hash === '#mapa') return { nome: 'mapa' };
   if (hash === '#relatorios') return { nome: 'relatorios' };
   if (hash === '#ensaio') return { nome: 'ensaio' };
+  if (hash === '#alertas') return { nome: 'alertas' };
   return { nome: 'geral' };
 }
 function enderecoDa(tela: Tela): string {
@@ -193,6 +195,7 @@ export default function App() {
           </>}
           {telaVisivel.nome === 'usuarios' && <Usuarios meuId={sessao.id} aoLimpar={atualizarResumo} />}
           {telaVisivel.nome === 'ensaio' && <Ensaio />}
+          {telaVisivel.nome === 'alertas' && <Alertas />}
           {telaVisivel.nome === 'relatorios' && <Relatorios />}
           {(mapaVisitado || telaVisivel.nome === 'mapa') && <div hidden={telaVisivel.nome !== 'mapa'}><Mapa /></div>}
         </main>

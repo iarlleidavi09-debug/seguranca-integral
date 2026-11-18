@@ -2,9 +2,9 @@ import { useEffect, useRef } from 'react';
 
 export type Tela =
   | { nome: 'geral' } | { nome: 'atendimento' } | { nome: 'casos' } | { nome: 'pos' }
-  | { nome: 'mapa' } | { nome: 'relatorios' } | { nome: 'caso'; id: number } | { nome: 'usuarios' } | { nome: 'ensaio' };
+  | { nome: 'mapa' } | { nome: 'relatorios' } | { nome: 'caso'; id: number } | { nome: 'usuarios' } | { nome: 'ensaio' } | { nome: 'alertas' };
 
-type Destino = 'atendimento' | 'mapa' | 'geral' | 'casos' | 'pos' | 'usuarios' | 'ensaio' | 'relatorios';
+type Destino = 'atendimento' | 'mapa' | 'geral' | 'casos' | 'pos' | 'usuarios' | 'ensaio' | 'relatorios' | 'alertas';
 
 const ICONES: Record<Destino, string> = {
   geral: 'M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z',
@@ -15,6 +15,7 @@ const ICONES: Record<Destino, string> = {
   usuarios: 'M15 21v-3a5 5 0 0 0-10 0v3 M14 5a4 4 0 1 1 0 6 M19 14a4 4 0 0 1 3 4v3 M14 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0',
   ensaio: 'M9 3h6 M10 3v6L4 19a1 1 0 0 0 1 2h14a1 1 0 0 0 1-2L14 9V3 M8 14h8',
   relatorios: 'M4 3v18h17 M8 16v-4 M13 16V8 M18 16V5',
+  alertas: 'M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9 M10.3 21a1.9 1.9 0 0 0 3.4 0',
 };
 
 type Item = { nome: Destino; rotulo: string };
@@ -28,7 +29,7 @@ const ORGANIZACAO: Item[] = [
   { nome: 'relatorios', rotulo: 'Relatórios' },
 ];
 const FERRAMENTAS: Item[] = [
-  { nome: 'usuarios', rotulo: 'Usuários' }, { nome: 'ensaio', rotulo: 'Ensaio' },
+  { nome: 'usuarios', rotulo: 'Usuários' }, { nome: 'alertas', rotulo: 'Alertas' }, { nome: 'ensaio', rotulo: 'Ensaio' },
 ];
 
 /** Barra lateral; abaixo de 760 px o CSS a transforma em barra superior rolável. */

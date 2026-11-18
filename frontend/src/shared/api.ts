@@ -311,3 +311,14 @@ export async function obterImplantacao(): Promise<ResumoImplantacao | null> {
 }
 export const limparImplantacao = (senha: string, confirmacao: string, apagarBackups: boolean) =>
   coord<{ ok: boolean; removidos: Removidos; avisos?: string[] }>('POST', '/api/implantacao/limpar', { senha, confirmacao, apagar_backups: apagarBackups });
+
+// Alertas por e-mail (preferências por usuário; endereços só para admin)
+export type PreferenciasAlerta = { critico: boolean; recorrencia: boolean; resumo: boolean };
+export type UsuarioAlerta = PreferenciasAlerta & { id: number; nome: string; ativo: boolean; email: string };
+export type EstadoAlertas = {
+  configurado: boolean; resumo_hora: string | null;
+  minhas: PreferenciasAlerta & { tem_email: boolean }; usuarios?: UsuarioAlerta[];
+};
+export const obterAlertas = (sinal?: AbortSignal) => coord<EstadoAlertas>('GET', '/api/alertas', undefined, sinal);
+export const salvarPreferenciasAlerta = (prefs: PreferenciasAlerta) => coord<PreferenciasAlerta & { tem_email: boolean }>('POST', '/api/alertas/preferencias', prefs);
+export const definirEmailAlerta = (usuarioId: number, email: string) => coord<{ ok: boolean; email: string }>('POST', `/api/alertas/usuarios/${id(usuarioId)}/email`, { email });

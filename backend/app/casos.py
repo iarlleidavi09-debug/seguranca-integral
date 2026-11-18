@@ -7,6 +7,7 @@ import unicodedata
 from datetime import datetime, timezone
 
 from .codes import gerar_codigo, hash_codigo, normalizar_codigo
+from . import notificacoes
 from .config import Config
 from .triage import carregar_termos, classificar
 from .uploads import AnexoSalvo
@@ -109,6 +110,8 @@ def criar_caso(conn: sqlite3.Connection, config: Config, dados: dict,
             except BaseException:
                 conn.rollback()
                 raise
+            if triagem.prioridade == "critica" and not simulacao:
+                notificacoes.avisar(config, "critico")  # fila em segundo plano; nunca bloqueia
             return codigo
         except sqlite3.IntegrityError as erro:
             if "codigo_hash" not in str(erro):

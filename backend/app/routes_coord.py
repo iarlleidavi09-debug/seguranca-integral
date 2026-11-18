@@ -699,4 +699,6 @@ from .exportacao import registrar as registrar_exportacao
 registrar_exportacao(bp, _db, _nao_encontrado)
 registrar_coord(bp)
 registrar_rotas(bp)
+from .routes_alertas import registrar_alertas
+registrar_alertas(bp)
 registrar_rotas_finais(bp)

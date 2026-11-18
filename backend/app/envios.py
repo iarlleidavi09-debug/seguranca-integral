@@ -7,6 +7,7 @@ import json
 import sqlite3
 from datetime import datetime, timezone
 
+from . import notificacoes
 from .codes import ALFABETO, hash_codigo
 from .triage import carregar_termos, classificar
 
@@ -125,6 +126,8 @@ def criar_caso_v3(conn, config, dados, anexos, envio_id, definicao, respostas, c
         conn.execute('INSERT INTO envios (recibo_hmac,contador,conteudo_hash,caso_id,confirmacao_json) VALUES (?,?,?,?,?)',
                      (recibo_hmac(envio_id, config.secret_key), counter, conteudo_hash, case_id, json.dumps(confirmation)))
         conn.commit()
+        if triagem.prioridade == 'critica':
+            notificacoes.avisar(config, 'critico')  # fila em segundo plano; nunca bloqueia
         return {'codigo': code, **confirmation, '_reutilizado': False}
     except BaseException:
         conn.rollback()

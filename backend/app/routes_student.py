@@ -6,7 +6,7 @@ from contextlib import closing
 
 from flask import Blueprint, current_app, jsonify, request
 
-from . import casos
+from . import casos, notificacoes
 from ._comum import registrar_rotas_finais
 from .db import connect
 from .questionario import QuestionarioInvalido, RespostasInvalidas, carregar
@@ -243,6 +243,8 @@ def informar_situacao():
             return _erro("situacao invalida")
         if casos.registrar_situacao(conn, caso["id"], situacao) != "ok":
             return _erro("caso ainda nao resolvido", 409)
+    if situacao == "voltou":
+        notificacoes.avisar(config, "recorrencia")
     publicar(caso['id'])
     return jsonify({"ok": True}), 201
 
