@@ -23,6 +23,7 @@ dados = [
     (os.path.join(APP, 'risk_terms.json'), 'app'),
     (os.path.join(APP, 'questionario.json'), 'app'),
     (os.path.join(APP, 'questionario_v3.json'), 'app'),
+    (os.path.join(APP, 'orientacoes.json'), 'app'),
 ]
 
 a = Analysis(

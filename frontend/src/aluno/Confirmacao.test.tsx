@@ -65,3 +65,51 @@ describe('Confirmação', () => {
     expect(screen.queryByText(/respostas às perguntas/)).toBeNull();
   });
 });
+
+describe('Confirmação: Enquanto você espera', () => {
+  const resposta = (contatos: { nome: string; contato: string }[] = []) => ({
+    geral: { titulo: 'Enquanto você espera', passos: ['Guarde prints, sem apagar as conversas.', 'Fale com um adulto de confiança.'] },
+    situacoes: [{ id: 'cyber', titulo: 'Se estão te atacando na internet', passos: ['Bloqueie e não responda.'] }],
+    contatos,
+  });
+  const servir = (corpo: unknown) => vi.mocked(fetch).mockImplementation(async () => new Response(JSON.stringify(corpo), { status: 200 }));
+
+  it('mostra os passos gerais e os da situação marcada, pedindo só os ids', async () => {
+    servir(resposta());
+    render(<Confirmacao resultado={{ codigo: 'K7M2-9QXD' }} onAcompanhar={() => {}} situacoes={['cyber', 'golpe']} />);
+    const bloco = await screen.findByRole('region', { name: 'Enquanto você espera' });
+    expect(bloco).toHaveTextContent('Guarde prints, sem apagar as conversas.');
+    expect(bloco).toHaveTextContent('Se estão te atacando na internet');
+    expect(bloco).toHaveTextContent('Bloqueie e não responda.');
+    expect(vi.mocked(fetch).mock.calls[0][0]).toBe('/api/orientacoes?situacoes=cyber,golpe');
+  });
+  it('com risco mantém o aviso de risco antes do bloco, e sem risco não o mostra', async () => {
+    servir(resposta());
+    const { rerender } = render(<Confirmacao resultado={{ codigo: 'K7M2-9QXD' }} onAcompanhar={() => {}} situacoes={['cyber']} orientacao />);
+    const bloco = await screen.findByRole('region', { name: 'Enquanto você espera' });
+    const risco = screen.getByText(/Se você sente que corre perigo agora/);
+    expect(risco.compareDocumentPosition(bloco) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    rerender(<Confirmacao resultado={{ codigo: 'K7M2-9QXD' }} onAcompanhar={() => {}} situacoes={['cyber']} />);
+    expect(screen.queryByText(/Se você sente que corre perigo agora/)).toBeNull();
+    expect(screen.getByRole('region', { name: 'Enquanto você espera' })).toBeInTheDocument();
+  });
+  it('mostra contatos de apoio quando configurados e omite a seção quando vazios', async () => {
+    servir(resposta([{ nome: 'Psicologia da escola', contato: 'Sala 12' }]));
+    const { unmount } = render(<Confirmacao resultado={{ codigo: 'K7M2-9QXD' }} onAcompanhar={() => {}} />);
+    expect(await screen.findByText('Psicologia da escola')).toBeInTheDocument();
+    expect(screen.getByText('Sala 12')).toBeInTheDocument();
+    unmount();
+    servir(resposta());
+    render(<Confirmacao resultado={{ codigo: 'K7M2-9QXD' }} onAcompanhar={() => {}} />);
+    await screen.findByRole('region', { name: 'Enquanto você espera' });
+    expect(screen.queryByText(/Onde pedir apoio/)).toBeNull();
+  });
+  it('se as orientações não carregam, a confirmação segue intacta e sem erro', async () => {
+    vi.mocked(fetch).mockImplementation(async () => { throw new TypeError('rede'); });
+    render(<Confirmacao resultado={{ codigo: 'K7M2-9QXD' }} onAcompanhar={() => {}} situacoes={['cyber']} />);
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalled());
+    expect(screen.queryByRole('region', { name: 'Enquanto você espera' })).toBeNull();
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.getByText('K7M2-9QXD')).toBeInTheDocument();
+  });
+});

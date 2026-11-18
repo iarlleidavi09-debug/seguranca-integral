@@ -14,7 +14,7 @@ import { LIMITE_RELATO, TEXTO_ORIENTACAO } from './situacoes';
 
 type Passo = 1 | 2 | 3 | 4;
 type Anexo = { id: number; arquivo: File; url: string };
-export type ExtrasEnvioV3 = { orientacao: boolean; respostasNaoEnviadas: boolean };
+export type ExtrasEnvioV3 = { orientacao: boolean; respostasNaoEnviadas: boolean; situacoes?: string[] };
 const titulos = ['Qual é a situação?', 'O que está acontecendo?', 'Conte com suas palavras', 'Revise seu pedido'];
 const risco = ['q-seguranca.nao', 'q-seguranca.incerta'];
 const novoRecibo = () => Array.from(crypto.getRandomValues(new Uint8Array(16)), n => n.toString(16).padStart(2, '0')).join('');
@@ -200,7 +200,7 @@ export default function Pedido({ onEnviado, onEnviando }: { onEnviado: (resultad
     trava.current = true; podeRenovarRecibo.current = false; setEnviando(true); onEnviando?.(true); setErro('');
     try {
       const resultado = await enviarPedidoV4(montarFormulario(comRespostas));
-      apagarRascunhoV3(); onEnviado(resultado, { orientacao, respostasNaoEnviadas: Boolean(def && !comRespostas) });
+      apagarRascunhoV3(); onEnviado(resultado, { orientacao, respostasNaoEnviadas: Boolean(def && !comRespostas), situacoes: dados.marcadas });
     } catch (falha) {
       if (comRespostas && def && falha instanceof ErroApi && ((falha.status === 400 && falha.erroServidor.startsWith('respostas invalidas')) || falha.status === 503)) {
         podeRenovarRecibo.current = falha.status === 400;

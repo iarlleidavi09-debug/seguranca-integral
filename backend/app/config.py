@@ -40,6 +40,13 @@ class Config:
     limites: dict = field(default_factory=dict)
     # implantação secundária: habilita a limpeza dos dados de teste (config.json)
     implantacao_secundaria: bool = False
+    # contatos de apoio da escola mostrados na orientação ao aluno; vazio = omitidos
+    contatos_apoio: tuple = ()
+
+    @property
+    def orientacoes_path(self) -> Path:
+        copia = self.data_dir / "orientacoes.json"
+        return copia if copia.exists() else Path(__file__).parent / "orientacoes.json"
 
     @property
     def db_path(self) -> Path:
@@ -212,4 +219,23 @@ def _ler_config_json(arquivo: Path) -> dict:
         raise ValueError("config.json: implantacao_secundaria precisa ser true ou false")
     return {"host": host, "allowed_hosts": tuple(hosts), "student_port": aluno,
             "coord_port": coord, "limites": _limites(dados),
-            "implantacao_secundaria": implantacao}
+            "implantacao_secundaria": implantacao,
+            "contatos_apoio": _contatos_apoio(dados)}
+
+
+def _contatos_apoio(dados: dict) -> tuple:
+    """Valida `contatos_apoio`: [{"nome": "...", "contato": "..."}], opcional."""
+    bruto = dados.get("contatos_apoio", [])
+    erro = ("config.json: contatos_apoio precisa ser uma lista de "
+            "{nome, contato} com textos de ate 120 caracteres")
+    if not isinstance(bruto, list) or len(bruto) > 10:
+        raise ValueError(erro)
+    contatos = []
+    for item in bruto:
+        if not isinstance(item, dict) or set(item) != {"nome", "contato"}:
+            raise ValueError(erro)
+        nome, contato = item["nome"], item["contato"]
+        if not all(isinstance(v, str) and 1 <= len(v.strip()) <= 120 for v in (nome, contato)):
+            raise ValueError(erro)
+        contatos.append({"nome": nome.strip(), "contato": contato.strip()})
+    return tuple(contatos)
