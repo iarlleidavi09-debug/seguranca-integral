@@ -97,6 +97,18 @@ export async function obterQuestionarioV3(): Promise<QuestionarioV3> {
   if (def.comuns.some(id => !perguntas.has(id)) || def.grupos.some(g => g.opcoes.some(o => o.perguntas.some(id => !perguntas.has(id))))) throw new ErroApi(502);
   return def;
 }
+export type BlocoOrientacao = { titulo: string; passos: string[] };
+export type Orientacoes = { geral: BlocoOrientacao; situacoes: (BlocoOrientacao & { id: string })[]; contatos: { nome: string; contato: string }[] };
+/** Passos de orientação imediata; só ids de situação trafegam, nunca dados do caso. */
+export async function obterOrientacoes(situacoes: string[] = []): Promise<Orientacoes> {
+  const consulta = situacoes.length ? `?situacoes=${situacoes.map(encodeURIComponent).join(',')}` : '';
+  const dados = await buscarDefinicao<Orientacoes>(`/api/orientacoes${consulta}`);
+  const texto = (v: unknown) => typeof v === 'string' && v.length > 0;
+  const bloco = (b: unknown): b is BlocoOrientacao => !!b && texto((b as BlocoOrientacao).titulo) && Array.isArray((b as BlocoOrientacao).passos) && (b as BlocoOrientacao).passos.every(texto);
+  if (!dados || !bloco(dados.geral) || !Array.isArray(dados.situacoes) || !dados.situacoes.every(s => bloco(s) && texto(s.id))
+    || !Array.isArray(dados.contatos) || !dados.contatos.every(c => c && texto(c.nome) && texto(c.contato))) throw new ErroApi(502);
+  return dados;
+}
 async function buscarDefinicao<T>(rota: string): Promise<T> {
   const controle = new AbortController();
   let cronometro: ReturnType<typeof setTimeout> | undefined;

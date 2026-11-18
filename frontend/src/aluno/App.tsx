@@ -49,7 +49,7 @@ export default function App() {
       {tela.nome === 'inicio' && <Inicio onAjuda={() => ir({ nome: 'denuncia' })} onAcompanhar={consultar} onAcolhimento={() => ir({ nome: 'acolhimento' })} />}
       {tela.nome === 'acolhimento' && <Acolhimento onEnviando={setEnviandoDenuncia} onCriado={consultar} />}
       {tela.nome === 'denuncia' && <Pedido onEnviando={setEnviandoDenuncia} onEnviado={(resultado, extras) => { guardarAcesso(resultado.codigo); setTela({ nome: 'confirmacao', resultado, extras }); }} />}
-      {tela.nome === 'confirmacao' && <Confirmacao resultado={tela.resultado} orientacao={tela.extras?.orientacao} respostasNaoEnviadas={tela.extras?.respostasNaoEnviadas} onAcompanhar={() => consultar(tela.resultado.codigo)} />}
+      {tela.nome === 'confirmacao' && <Confirmacao resultado={tela.resultado} orientacao={tela.extras?.orientacao} respostasNaoEnviadas={tela.extras?.respostasNaoEnviadas} situacoes={tela.extras?.situacoes}onAcompanhar={() => consultar(tela.resultado.codigo)} />}
       {tela.nome === 'acompanhar' && <Acompanhar key={tela.consulta} codigoInicial={tela.codigo} />}
     </main>
     <footer className="rodape">Um canal da escola para ouvir e cuidar.</footer>

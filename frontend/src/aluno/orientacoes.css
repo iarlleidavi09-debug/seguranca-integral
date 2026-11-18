@@ -1,0 +1,8 @@
+.aluno-app .enquanto-espera { margin-top: var(--espaco-6, 24px); }
+.aluno-app .enquanto-espera h2 { margin-top: 0; }
+.aluno-app .passos-espera { margin: 12px 0 0; padding-left: 22px; max-width: 62ch; }
+.aluno-app .passos-espera li { margin-bottom: 8px; color: var(--texto-principal); }
+.aluno-app .passos-espera li::marker { color: var(--acento); font-weight: 700; }
+.aluno-app .passos-situacao { margin-top: 20px; padding-top: 16px; border-top: 2px solid var(--borda-suave); }
+.aluno-app .passos-situacao h3 { margin: 0; }
+@media print { .aluno-app .enquanto-espera { display: none; } }

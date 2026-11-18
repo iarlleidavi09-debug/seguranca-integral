@@ -2,9 +2,10 @@ import { useState } from 'react';
 import type { ResultadoDenuncia } from '../shared/api';
 import { TEXTO_ORIENTACAO } from './situacoes';
 import { copiarTexto } from '../shared/copiarTexto';
+import EnquantoEspera from './EnquantoEspera';
 import './comprovante.css';
 
-export default function Confirmacao({ resultado, onAcompanhar, orientacao = false, respostasNaoEnviadas = false }: { resultado: ResultadoDenuncia; onAcompanhar: () => void; orientacao?: boolean; respostasNaoEnviadas?: boolean }) {
+export default function Confirmacao({ resultado, onAcompanhar, orientacao = false, respostasNaoEnviadas = false, situacoes = [] }: { resultado: ResultadoDenuncia; onAcompanhar: () => void; orientacao?: boolean; respostasNaoEnviadas?: boolean; situacoes?: string[] }) {
   const [aviso, setAviso] = useState('');
   async function copiar() {
     setAviso(await copiarTexto(resultado.codigo)
@@ -25,6 +26,7 @@ export default function Confirmacao({ resultado, onAcompanhar, orientacao = fals
       <p className="comprovante-instrucoes">Abra o portal TETRAGUARD da sua escola, escolha acompanhar um caso e informe este código. Guarde este comprovante em um lugar seguro.</p>
     </div>
     {orientacao && <div className="aviso orientacao" role="status"><p>{TEXTO_ORIENTACAO}</p></div>}
+    <EnquantoEspera situacoes={situacoes} />
     <p className="aviso">Anote e guarde seu código. Tentamos salvar o acesso neste navegador para você voltar pelo início. Se usar um aparelho compartilhado, apague o acesso salvo ao terminar.</p>
     {respostasNaoEnviadas && <p className="texto-pequeno">As respostas às perguntas não foram enviadas, mas o seu relato chegou à coordenação.</p>}
     {!!resultado.anexos_recusados?.length && <div className="erro" role="alert"><p>Seu pedido foi recebido, mas estas imagens foram recusadas:</p>

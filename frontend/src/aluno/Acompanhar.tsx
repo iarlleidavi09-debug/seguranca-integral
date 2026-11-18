@@ -3,6 +3,7 @@ import { acompanhar, enviarMensagem, enviarSituacao, ErroApi, mensagemErro } fro
 import type { Caso, Situacao } from '../shared/api';
 import { guardarAcesso, lerAcessos, normalizarCodigo } from './acessos';
 import PosResolucao from './PosResolucao';
+import { EnquantoEsperaRecolhivel } from './EnquantoEspera';
 import { dataLegivel, rotuloStatus } from './rotulos';
 import { useTempoReal } from '../shared/tempoReal';
 import AnexarImagens from './AnexarImagens';
@@ -187,6 +188,7 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
       </details>
       <AnexarImagens key={normalizarCodigo(codigoAtivo) || codigoAtivo} codigo={codigoAtivo} totalInicial={caso.anexos_total || 0}
         aoEnviar={total => setCaso(atual => atual ? { ...atual, anexos_total: total } : atual)} />
+      <EnquantoEsperaRecolhivel />
       <h2 ref={tituloConversa} tabIndex={-1}>Conversa com a coordenação</h2>
       {novas.length > 0 && <p role="status">{novas.length === 1 ? "Uma mensagem nova da coordenação." : `${novas.length} mensagens novas da coordenação.`}</p>}
       {avisoStorage && <p role="status">{avisoStorage}</p>}

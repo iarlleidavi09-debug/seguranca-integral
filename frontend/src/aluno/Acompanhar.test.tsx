@@ -852,3 +852,27 @@ describe('Acompanhar: confirmada é zerada nos outros caminhos', () => {
     expect(rodape()).toHaveTextContent('2 de 2000 caracteres');
   });
 });
+
+describe('Acompanhar: Enquanto você espera', () => {
+  const orientacoes = { geral: { titulo: 'Enquanto você espera', passos: ['Guarde prints, sem apagar as conversas.'] }, situacoes: [], contatos: [] };
+  it('oferece os passos recolhidos, só busca ao abrir e não pede nada além do bloco geral', async () => {
+    const user = userEvent.setup();
+    responder({ ...base, status: 'novo', mensagens: [] });
+    render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+    const bloco = (await screen.findByText('Enquanto você espera', { selector: 'summary' })).closest('details')!;
+    expect(bloco).not.toHaveAttribute('open');
+    expect(vi.mocked(fetch).mock.calls.some(([url]) => String(url).startsWith('/api/orientacoes'))).toBe(false);
+    responder(orientacoes);
+    await user.click(screen.getByText('Enquanto você espera', { selector: 'summary' }));
+    expect(await within(bloco).findByText('Guarde prints, sem apagar as conversas.')).toBeInTheDocument();
+    const chamada = vi.mocked(fetch).mock.calls.find(([url]) => String(url).startsWith('/api/orientacoes'))!;
+    expect(chamada[0]).toBe('/api/orientacoes');
+  });
+  it('a consulta do caso continua levando só o código e o endpoint de orientação não o recebe', async () => {
+    responder({ ...base, status: 'novo', mensagens: [] });
+    render(<Acompanhar codigoInicial="K7M2-9QXD" />);
+    await screen.findByText('Enquanto você espera', { selector: 'summary' });
+    const [, init] = consultas()[0];
+    expect(JSON.parse(String((init as RequestInit).body))).toEqual({ codigo: 'K7M29QXD' });
+  });
+});
