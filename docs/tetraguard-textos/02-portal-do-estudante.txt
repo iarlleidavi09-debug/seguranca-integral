@@ -1,0 +1,139 @@
+ATUALIZAÇÃO DE TEXTO 2 DE 4: PORTAL DO ESTUDANTE
+
+Continue a revisão de escrita no mesmo projeto TETRAGUARD da Imagi. Preserve o funcionamento, os nomes técnicos dos campos, as regras e os dados existentes. Use os textos abaixo nas telas correspondentes. Mantenha as mensagens curtas junto dos campos e mostre explicações maiores nas áreas de ajuda. Não publique nem compartilhe com a turma.
+
+INÍCIO
+Marca: TETRAGUARD
+Título: Você não precisa lidar com isso sozinho.
+Descrição: Se algo aconteceu com você ou com alguém que você conhece e está causando preocupação, você pode começar contando o que consegue. Não precisa saber o nome da situação nem ter todas as respostas. Escolha como prefere iniciar o contato.
+
+Primeira ação
+Título: Contar o que aconteceu
+Texto: Escolha as situações que se aproximam do que aconteceu e escreva com suas próprias palavras. As perguntas ajudam a organizar o relato e são opcionais.
+Botão: Preciso de ajuda
+
+Segunda ação
+Título: Começar uma conversa
+Texto: Se preferir conversar primeiro, escreva uma mensagem sem responder ao questionário. Nesse caminho, não pedimos nome, ano ou sala.
+Botão: Conversar sem me identificar
+
+Terceira ação
+Título: Voltar ao meu caso
+Texto: Use o código recebido para consultar o caso e continuar a conversa.
+Campo: Código de acompanhamento
+Placeholder: Digite seu código
+Botão: Acompanhar
+Ajuda: Você pode digitar com ou sem hífens e usar letras maiúsculas ou minúsculas.
+Erro vazio: Digite seu código de acompanhamento.
+Erro inválido: Não encontramos um caso com esse código. Confira o que digitou e tente novamente.
+
+Bilhete
+Título: Comece do jeito que conseguir.
+Texto: Você pode contar só uma parte, voltar depois ou começar por uma conversa. Não precisa encontrar as palavras certas para pedir ajuda.
+
+Aviso fixo da demonstração: Simulação com dados fictícios. Nada é enviado a uma escola. Se precisar de ajuda real, procure um adulto de confiança ou a equipe escolar.
+
+PEDIDO: ETAPA 1
+Título: O que está acontecendo?
+Texto: Marque as opções que se aproximam do que aconteceu. Você pode escolher mais de uma. Se nenhuma servir, continue e conte com suas próprias palavras.
+Ajuda: As opções servem para orientar o relato. Você não precisa decidir como a situação deve ser classificada.
+Ação para relato livre, se existente: Prefiro contar com minhas palavras
+Não troque os identificadores das situações nem as regras das perguntas.
+
+PEDIDO: ETAPA 2
+Título: Algumas perguntas para entender melhor
+Texto: Responda apenas ao que souber e quiser contar. As perguntas mudam conforme as situações escolhidas e suas respostas. Você pode continuar para o relato a qualquer momento.
+Ajuda: Se não souber uma resposta ou não quiser responder, deixe em branco.
+Ação, se existente: Ir para o relato
+Orientação de segurança atual: Se você não se sente em segurança ou a situação está acontecendo agora, procure pessoalmente um adulto de confiança, como um professor, inspetor ou alguém da coordenação. Esta demonstração não encaminha pedidos de ajuda reais.
+
+PEDIDO: ETAPA 3
+Título: Conte com suas palavras
+Texto: Escreva o que você consegue contar agora. Se ajudar, diga o que aconteceu, quando foi e em que lugar. Não precisa escrever um relato perfeito.
+Rótulo: Seu relato
+Placeholder: Conte o que aconteceu e o que está preocupando você.
+Contador: {quantidade} de 4000 caracteres
+Limite atingido: Você chegou ao limite de 4000 caracteres. Revise o texto antes de continuar.
+Rótulo de data aproximada: Quando aconteceu?
+Placeholder: Por exemplo: ontem, durante o intervalo
+Rótulo de local: Onde aconteceu?
+Placeholder, se texto livre: Por exemplo: no pátio ou em um grupo de mensagens
+Checkbox: Está acontecendo agora
+Campo opcional: Seu nome, se quiser informar
+Ajuda: Você pode deixar o nome em branco. Evite escrever detalhes que identifiquem você se não quiser se identificar no relato.
+Campos obrigatórios: Seu ano / Sua sala
+Ajuda desses campos: Informe o ano e a sala de quem está fazendo o pedido. Nesta demonstração, use dados fictícios.
+Erro desses campos: Informe seu ano e sua sala para continuar. O nome continua opcional.
+Erro de relato vazio: Conte um pouco do que aconteceu ou volte e escolha uma situação para continuar.
+
+IMAGENS
+Título: Adicionar imagens, se quiser
+Texto: Você pode selecionar até 3 imagens JPG, PNG ou WebP, com até 5 MB cada. Nesta demonstração, as prévias ficam apenas na memória da página e não entram no rascunho. Use somente imagens fictícias.
+Botão: Escolher imagens
+Remoção acessível: Remover {nome do arquivo}
+Tipo inválido: {nome do arquivo}: escolha uma imagem JPG, PNG ou WebP.
+Tamanho inválido: {nome do arquivo}: a imagem ultrapassa o limite de 5 MB.
+Quantidade inválida: Você já selecionou 3 imagens. Remova uma antes de adicionar outra.
+Se o caso armazena apenas a quantidade de anexos, acrescente: O caso simulado registra a quantidade de imagens, mas a coordenação não recebe os arquivos.
+
+RASCUNHO
+Aviso de recuperação: Recuperamos o texto que você começou neste navegador. O rascunho fica disponível por até 24 horas. As imagens precisam ser selecionadas novamente.
+Botão: Começar do zero
+Falha de salvamento: Não foi possível guardar o rascunho neste navegador. Você pode continuar, mas o texto poderá se perder ao fechar ou recarregar a página.
+
+PEDIDO: REVISÃO
+Título: Confira seu pedido antes de enviar
+Texto: Revise o que você escolheu e escreveu. Use Editar para voltar a uma parte do pedido. Você pode enviar sem informar seu nome.
+Aviso: Este envio faz parte de uma demonstração. Use apenas informações fictícias.
+Botão: Enviar pedido de demonstração
+Durante o envio: Enviando pedido…
+Erro recuperável: Não foi possível enviar agora. Seu texto e suas imagens foram mantidos nesta página. Tente novamente.
+
+CONFIRMAÇÃO
+Título: Seu pedido de demonstração foi registrado.
+Texto: Use o código abaixo para abrir o caso simulado e continuar a conversa. Nenhuma mensagem foi enviada a uma escola.
+Rótulo: Seu código de acompanhamento
+Explicação: Guarde o código com cuidado. Quem tiver esse código poderá acessar a conversa deste caso.
+Botões: Copiar código / Acompanhar meu caso
+Sucesso de cópia: Código copiado. Guarde em um lugar seguro.
+Falha de cópia: Não foi possível copiar automaticamente. Selecione o código para copiar ou anote-o.
+Se existe impressão: Imprimir ou salvar comprovante
+
+ACOLHIMENTO
+Título: Podemos começar por uma conversa.
+Texto: Escreva o que você gostaria de contar. Não pedimos questionário, nome, ano ou sala neste caminho. Depois do envio, você recebe um código para voltar à conversa.
+Ajuda: Se não quiser se identificar, evite incluir nomes ou detalhes que revelem quem você é. Esta é uma demonstração: use apenas informações fictícias.
+Campo: Sua primeira mensagem
+Placeholder: O que você gostaria de contar?
+Botão: Começar conversa de demonstração
+Erro vazio: Escreva uma mensagem para começar a conversa.
+
+ACOMPANHAMENTO
+Título: Acompanhe seu caso
+Descrição do formulário: Digite o código que recebeu para consultar o caso e conversar com a equipe.
+Recebido: O pedido foi registrado. Nesta demonstração, abra a coordenação para experimentar o atendimento.
+Em acompanhamento: A equipe pode conversar com você e registrar as providências deste caso. Nesta demonstração, você pode experimentar os dois lados da conversa.
+Resolvido: A equipe registrou uma conclusão. Leia o resumo abaixo e informe se você precisa de ajuda novamente.
+Conversa vazia: Ainda não há mensagens nesta conversa.
+Campo: Sua mensagem
+Placeholder: Escreva o que gostaria de contar ou perguntar.
+Ajuda: Você pode escrever até 2000 caracteres.
+Botão: Enviar mensagem
+Envio pendente: Enviando mensagem…
+Falha: Não foi possível enviar sua mensagem. O texto continua aqui para você tentar novamente.
+Mensagem excluída: Mensagem apagada
+Marca de edição: editada
+
+APÓS A RESOLUÇÃO
+Título: O que a equipe registrou sobre este caso
+Texto: Este é o resumo compartilhado com você. Se a situação continuar, voltar a acontecer ou se você precisar conversar novamente, use o botão abaixo.
+Botão: Preciso de ajuda de novo
+Confirmação de reabertura: O caso foi reaberto na demonstração. Você pode continuar a conversa.
+
+ACESSOS SALVOS E PRIVACIDADE
+Título: Continuar um caso neste navegador
+Texto: Estes acessos ficam neste navegador. Outras pessoas que usarem o mesmo aparelho poderão abrir os casos. Em um aparelho compartilhado, apague o acesso salvo ao terminar. Isso remove o atalho deste navegador e não exclui o caso.
+Botões: Abrir caso / Apagar acesso / Apagar todos os acessos
+Ajuda de privacidade: O nome é opcional no pedido de ajuda. Ano e sala são obrigatórios nesse caminho; no acolhimento sem identificação, esses campos não são solicitados. Mesmo sem nome, o texto pode identificar alguém. Nesta demonstração, os dados ficam no navegador e não são encaminhados à escola. Use somente informações fictícias.
+
+Não prometa atendimento imediato, anonimato absoluto ou recebimento real da mensagem pela escola. Verifique os estados existentes sem alterar regras, limites ou navegação.

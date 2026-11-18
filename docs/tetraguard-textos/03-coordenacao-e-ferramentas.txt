@@ -1,0 +1,155 @@
+ATUALIZAÇÃO DE TEXTO 3 DE 4: COORDENAÇÃO E FERRAMENTAS
+
+Continue a revisão no projeto TETRAGUARD da Imagi. A linguagem da coordenação deve ser clara, respeitosa e precisa, com explicações sobre o uso das informações. Preserve regras, filtros, navegação e os dados. Aplique os textos apenas às funções existentes; não crie telas ou indicadores para preencher esta especificação. Não publique nem compartilhe com a turma.
+
+IDENTIFICAÇÃO
+Marca: TETRAGUARD
+Área: Coordenação
+Perfil de demonstração: Equipe demonstrativa
+Aviso: Ambiente de demonstração. Todos os casos e atendimentos são fictícios.
+Título da aba: TETRAGUARD | Coordenação
+
+VISÃO GERAL
+Título: Cada pedido precisa de escuta e acompanhamento.
+Descrição: Consulte os pedidos recebidos, identifique o que precisa de atenção e retome os atendimentos em andamento. Os indicadores abaixo representam os casos fictícios desta demonstração.
+Lista de atenção: Pedidos que precisam de atenção
+Ajuda da lista: A lista segue os critérios de prioridade e situação já usados neste projeto. Consulte o relato antes de decidir como conduzir o atendimento.
+Estado vazio sem casos em aberto: Não há pedidos em aberto nos dados atuais da demonstração.
+Estado vazio da lista de atenção: Nenhum caso corresponde aos critérios de atenção desta lista. Você pode consultar todos os casos na fila.
+Botão: Ver todos os casos
+Falha: Não foi possível atualizar a visão geral. As informações já exibidas podem estar desatualizadas.
+Use apenas uma mensagem de atualização automática se essa atualização realmente estiver implementada.
+
+FILA DE CASOS
+Título: Casos
+Descrição: Localize um pedido, consulte seu histórico e acompanhe as próximas ações da equipe. Use os filtros para concentrar a leitura nos casos que deseja revisar.
+Busca: Buscar casos
+Placeholder: Digite um código ou um termo do caso
+Filtro geral: Todos os casos
+Estado vazio após filtros: Nenhum caso corresponde aos filtros escolhidos. Revise a busca ou limpe os filtros para consultar os demais registros.
+Estado vazio sem dados: Ainda não há casos nesta demonstração. Crie um pedido fictício pelo portal do estudante para conhecer o atendimento.
+Botão de recuperação: Limpar filtros
+Estado de leitura: Ainda não aberto
+Mensagens novas: Há mensagens não lidas
+Não exiba como critério da busca um campo que a implementação não pesquisa.
+
+MEU ATENDIMENTO
+Título: Meu atendimento
+Descrição: Acompanhe os casos atribuídos à equipe demonstrativa e consulte as ações registradas para cada atendimento.
+Sem atribuições: Nenhum caso está atribuído a este perfil. Abra a fila para consultar os pedidos e definir um responsável.
+Se existe prazo registrado: Próxima ação e prazo
+Sem próxima ação: Nenhuma próxima ação foi registrada para este caso.
+Não invente prazos, atrasos ou responsabilidades para preencher estados vazios.
+
+DETALHE DO CASO
+Link: Voltar aos casos
+Relato: O que foi informado no pedido
+Descrição do relato: Consulte as informações enviadas e as respostas opcionais. Detalhes não informados devem permanecer identificados como não informados.
+Ausência de relato: Não foi enviado um relato escrito.
+Ausência de informação: Não informado
+Responsável: Responsável pelo acompanhamento
+Ajuda: Indique quem acompanhará as próximas ações deste caso. Nesta demonstração, use apenas perfis fictícios.
+Próxima ação: O que precisa acontecer a seguir?
+Ajuda: Registre a ação combinada para dar continuidade ao atendimento.
+
+PRIORIDADE
+Título: Como esta prioridade foi sugerida
+Texto: A sugestão considera as situações e respostas registradas no pedido, conforme as regras demonstrativas do projeto. Leia os fatores apresentados junto com o relato e avalie o contexto antes de agir.
+Aviso: A prioridade apoia a organização do atendimento. A decisão sobre as providências cabe à equipe responsável.
+Botão: Reavaliar prioridade
+Campo: Motivo da reavaliação
+Ajuda: Explique por que a prioridade precisa ser alterada. A justificativa ficará no histórico interno do caso.
+Erro: Informe uma justificativa para registrar a nova prioridade.
+Não descreva a classificação como diagnóstico, julgamento de culpa ou resultado de apuração.
+
+CONVERSA
+Título: Conversa com o estudante
+Descrição: As mensagens enviadas nesta área aparecem no acompanhamento do estudante. Use as notas internas para informações que devem permanecer somente na área da equipe.
+Campo: Mensagem ao estudante
+Placeholder: Escreva uma resposta clara e acolhedora, explicando o próximo passo que pode ser compartilhado.
+Botão: Enviar mensagem
+Sucesso: Mensagem registrada na demonstração.
+Falha: Não foi possível enviar a mensagem. O texto foi mantido para uma nova tentativa.
+Edição: Editar minha mensagem
+Exclusão: Apagar minha mensagem
+Confirmação: Apagar esta mensagem? O texto deixará de aparecer na conversa e será substituído pela indicação de mensagem apagada.
+Respeite as permissões de edição e exclusão existentes. Não prometa apagar históricos ou cópias que a função não remove.
+
+NOTAS INTERNAS
+Título: Notas internas da equipe
+Descrição: Registre informações de acompanhamento que não devem aparecer na conversa do estudante. Nesta demonstração, use somente dados fictícios e necessários para compreender o caso.
+Campo: Nova nota interna
+Placeholder: Registre uma observação sobre o atendimento e as providências em andamento.
+Botão: Adicionar nota interna
+Estado vazio: Ainda não há notas internas neste caso.
+Sucesso: Nota interna registrada.
+
+HISTÓRICO
+Título: Histórico do atendimento
+Descrição: Consulte as mudanças de situação, atribuição de responsável, reavaliações e outras ações que esta implementação registra no caso.
+Estado vazio: Ainda não há ações registradas neste histórico.
+Não chame o histórico de auditoria inviolável nem afirme que registra ações não implementadas.
+
+RESOLUÇÃO
+Título: Registrar a conclusão do atendimento
+Introdução: Descreva o que pode ser compartilhado com o estudante e registre separadamente as informações de uso interno. Concluir o caso não impede que o estudante volte a pedir ajuda.
+Campo público: Resumo para o estudante
+Ajuda: Explique de forma compreensível a conclusão e as orientações que podem ser compartilhadas. Este conteúdo aparecerá no acompanhamento do estudante.
+Campo interno: Registro interno da conclusão
+Ajuda: Descreva as informações reservadas à equipe, sem repeti-las no resumo público.
+Campo de medidas: Providências registradas
+Campo de acompanhamento: Como será feito o acompanhamento
+Ajuda: Registre o que a equipe definiu para verificar a situação após a conclusão.
+Identificação: Identificação das pessoas apontadas no caso
+Ajuda: Use apenas dados fictícios nesta demonstração. Essas informações pertencem ao registro interno e não devem aparecer no portal do estudante ou no mapa.
+Ausência de identificação: A identificação não foi estabelecida
+Justificativa: Explique por que a identificação não foi estabelecida
+Botão: Registrar conclusão
+Sucesso: Conclusão registrada. O estudante poderá consultar somente o resumo público.
+Não exija identificação da vítima para concluir o atendimento.
+
+PÓS-RESOLUÇÃO
+Título: Acompanhamento após a resolução
+Descrição: Consulte os casos concluídos que precisam de continuidade e verifique relatos de que a situação voltou a acontecer. O registro de uma conclusão é uma etapa do atendimento; a equipe pode precisar retomar o cuidado.
+Sem pendências: Não há casos que correspondam aos critérios de acompanhamento desta tela.
+Recorrência: A situação voltou a acontecer
+Orientação: Revise as providências anteriores, consulte as novas informações e avalie o que precisa mudar no acompanhamento.
+Botão: Retomar atendimento
+
+MAPA
+Título: Mapa da escola
+Descrição: Consulte os casos fictícios associados aos ambientes e use os filtros para observar os registros por local, período ou turma. A planta é esquemática e não representa uma localização geográfica real.
+Ajuda: O mapa mostra a associação informada nos casos. Ele não identifica estudantes, confirma onde um fato ocorreu ou determina o nível de segurança de um ambiente.
+Sem planta: A planta ainda está vazia.
+Apoio do estado vazio: Adicione uma ala ou um ambiente para começar a organizar o mapa fictício.
+Sem casos no local: Nenhum caso corresponde a este ambiente com os filtros atuais.
+Botão: Editar planta
+Nome do campo: Nome do ambiente
+Andar: Andar
+Aviso de exclusão: Confira quais ambientes serão removidos antes de confirmar. A exclusão da planta não deve ser descrita como exclusão dos casos se a função não fizer isso.
+
+RELATÓRIOS
+Título: Relatórios da demonstração
+Descrição: Consulte a distribuição dos casos fictícios e use os filtros para delimitar o período, a situação e as turmas. As contagens são calculadas a partir dos registros disponíveis neste navegador.
+Ajuda: Os gráficos descrevem os dados selecionados. Eles não comprovam impacto do projeto, prevalência de violência ou melhora no atendimento de uma escola real.
+Sem resultados: Não há registros para os filtros selecionados.
+Botão: Exportar dados filtrados em CSV
+Aviso de exportação: O arquivo contém os dados fictícios selecionados pelos filtros. Confira o conteúdo antes de compartilhá-lo.
+
+APOIO AO ROE
+Botão: Gerar relatório de apoio ao ROE
+Descrição: Gere um arquivo de apoio a partir deste caso fictício. Este recurso não envia informações ao ROE e não substitui o registro oficial.
+Confirmação: O arquivo pode incluir informações internas do caso. Confirme que deseja gerar o relatório com esses dados fictícios.
+Título dentro do TXT: TETRAGUARD | Relatório de apoio da demonstração
+Aviso dentro do TXT: Dados fictícios. Este arquivo não é um documento oficial nem representa envio ao ROE.
+
+ENSAIO
+Título: Experimente o percurso de um atendimento
+Descrição: Use este roteiro para apresentar o TETRAGUARD e conhecer as duas áreas do mesmo caso. Todos os passos desta versão são simulados.
+Passo 1: Faça um pedido fictício pelo portal do estudante e guarde o código.
+Passo 2: Abra a coordenação, encontre o mesmo caso e registre uma resposta pública.
+Passo 3: Volte ao acompanhamento com o código e confira a mensagem.
+Passo 4: Registre uma conclusão na coordenação, consulte o resumo como estudante e experimente pedir ajuda novamente.
+Reinicialização: Reiniciar demonstração
+Confirmação: Reiniciar os dados desta demonstração? Os casos e acessos fictícios criados neste navegador serão removidos e os exemplos iniciais serão restaurados, conforme o comportamento existente.
+Não anuncie remoção ou restauração de dados que a função de reinício não executa.

@@ -1,0 +1,9 @@
+PARTE 6 DE 7 — Mapa, relatórios e ensaio
+
+Continue o projeto TETRAGUARD já criado nesta conta Imagi. Implemente somente esta etapa, reutilizando os componentes e o estado compartilhado existentes. Preserve as funções anteriores. Use português brasileiro e apenas dados fictícios, com aviso de simulação. Não adicione backend ou autenticação real, não publique nem compartilhe com a turma. Corrija erros antes de terminar e informe o que conseguiu verificar.
+
+Mapa da escola: planta ESQUEMÁTICA INTERATIVA, explicitamente fictícia, nunca mapa geográfico externo. Seis ambientes iniciais (Pátio, Biblioteca, Corredor, Sala 7A etc), andares, seleção mostra casos associados e filtro de período/turma. Sem nomes/fotos no mapa. Botão "Editar planta" abre ferramentas básicas adicionar ambiente retangular/ala em L, arrastar posição e editar nome/andar, persistindo localmente; botão limpar planta com confirmação e estado vazio "A planta ainda está vazia / Adicione uma ala ou um ambiente para começar". Pode usar SVG e inputs sem biblioteca pesada.
+Relatórios: período/status/turma funcionais, gráficos simples derivados dos casos fictícios, tabela/lista responsiva, exportar CSV funcional. Dados explicitamente "da demonstração"; nada de métricas de desempenho/impacto fictícias.
+Ensaio: roteiro guiado de 4 ações com links reais (Criar pedido, acompanhar por código, responder na coordenação, resolver e voltar ao aluno), reiniciar demo com confirmação.
+
+Ative os itens correspondentes da navegação e use os mesmos casos das etapas anteriores. A exportação CSV deve respeitar os filtros. Se a exportação TXT de apoio ao ROE ainda estiver incompleta, conclua-a no detalhe do caso com aviso de simulação e confirmação antes de incluir registros internos. Verifique seleção e edição de ambientes, persistência após recarregar, filtros, arquivos exportados e links do ensaio.

@@ -1,0 +1,14 @@
+TETRAGUARD na Imagi — sete mensagens em sequência
+
+Abra o arquivo 01, copie todo o texto e envie no chat da Imagi. Espere terminar e confira o resultado. Depois envie o arquivo 02 no mesmo projeto, e assim por diante até o 07.
+Não crie um novo projeto entre as partes.
+Se uma etapa terminar com erro, peça para corrigir esse erro antes de enviar a próxima parte. Não envie as sete partes de uma vez.
+Estes textos orientam uma recriação na conta Imagi. Eles não importam automaticamente o código da conta Lovable pessoal.
+
+01 — Base, arquitetura e identidade visual.
+02 — Apresentação e início do estudante.
+03 — Pedido de ajuda, anexos, rascunho e correções do envio.
+04 — Acolhimento e acompanhamento por código.
+05 — Coordenação, conversa, notas e resolução.
+06 — Mapa, relatórios, exportações e ensaio.
+07 — Verificação final e correções.

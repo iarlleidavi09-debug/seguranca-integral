@@ -1,0 +1,19 @@
+PARTE 2 DE 7 — Apresentação e início do estudante
+
+Continue o projeto TETRAGUARD já criado nesta conta Imagi. Implemente somente esta etapa, reutilizando os componentes e o estado compartilhado existentes. Preserve as funções anteriores. Use português brasileiro e apenas dados fictícios, com aviso de simulação. Não adicione backend ou autenticação real, não publique nem compartilhe com a turma. Corrija erros antes de terminar e informe o que conseguiu verificar.
+
+APRESENTAÇÃO (/)
+Cabeçalho com nome e "Protótipo para apresentação". Headline "Pedir ajuda é o primeiro passo. Acolher é o próximo." Descrição específica do problema e solução: às vezes é difícil contar o que aconteceu, e a escola precisa organizar o acompanhamento com cuidado. CTAs "Experimentar como estudante" e "Explorar coordenação". Breve "Do pedido ao acompanhamento" com sequência de pedido / conversa pelo código / cuidado da equipe, com prévia realista rotulada simulação. Bloco específico "Uma escola que escuta e acompanha" explicando relato opcionalmente sem nome, perguntas adaptativas, prioridade como apoio humano, mapa sem nomes/fotos e pós-resolução. Seção "Sobre esta demonstração": ações e dados simulados neste navegador; o MVP original foi pensado para rede local escolar; não afirmar que esta demo online roda offline ou que mensagens chegam a uma escola. Não adicionar páginas institucionais vazias ou links mortos. Link/botão para experimentar um caso de exemplo, usando código DEMO-2026 no formulário.
+
+PORTAL DO ESTUDANTE
+Cabeçalho "TETRAGUARD"; navegação Início / Preciso de ajuda / Acompanhar.
+Início com título EXATO "Você não precisa lidar com isso sozinho." e texto "Se algo está te preocupando, na escola, na internet ou em casa, conte para a coordenação. No seu tempo e sem precisar dizer seu nome."
+Três ações:
+1 "Contar o que aconteceu", "Escolha a situação, conte e envie.", botão coral "Preciso de ajuda".
+2 "Conversar com a coordenação", "Sem questionário, nome, ano ou turma.", botão amarelo "Conversar sem me identificar".
+3 "Ver meu caso", campo "Código de acompanhamento", botão Acompanhar, validação vazio e código inválido e normalização de espaços/hífens/minúsculas.
+Bilhete "Não precisa ter as palavras certas." / "Comece contando só o que conseguir. A coordenação lê seu pedido e conversa com você por aqui." / "Um passo de cada vez."
+Aviso sempre visível nesta demo: "Simulação: use apenas informações fictícias. Nada é enviado a uma escola."
+Details "Como funciona" e "Seus dados e privacidade". Explicar o nome opcional; ano/sala obrigatórios no pedido; acolhimento sem nome/ano/sala; tudo nesta demo fica neste navegador; apagar acesso local não apaga caso simulado. "Continuar meu caso" só quando houver códigos gerados/salvos, com abrir/apagar acesso/apagar todos. Não inserir DEMO-2026 como se usuário já tivesse um caso pessoal; mostrar "Experimentar caso fictício" separado.
+
+Nesta etapa, implemente a apresentação e o início do estudante. Os botões para pedido, acolhimento e acompanhamento devem ser ligados quando essas rotas estiverem prontas nas próximas etapas. Não crie controles aparentemente funcionais que levem a páginas vazias. Prepare o caso fictício DEMO-2026 separado dos acessos pessoais, para uso na etapa de acompanhamento.

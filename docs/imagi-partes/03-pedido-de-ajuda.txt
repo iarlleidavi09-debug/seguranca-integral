@@ -1,0 +1,21 @@
+PARTE 3 DE 7 — Pedido de ajuda, anexos e reinicialização
+
+Continue o projeto TETRAGUARD já criado nesta conta Imagi. Implemente somente esta etapa, reutilizando os componentes e o estado compartilhado existentes. Preserve as funções anteriores. Use português brasileiro e apenas dados fictícios, com aviso de simulação. Não adicione backend ou autenticação real, não publique nem compartilhe com a turma. Corrija erros antes de terminar e informe o que conseguiu verificar.
+
+WIZARD PEDIDO
+4 passos com progresso acessível:
+1 Situação: grupos recolhíveis e seleção múltipla por texto simples, categorias de exemplo como Convivência e respeito (apelidos, humilhação, exclusão, boatos, discriminação), Agressões e ameaças (agressão física, ameaça, intimidação), Internet e redes sociais (mensagens ofensivas, exposição de imagens, exclusão de grupos, ameaças online), Segurança e bem-estar (assédio, insegurança, algo diferente). Pelo menos 12 situações específicas, sem jargão. Usuário pode preferir contar com suas palavras, sem seleção.
+2 Perguntas opcionais e adaptativas conforme situação. Para cyberbullying distinguir mensagem/boato/imagem/exclusão/ameaça; perguntar frequência, canal, segurança agora; respostas alteram perguntas seguintes e não repetir perguntas compartilhadas. Pode pular para relato. Se indica risco atual, orientação curta procurar adulto de confiança presencialmente, sem prometer atendimento de urgência pela demo. Prioridade demonstrativa calculada com regras simples e explicitamente apresentadas como apoio, sem julgamento automático.
+3 Relato: "Conte o que conseguir", textarea com contador e limite 4000, quando, onde (escolher ambiente fictício ou Outro), "Está acontecendo agora", nome opcional, ano e sala obrigatórios de quem relata (mesmo sem nome). Não exigir nome para enviar. Upload opcional de até 3 imagens com miniatura, remoção e validação de tipo/tamanho; imagens mantidas só em memória (não base64 em localStorage). Texto para não enviar dados reais.
+4 Revisão editável, informar que é simulação, botão "Enviar pedido de demonstração". Feedback carregando curto + confirmação, gerar código aleatório único por crypto, copiar código com feedback e fallback, botão Acompanhar meu caso. Novo caso aparece na coordenação.
+Salvar apenas rascunho fictício em localStorage por até 24h, limpar no envio e reinício; lidar com storage indisponível sem quebrar a UI.
+
+CORREÇÕES JÁ APRENDIDAS QUE DEVEM EXISTIR NESTA RECRIAÇÃO
+- Reiniciar demonstração funciona mesmo com a página de confirmação ainda aberta: limpa os dados fictícios e códigos salvos, rascunho, imagens/URLs temporárias, erros, confirmação, estado de envio e trava. Sem sair da rota, o usuário consegue enviar outro pedido.
+- Começar do zero em um rascunho recuperado limpa texto, respostas, imagens, URLs temporárias e erros de formulário, imagens e armazenamento.
+- Se a criação de um pedido falhar, mostrar mensagem compreensível, preservar texto e anexos e liberar envio para nova tentativa. Limpar a mensagem de erro na nova tentativa.
+- Dois cliques rápidos em Enviar criam exatamente um caso. Após sucesso, não liberar a trava até reiniciar ou começar um novo pedido explicitamente.
+- Imagens aceitas: JPG, PNG ou WebP, até 5 MB por arquivo, no máximo 3. Nunca persistir as imagens no rascunho ou localStorage. Se o caso guardar apenas a quantidade, explique essa limitação sem sugerir que a equipe pode abrir anexos indisponíveis.
+- Só dados fictícios e simulação local. Não copiar dados pessoais nem conectar o banco da escola.
+
+Ative agora os links de pedido no início e na apresentação. O pedido deve persistir no estado compartilhado que será usado pela coordenação. Nesta etapa, deixe a confirmação e a cópia do código funcionando; ligue Acompanhar meu caso na próxima etapa, quando a tela correspondente existir. Verifique enviar → reiniciar ainda na confirmação → enviar outro pedido, falha → nova tentativa, limpeza das imagens e proteção contra envio duplo.
