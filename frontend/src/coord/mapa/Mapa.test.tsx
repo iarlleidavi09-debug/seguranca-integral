@@ -22,6 +22,18 @@ async function criar(nome = 'Ala norte') {
  return user;
 }
 describe('Mapa escolar', () => {
+ it('realça com contorno tracejado o local com padrão observado e explica na legenda', async () => {
+  const planta = { revisao: 1, ambientes: [
+   { id: 'ala', nome: 'Ala norte', tipo: 'ala', pai_id: null, x: 0, y: 0, largura: 400, altura: 300 },
+   { id: 'patio', nome: 'Pátio', tipo: 'area', pai_id: 'ala', x: 10, y: 10, largura: 100, altura: 100 },
+   { id: 'quadra', nome: 'Quadra', tipo: 'area', pai_id: null, x: 500, y: 0, largura: 100, altura: 100 }] };
+  servidor({ 'GET /api/mapa': () => ({ corpo: planta }), 'GET /api/mapa/resumo': () => ({ corpo: resumo }),
+   'GET /api/coord/padroes': () => ({ corpo: { padroes: [{ chave: 'local_tipo:patio:x', local_id: 'patio' }] } }) });
+  const { container } = render(<Mapa />);
+  await screen.findByText(/local com padrão observado/);
+  expect(container.querySelector('[data-ambiente="ala"]')).toHaveAttribute('data-padrao', 'sim');
+  expect(container.querySelector('[data-ambiente="quadra"]')).not.toHaveAttribute('data-padrao');
+ });
  it('recolhe resultados da busca junto com o campo e preserva a pesquisa', async () => {
   montar(); const user = await criar('Ala Norte');
   await user.click(screen.getByText('Ajustar visualização'));

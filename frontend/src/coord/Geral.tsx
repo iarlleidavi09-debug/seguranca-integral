@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { ErroApi, listarCasos, mensagemErroCoord, obterResumo } from '../shared/api';
 import type { CasoFila, FiltrosFila, Resumo } from '../shared/api';
 import { usePolling } from './polling';
+import PadroesObservados from './PadroesObservados';
 import { Prioridade, PRIORIDADES, Simulacao, Status, acessoLegivel, assuntos, rotuloPrioridade } from './rotulos';
 
 const SEM_FILTROS: FiltrosFila = { status: '', prioridade: '', tipo: '', q: '' };
@@ -78,6 +79,8 @@ export default function Geral({ aoVerCasos, aoAbrirCaso, aoResumo }: {
           <strong>{resumo.status[c.status]}</strong>
         </button>)}
       </div>
+
+      <PadroesObservados aoAbrirCaso={aoAbrirCaso} />
 
       <div className="geral-corpo">
         <section className="geral-pedidos" aria-labelledby="titulo-atencao">

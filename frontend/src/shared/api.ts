@@ -311,3 +311,14 @@ export async function obterImplantacao(): Promise<ResumoImplantacao | null> {
 }
 export const limparImplantacao = (senha: string, confirmacao: string, apagarBackups: boolean) =>
   coord<{ ok: boolean; removidos: Removidos; avisos?: string[] }>('POST', '/api/implantacao/limpar', { senha, confirmacao, apagar_backups: apagarBackups });
+
+// Padrões observados (coordenação): só ids de casos, contagem e texto neutro, nunca o relato.
+export type PadraoObservado = {
+  chave: string; regra: 'local_tipo' | 'local_faixa'; local_id: string; local_nome: string;
+  contagem: number; casos: number[]; primeiro_em: string; ultimo_em: string; texto: string;
+  estado: 'novo' | 'acompanhando';
+};
+export const listarPadroes = async (sinal?: AbortSignal) =>
+  (await coord<{ padroes: PadraoObservado[] }>('GET', '/api/coord/padroes', undefined, sinal)).padroes;
+export const marcarPadrao = (chave: string, estado: 'novo' | 'acompanhando' | 'descartado') =>
+  coord<{ ok: boolean }>('POST', `/api/coord/padroes/${encodeURIComponent(chave)}/estado`, { estado });

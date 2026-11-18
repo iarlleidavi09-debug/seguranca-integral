@@ -1,0 +1,15 @@
+/* Cartões "Padrão observado": identidade verde/neutra da coordenação, só tokens existentes. */
+.coord-app .padroes { display: grid; gap: 12px; margin-top: 24px; }
+.coord-app .padroes > h2 { margin: 0; font-size: 18px; }
+.coord-app .padrao { padding: 16px; border: 1px solid var(--borda-suave); border-left: 4px solid var(--primaria-base); border-radius: var(--raio-md, 8px); background: var(--fundo-superficie-2); color: var(--texto-principal); min-width: 0; }
+.coord-app .padrao h3 { margin: 0 0 4px; font-size: 16px; }
+.coord-app .padrao p { margin: 0 0 8px; overflow-wrap: anywhere; }
+.coord-app .padrao-periodo { color: var(--texto-secundario); }
+.coord-app .padrao-estado { display: inline-block; margin-left: 8px; padding: 2px 8px; border: 1px solid var(--primaria-base); border-radius: 999px; background: var(--primaria-suave); font-size: 14px; font-weight: 600; }
+.coord-app .padrao-casos { margin: 0 0 8px; }
+.coord-app .padrao-casos > summary { min-height: 44px; padding: 10px 0; color: var(--texto-secundario); font-weight: 600; cursor: pointer; }
+.coord-app .padrao-casos > summary:focus-visible { outline: 3px solid var(--foco-anel); outline-offset: 3px; }
+.coord-app .padrao-casos ul { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.coord-app .padrao-acoes { display: flex; flex-wrap: wrap; gap: 8px; }
+.coord-app .padrao .botao { min-height: 44px; }
+.coord-app .padrao button:focus-visible { outline: 3px solid var(--foco-anel); outline-offset: 3px; }
