@@ -182,6 +182,7 @@ def init_db(config: Config) -> None:
         _migrar_evidencias(conn)
         from . import padroes
         padroes.migrar(conn, config)
+        _migrar_alertas(conn)
     finally:
         conn.close()
 
@@ -190,6 +191,34 @@ def _migrar_codigo_acompanhamento(conn: sqlite3.Connection) -> None:
     with conn:
         if 'codigo_acompanhamento' not in _colunas(conn, 'casos'):
             conn.execute('ALTER TABLE casos ADD COLUMN codigo_acompanhamento TEXT')
+
+
+def _migrar_alertas(conn: sqlite3.Connection) -> None:
+    """Alertas por e-mail: endereço do usuário, preferências e registro de envios.
+
+    `envios_alerta` guarda só o gatilho e o resultado, nunca o conteúdo nem o
+    endereço. Idempotente.
+    """
+    with conn:
+        if 'email' not in _colunas(conn, 'usuarios'):
+            conn.execute('ALTER TABLE usuarios ADD COLUMN email TEXT')
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS preferencias_alerta ("
+            "usuario_id INTEGER PRIMARY KEY REFERENCES usuarios(id) ON DELETE CASCADE, "
+            "critico INTEGER NOT NULL DEFAULT 0, "
+            "recorrencia INTEGER NOT NULL DEFAULT 0, "
+            "resumo INTEGER NOT NULL DEFAULT 0)"
+        )
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS envios_alerta ("
+            "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+            "usuario_id INTEGER REFERENCES usuarios(id), "
+            "gatilho TEXT NOT NULL, "
+            "canal TEXT NOT NULL DEFAULT 'email', "
+            "estado TEXT NOT NULL, "
+            "tentativas INTEGER NOT NULL DEFAULT 1, "
+            "criado_em TEXT NOT NULL)"
+        )
 
 
 def _migrar_atendimento(conn: sqlite3.Connection) -> None:

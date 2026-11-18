@@ -341,3 +341,13 @@ export const listarPadroes = async (sinal?: AbortSignal) =>
   (await coord<{ padroes: PadraoObservado[] }>('GET', '/api/coord/padroes', undefined, sinal)).padroes;
 export const marcarPadrao = (chave: string, estado: 'novo' | 'acompanhando' | 'descartado') =>
   coord<{ ok: boolean }>('POST', `/api/coord/padroes/${encodeURIComponent(chave)}/estado`, { estado });
+// Alertas por e-mail (preferências por usuário; endereços só para admin)
+export type PreferenciasAlerta = { critico: boolean; recorrencia: boolean; resumo: boolean };
+export type UsuarioAlerta = PreferenciasAlerta & { id: number; nome: string; ativo: boolean; email: string };
+export type EstadoAlertas = {
+  configurado: boolean; resumo_hora: string | null;
+  minhas: PreferenciasAlerta & { tem_email: boolean }; usuarios?: UsuarioAlerta[];
+};
+export const obterAlertas = (sinal?: AbortSignal) => coord<EstadoAlertas>('GET', '/api/alertas', undefined, sinal);
+export const salvarPreferenciasAlerta = (prefs: PreferenciasAlerta) => coord<PreferenciasAlerta & { tem_email: boolean }>('POST', '/api/alertas/preferencias', prefs);
+export const definirEmailAlerta = (usuarioId: number, email: string) => coord<{ ok: boolean; email: string }>('POST', `/api/alertas/usuarios/${id(usuarioId)}/email`, { email });

@@ -47,6 +47,9 @@ class Config:
     def orientacoes_path(self) -> Path:
         copia = self.data_dir / "orientacoes.json"
         return copia if copia.exists() else Path(__file__).parent / "orientacoes.json"
+    # alertas por e-mail (SMTP); vazio = recurso desligado. repr=False: o dicionário
+    # pode trazer a senha do SMTP e a Config aparece em tracebacks e logs
+    alertas: dict = field(default_factory=dict, repr=False)
 
     @property
     def db_path(self) -> Path:
@@ -187,6 +190,63 @@ def _limites(dados: dict) -> dict:
     return limites
 
 
+# endereço de e-mail simples e sem espaço, vírgula ou quebra de linha (anti injeção de cabeçalho)
+_EMAIL = re.compile(
+    r"[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]{1,64}@"
+    r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?"
+    r"(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+"
+)
+SEGURANCAS_SMTP = ("starttls", "ssl", "nenhuma")
+
+
+def email_valido(valor) -> bool:
+    return isinstance(valor, str) and len(valor) <= 254 and _EMAIL.fullmatch(valor) is not None
+
+
+def _alertas(dados: dict) -> dict:
+    """Valida `alertas.smtp` do config.json. Sem host ou remetente: desligado.
+
+    Usuário e senha também vêm de SI_SMTP_USUARIO e SI_SMTP_SENHA, que valem
+    mais que o arquivo. Os erros nunca citam os valores (a senha é segredo).
+    """
+    bruto = dados.get("alertas")
+    if bruto is None:
+        return {}
+    if not isinstance(bruto, dict):
+        raise ValueError("config.json: alertas precisa ser um objeto")
+    smtp = bruto.get("smtp", {})
+    if not isinstance(smtp, dict):
+        raise ValueError("config.json: alertas.smtp precisa ser um objeto")
+    host, remetente = smtp.get("host"), smtp.get("remetente")
+    if not host or not remetente:
+        return {}
+    if not isinstance(host, str) or any(c.isspace() for c in host) or len(host) > 253:
+        raise ValueError("config.json: alertas.smtp.host invalido")
+    if not email_valido(remetente):
+        raise ValueError("config.json: alertas.smtp.remetente precisa ser um e-mail valido")
+    seguranca = smtp.get("seguranca", "starttls")
+    if seguranca not in SEGURANCAS_SMTP:
+        raise ValueError(f"config.json: alertas.smtp.seguranca precisa ser {', '.join(SEGURANCAS_SMTP)}")
+    padrao_porta = {"starttls": 587, "ssl": 465, "nenhuma": 25}[seguranca]
+    porta = smtp.get("porta", padrao_porta)
+    if type(porta) is not int or not 1 <= porta <= 65535:
+        raise ValueError("config.json: alertas.smtp.porta invalida")
+    usuario = os.environ.get("SI_SMTP_USUARIO") or smtp.get("usuario") or ""
+    senha = os.environ.get("SI_SMTP_SENHA") or smtp.get("senha") or ""
+    if not isinstance(usuario, str) or not isinstance(senha, str):
+        raise ValueError("config.json: alertas.smtp.usuario e senha precisam ser textos")
+    link = bruto.get("link_painel", "")
+    if link and (not isinstance(link, str) or not re.fullmatch(r"https?://[^\s<>\"]{1,300}", link)):
+        raise ValueError("config.json: alertas.link_painel precisa ser um endereco http ou https")
+    hora = bruto.get("resumo_hora")
+    if hora is not None and (not isinstance(hora, str)
+                             or not re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", hora)):
+        raise ValueError("config.json: alertas.resumo_hora precisa ser HH:MM ou null")
+    return {"smtp": {"host": host, "porta": porta, "seguranca": seguranca,
+                     "usuario": usuario, "senha": senha, "remetente": remetente},
+            "link_painel": link or "", "resumo_hora": hora}
+
+
 def _ler_config_json(arquivo: Path) -> dict:
     """Lê e valida o config.json opcional; erro vira ValueError (saída 4)."""
     if not arquivo.exists():
@@ -220,7 +280,7 @@ def _ler_config_json(arquivo: Path) -> dict:
     return {"host": host, "allowed_hosts": tuple(hosts), "student_port": aluno,
             "coord_port": coord, "limites": _limites(dados),
             "implantacao_secundaria": implantacao,
-            "contatos_apoio": _contatos_apoio(dados)}
+            "contatos_apoio": _contatos_apoio(dados), "alertas": _alertas(dados)}
 
 
 def _contatos_apoio(dados: dict) -> tuple:

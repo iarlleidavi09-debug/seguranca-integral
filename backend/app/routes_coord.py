@@ -705,4 +705,6 @@ registrar_coord(bp)
 from .padroes import registrar as registrar_padroes
 registrar_padroes(bp)
 registrar_rotas(bp)
+from .routes_alertas import registrar_alertas
+registrar_alertas(bp)
 registrar_rotas_finais(bp)
