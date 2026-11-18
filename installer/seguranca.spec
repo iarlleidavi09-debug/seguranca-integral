@@ -1,5 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
-# PyInstaller: executável de console em pasta única (onedir).
+# PyInstaller: servidor sem janela e CLI administrativa em pasta única (onedir).
 # Uso (o build.ps1 faz isto):
 #   python -m PyInstaller installer\seguranca.spec --noconfirm --distpath dist --workpath build
 # Saída: dist\SegurancaIntegral\SegurancaIntegral.exe e dist\SegurancaIntegral\_internal\
@@ -51,12 +51,26 @@ exe = EXE(
     bootloader_ignore_signals=False,
     strip=False,
     upx=False,
-    console=True,
+    console=False,
     version=os.path.join(SPECPATH, 'versao.txt'),
     disable_windowed_traceback=False,
 )
+exe_cli = EXE(
+    pyz,
+    a.scripts,
+    [],
+    exclude_binaries=True,
+    name='SegurancaIntegral-cli',
+    debug=False,
+    bootloader_ignore_signals=False,
+    strip=False,
+    upx=False,
+    console=True,
+    version=os.path.join(SPECPATH, 'versao.txt'),
+)
 coll = COLLECT(
     exe,
+    exe_cli,
     a.binaries,
     a.datas,
     strip=False,

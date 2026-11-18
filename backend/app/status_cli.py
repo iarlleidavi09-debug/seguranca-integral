@@ -134,7 +134,7 @@ def coletar_estado(data_dir: Path | None) -> dict:
 
 
 def _mostrar(estado):
-    print(f"TETRA-GUARD {VERSAO}: {estado['estado']}", flush=True)
+    print(f"TETRAGUARD {VERSAO}: {estado['estado']}", flush=True)
     for portal in estado['portais']:
         print(f"  {portal['portal']} (porta {portal['porta']}): {portal['estado']}")
         dados = portal.get('diagnostico')

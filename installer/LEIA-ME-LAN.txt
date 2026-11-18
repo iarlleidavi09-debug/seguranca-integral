@@ -1,5 +1,9 @@
-TETRA-GUARD - VERSÃO SÓ PARA REDE LOCAL (LAN)
+﻿TETRAGUARD - VERSÃO SÓ PARA REDE LOCAL (LAN)
 ====================================================
+
+O servidor roda sem janela de terminal e aparece apenas como processo no
+Gerenciador de Tarefas. Para comandos de status e manutenção no terminal,
+use SegurancaIntegral-cli.exe, na mesma pasta do programa.
 
 Esta versão funciona dentro da rede da escola, sem exigir túnel ou endereço na
 internet. Os alunos acessam pelo endereço do computador onde o programa foi
@@ -18,7 +22,7 @@ Ao final, o instalador abre o arquivo "Endereços da rede" com:
   - o endereço do portal do ALUNO (compartilhe com os alunos, por exemplo num
     cartaz ou no mural);
   - o endereço do portal da COORDENAÇÃO (só para a equipe).
-O mesmo arquivo fica no Menu Iniciar, na pasta "TETRA-GUARD".
+O mesmo arquivo fica no Menu Iniciar, na pasta "TETRAGUARD".
 
 Primeiro acesso: abra  http://127.0.0.1:4000  NESTE computador. Se ainda não
 existir nenhuma conta, a página mostra "Criar conta de administrador". Essa
@@ -53,7 +57,7 @@ criação só é aceita no próprio computador do servidor, nunca pela rede.
 4. ENDEREÇO NOVO (IP MUDOU)
 ---------------------------
 
-No Menu Iniciar, abra TETRA-GUARD > Atualizar rede e autorize a
+No Menu Iniciar, abra TETRAGUARD > Atualizar rede e autorize a
 permissão de administrador. O comando detecta os IPs atuais, atualiza os
 endereços permitidos e reinicia o servidor para aplicar a configuração.
 Depois de verificar os dois portais no notebook, abre Endereços da rede.
@@ -87,9 +91,9 @@ pergunta se você quer apagá-las.
 
 No terminal deste computador (com acesso à pasta protegida), execute:
 
-  "C:\Program Files\SegurancaIntegral\SegurancaIntegral.exe" --status
-  "C:\Program Files\SegurancaIntegral\SegurancaIntegral.exe" --status --watch
-  "C:\Program Files\SegurancaIntegral\SegurancaIntegral.exe" --status --json
+  "C:\Program Files\SegurancaIntegral\SegurancaIntegral-cli.exe" --status
+  "C:\Program Files\SegurancaIntegral\SegurancaIntegral-cli.exe" --status --watch
+  "C:\Program Files\SegurancaIntegral\SegurancaIntegral-cli.exe" --status --json
 
 O monitor consulta os dois portais e mostra banco, uptime, backup e assinantes
 de atualização. Não cria nem altera arquivos, não lê chaves e não reinicia o

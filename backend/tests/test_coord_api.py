@@ -803,7 +803,7 @@ def test_detalhe_usa_so_colunas_conhecidas_do_caso(coord_logado, config):
         "simulacao", "criado_em", "atualizado_em",
         "anexos", "eventos", "mensagens", "notas", "resolucoes",
         "situacoes", "revisoes_recorrencia", "questionario",
-        "revisao_estado", "categorias", "opcoes", "assuntos",
+        "revisao_estado", "categorias", "opcoes", "assuntos", "codigo_acompanhamento",
         "ano_relator", "sala_relator", "local_id", "local_nome", "local_outro",
         "responsavel", "proxima_acao", "prazo_acao", "atencao", "nao_aberto",
     }

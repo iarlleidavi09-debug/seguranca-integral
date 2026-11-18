@@ -107,6 +107,7 @@ def criar_caso_v3(conn, config, dados, anexos, envio_id, definicao, respostas, c
         else:
             raise RuntimeError('nao foi possivel derivar codigo unico')
         case_id = cur.lastrowid
+        conn.execute('UPDATE casos SET codigo_acompanhamento=? WHERE id=?', (code, case_id))
         if dados.get('canal') == 'acolhimento':
             conn.execute("UPDATE casos SET canal='acolhimento' WHERE id=?", (case_id,))
             conn.execute("INSERT INTO mensagens(caso_id,autor,texto,criado_em) VALUES (?,'aluno',?,?)",

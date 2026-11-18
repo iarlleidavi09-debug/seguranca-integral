@@ -1,5 +1,9 @@
-﻿TETRA-GUARD 1.0: LEIA-ME
+﻿TETRAGUARD 1.0: LEIA-ME
 ================================
+
+O servidor roda sem janela de terminal e aparece apenas como processo no
+Gerenciador de Tarefas. Para comandos de status e manutenção no terminal,
+use SegurancaIntegral-cli.exe, na mesma pasta do programa.
 
 O programa roda neste computador e abre dois portais, só para o próprio
 computador (127.0.0.1):
@@ -91,7 +95,7 @@ ser administradora.
 
 Alternativa pela linha de comando, num Prompt de Comando como Administrador:
 
-  "C:\Program Files\SegurancaIntegral\SegurancaIntegral.exe" --data-dir "C:\ProgramData\SegurancaIntegral" --criar-admin
+  "C:\Program Files\SegurancaIntegral\SegurancaIntegral-cli.exe" --data-dir "C:\ProgramData\SegurancaIntegral" --criar-admin
 
 Cria o usuário "coordenacao" como administrador e mostra a senha uma vez.
 
@@ -107,7 +111,7 @@ Se ninguém consegue entrar, no próprio servidor:
   a) Abra o "Prompt de Comando" como Administrador (a pasta de dados só
      aceita SYSTEM e Administradores).
   b) Rode:
-       "C:\Program Files\SegurancaIntegral\SegurancaIntegral.exe" --redefinir-senha
+       "C:\Program Files\SegurancaIntegral\SegurancaIntegral-cli.exe" --redefinir-senha
   c) A nova senha aparece uma vez. O comando também desbloqueia a conta (se
      ela travou por tentativas erradas) e a reativa (se foi desativada).
 
@@ -276,7 +280,7 @@ parado ou pela metade. Os dados (banco, anexos, chave) não são tocados.
      registrar a tarefa outra vez.
   b) Se o usuário da coordenação já existia, o instalador diz que a senha não
      foi alterada. Se a senha se perdeu no caminho, rode:
-       "C:\Program Files\SegurancaIntegral\SegurancaIntegral.exe" --redefinir-senha
+       "C:\Program Files\SegurancaIntegral\SegurancaIntegral-cli.exe" --redefinir-senha
   c) Confira com: schtasks /Query /TN SegurancaIntegral /V /FO LIST
      e abra as páginas de saúde da seção 6.
   d) Se a tarefa continuar sem registrar, rode num PowerShell como
@@ -344,7 +348,7 @@ o aparelho é agrupado pelo prefixo /64.
     como Administrador, mas PRIMEIRO desabilite e encerre a tarefa:
       schtasks /Change /TN SegurancaIntegral /DISABLE
       schtasks /End /TN SegurancaIntegral
-      "C:\Program Files\SegurancaIntegral\SegurancaIntegral.exe"
+      "C:\Program Files\SegurancaIntegral\SegurancaIntegral-cli.exe"
     Com a tarefa ativa, ela pode subir outra cópia e as portas ficam
     ocupadas: o executável sai com código 4 ("Nao foi possivel iniciar o
     servidor"). Ao terminar, feche com Ctrl+C e volte a tarefa:
@@ -355,7 +359,7 @@ o aparelho é agrupado pelo prefixo /64.
 11. DESINSTALAR
 --------------
 
-Painel de Controle > Programas > TETRA-GUARD > Desinstalar. O programa
+Painel de Controle > Programas > TETRAGUARD > Desinstalar. O programa
 e a tarefa são removidos. Os dados ficam, a não ser que você responda "Sim"
 quando o desinstalador perguntar se deve apagá-los (o padrão é "Não").
 

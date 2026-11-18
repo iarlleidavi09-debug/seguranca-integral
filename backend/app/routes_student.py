@@ -165,6 +165,7 @@ def acompanhar():
         pos = casos.resumo_aluno(conn, caso["id"])
         return jsonify({
             "status": caso["status"],
+            "anexos_total": conn.execute('SELECT COUNT(*) FROM anexos WHERE caso_id=?', (caso['id'],)).fetchone()[0],
             "mensagens": [
                 {"id": m["id"], "autor": m["autor"], "texto": "" if m["apagada_em"] else m["texto"],
                  "criado_em": m["criado_em"], "editada": m["editada_em"] is not None,
@@ -173,6 +174,58 @@ def acompanhar():
             ],
             **pos,
         })
+
+
+@bp.post('/api/acompanhar/anexos')
+def adicionar_anexos():
+    if _limite_estourado('consultas'):
+        return _erro('muitas consultas, tente mais tarde', 429)
+    if request.mimetype != 'multipart/form-data':
+        return _erro('use multipart/form-data', 415)
+    config = current_app.config['SI_CONFIG']
+    salvos, recusados, gravados = [], [], False
+    try:
+        with closing(connect(config)) as conn:
+            caso = casos.caso_por_codigo(conn, config, request.form.get('codigo'))
+            if caso is None:
+                return jsonify(ERRO_CODIGO[0]), ERRO_CODIGO[1]
+            if set(request.files) - {'anexos', 'anexos[]'}:
+                return _erro('campo de anexo invalido')
+            arquivos = [f for f in request.files.getlist('anexos[]') + request.files.getlist('anexos')
+                        if f.filename or f.content_length]
+            if not arquivos:
+                return _erro('selecione ao menos uma imagem')
+            # Reserva os lugares antes de gravar arquivos, inclusive entre abas simultâneas.
+            conn.execute('BEGIN IMMEDIATE')
+            try:
+                total = conn.execute('SELECT COUNT(*) FROM anexos WHERE caso_id=?', (caso['id'],)).fetchone()[0]
+                if total + len(arquivos) > MAX_POR_CASO:
+                    return _erro('no maximo 5 anexos por caso')
+                for arquivo in arquivos:
+                    try:
+                        salvos.append(salvar_anexo(config, arquivo.stream.read(MAX_BYTES + 1)))
+                    except AnexoInvalido as erro:
+                        recusados.append({'nome': _nome_seguro(arquivo.filename), 'motivo': erro.motivo})
+                for anexo in salvos:
+                    conn.execute('INSERT INTO anexos (caso_id,nome_interno,tipo,tamanho) VALUES (?,?,?,?)',
+                                 (caso['id'], anexo.nome_interno, anexo.tipo, anexo.tamanho))
+                if salvos:
+                    conn.execute('UPDATE casos SET atualizado_em=? WHERE id=?', (casos._agora(), caso['id']))
+                    casos.registrar_evento(conn, caso['id'], 'anexos_aluno', None,
+                                           f'{len(salvos)} imagem(ns)', commit=False)
+                conn.commit()
+                gravados = True
+            finally:
+                if not gravados:
+                    conn.rollback()
+        if salvos:
+            publicar(caso['id'])
+        return jsonify({'anexos_adicionados': len(salvos), 'anexos_total': total + len(salvos),
+                        'anexos_recusados': recusados}), 201
+    finally:
+        if not gravados:
+            for anexo in salvos:
+                (config.uploads_dir / anexo.nome_interno).unlink(missing_ok=True)
 
 
 @bp.post("/api/acompanhar/situacao")

@@ -12,6 +12,7 @@ SCHEMA = """
 CREATE TABLE IF NOT EXISTS casos (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     codigo_hash TEXT NOT NULL UNIQUE,
+    codigo_acompanhamento TEXT,
     tipo TEXT NOT NULL,
     relato TEXT NOT NULL,
     quando TEXT,
@@ -175,9 +176,16 @@ def init_db(config: Config) -> None:
         conn.commit()
         _migrar_v4(conn)
         _migrar_atendimento(conn)
+        _migrar_codigo_acompanhamento(conn)
         _migrar_limpezas_implantacao(conn)
     finally:
         conn.close()
+
+
+def _migrar_codigo_acompanhamento(conn: sqlite3.Connection) -> None:
+    with conn:
+        if 'codigo_acompanhamento' not in _colunas(conn, 'casos'):
+            conn.execute('ALTER TABLE casos ADD COLUMN codigo_acompanhamento TEXT')
 
 
 def _migrar_atendimento(conn: sqlite3.Connection) -> None:

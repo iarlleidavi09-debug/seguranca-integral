@@ -157,7 +157,7 @@ def test_idempotency_restart_attachments_conflict_and_anonymous(config, student_
         assert c.execute('SELECT count(*) FROM casos').fetchone()[0] == 1
         assert c.execute('SELECT count(*) FROM anexos').fetchone()[0] == 1
         dump = '\n'.join(c.iterdump())
-        assert first.json['codigo'] not in dump
+        assert row['codigo_acompanhamento'] == first.json['codigo']
         assert 'a' * 32 not in dump
     assert len(list(config.uploads_dir.iterdir())) == 1
 
