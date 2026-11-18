@@ -702,5 +702,7 @@ registrar_exportacao(bp, _db, _nao_encontrado)
 from .routes_evidencias import registrar as registrar_evidencias
 registrar_evidencias(bp, _db, _nao_encontrado)
 registrar_coord(bp)
+from .padroes import registrar as registrar_padroes
+registrar_padroes(bp)
 registrar_rotas(bp)
 registrar_rotas_finais(bp)

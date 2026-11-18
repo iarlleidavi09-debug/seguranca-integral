@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { PointerEvent } from 'react';
-import { ErroCoord, mensagemErroCoord } from '../../shared/api';
+import { ErroCoord, listarPadroes, mensagemErroCoord } from '../../shared/api';
 import { obterMapa, obterResumoMapa, salvarMapa } from '../../shared/mapa';
 import type { Ambiente, EstadoMapa, FiltrosMapa, ResumoMapa, TipoAmbiente } from '../../shared/mapa';
 import { ouvirAtualizacoes } from '../../shared/tempoReal';
@@ -23,6 +23,13 @@ export default function Mapa() {
  const [selecionado, setSelecionado] = useState<string | null>(null), [erro, setErro] = useState(''), [aviso, setAviso] = useState('');
  const [ocupado, setOcupado] = useState(false), [nome, setNome] = useState(''), [tipo, setTipo] = useState<TipoAmbiente>('ala');
  const [filtros, setFiltros] = useState(FILTROS), [resumo, setResumo] = useState<ResumoMapa | null>(null), [erroResumo, setErroResumo] = useState('');
+ // locais com padrão observado (3+ casos coincidentes); falha de leitura só tira o realce
+ const [locaisPadrao, setLocaisPadrao] = useState<Set<string>>(new Set());
+ useEffect(() => {
+  const controle = new AbortController();
+  listarPadroes(controle.signal).then(l => setLocaisPadrao(new Set(l.map(p => p.local_id)))).catch(() => undefined);
+  return () => controle.abort();
+ }, []);
  const [formaNova, setFormaNova] = useState<Forma>({ formato: 'retangulo', rotacao: 0, espessura: .35 });
  const [busca, setBusca] = useState(''), [zoom, setZoom] = useState(100), [desenhar, setDesenhar] = useState(false);
  const [previa, setPrevia] = useState<Ambiente | null>(null), [formulario, setFormulario] = useState<Ambiente | null>(null);
@@ -147,7 +154,7 @@ export default function Mapa() {
     <label>Sala da turma<input maxLength={50} value={filtros.sala} onChange={e => filtrar('sala', e.target.value)} placeholder="Todas" /></label>
    </div>
    <p className="texto-pequeno">Contagens representam casos, não pessoas. Simulações não entram. Cada ambiente inclui seus descendentes.</p>
-   <div className="mapa-legenda" aria-label="Legenda de casos"><span data-concentracao="0">0 casos</span><span data-concentracao="1">1 a 3 casos</span><span data-concentracao="2">4 a 7 casos</span><span data-concentracao="3">8 ou mais casos</span></div>
+   <div className="mapa-legenda" aria-label="Legenda de casos"><span data-concentracao="0">0 casos</span><span data-concentracao="1">1 a 3 casos</span><span data-concentracao="2">4 a 7 casos</span><span data-concentracao="3">8 ou mais casos</span></div>{locaisPadrao.size > 0 && <p className="texto-pequeno mapa-legenda-padrao">Contorno tracejado: local com padrão observado (3 ou mais relatos coincidentes). Veja os detalhes na Visão geral.</p>}
    </details>
    {erroResumo ? <p role="alert">Contagens indisponíveis. {erroResumo}</p> : resumo && <div className="mapa-contagens" aria-label="Resumo dos casos"><p><strong>{resumo.total}</strong> casos no período</p><p><strong>{resumo.sem_local}</strong> sem local</p><p><strong>{resumo.sem_turma}</strong> sem turma</p>{filtros.base === 'autores' && <p><strong>{resumo.sem_autoria}</strong> sem autoria apurada</p>}</div>}
    <div className="mapa-ferramentas"><nav aria-label="Níveis da planta" className={mapa.length > 0 && !visiveis.length ? 'mapa-niveis-destaque' : undefined}><button className="botao secundario" onClick={() => navegar(null)}>Escola</button>{trilha.map(a => <button className="botao secundario" key={a.id} onClick={() => navegar(a.id)}>{a.nome}</button>)}</nav></div>
@@ -162,7 +169,7 @@ export default function Mapa() {
    <div className="mapa-corpo"><div>{!edicao && mapa.length === 0 && <section className="mapa-vazio-cartao" aria-labelledby="titulo-mapa-vazio"><h2 id="titulo-mapa-vazio">A planta ainda está vazia</h2><p>Adicione uma ala ou um ambiente para começar.</p><button className="botao principal" onClick={() => iniciarEdicao(true)}>Editar planta</button></section>}<div hidden={!edicao && mapa.length === 0} ref={rolagem} className={`mapa-rolagem mapa-zoom-${zoom}`} role="region" aria-label="Área rolável da planta" tabIndex={0}>
     <svg ref={svg} viewBox={`0 0 ${larguraPlanta} ${alturaPlanta}`} width={`${larguraPlanta / 1200 * zoom}%`} className={desenhar ? 'mapa-planta desenhando' : 'mapa-planta'} aria-label="Planta esquemática do nível atual" role="group" onPointerDown={iniciar} onPointerMove={mover} onPointerUp={terminar} onPointerCancel={() => { if (gesto.current) setRascunho(gesto.current.origem); gesto.current = null; setPrevia(null); }}>
      <rect width={larguraPlanta} height={alturaPlanta} className="mapa-fundo" />
-     {visiveis.map(a => { const total = resumo ? agregarAmbiente(a.id, mapa, resumo.ambientes) : null; const rotulos = layoutRotulos(a, tamanhoTexto, a.nome, total === null ? null : `${total} ${total === 1 ? 'caso' : 'casos'}`); return <g key={a.id} data-ambiente={a.id} data-concentracao={!resumo ? 0 : (agregarAmbiente(a.id, mapa, resumo.ambientes) === 0 ? 0 : agregarAmbiente(a.id, mapa, resumo.ambientes) <= 3 ? 1 : agregarAmbiente(a.id, mapa, resumo.ambientes) <= 7 ? 2 : 3)} className={selecionado === a.id ? 'mapa-ambiente selecionado' : 'mapa-ambiente'} role="button" tabIndex={0} aria-label={`${a.nome}, ${TIPOS[a.tipo]}${resumo ? `, ${agregarAmbiente(a.id, mapa, resumo.ambientes)} casos` : ''}`} onClick={() => !desenhar && setSelecionado(a.id)} onDoubleClick={() => { if (a.tipo === 'escadaria') navegar(a.id); }} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelecionado(a.id); } }}>
+     {visiveis.map(a => { const total = resumo ? agregarAmbiente(a.id, mapa, resumo.ambientes) : null; const rotulos = layoutRotulos(a, tamanhoTexto, a.nome, total === null ? null : `${total} ${total === 1 ? 'caso' : 'casos'}`); return <g key={a.id} data-ambiente={a.id} data-padrao={[...descendentes(a.id, mapa)].some(d => locaisPadrao.has(d)) ? 'sim' : undefined} data-concentracao={!resumo ? 0 : (agregarAmbiente(a.id, mapa, resumo.ambientes) === 0 ? 0 : agregarAmbiente(a.id, mapa, resumo.ambientes) <= 3 ? 1 : agregarAmbiente(a.id, mapa, resumo.ambientes) <= 7 ? 2 : 3)} className={selecionado === a.id ? 'mapa-ambiente selecionado' : 'mapa-ambiente'} role="button" tabIndex={0} aria-label={`${a.nome}, ${TIPOS[a.tipo]}${resumo ? `, ${agregarAmbiente(a.id, mapa, resumo.ambientes)} casos` : ''}`} onClick={() => !desenhar && setSelecionado(a.id)} onDoubleClick={() => { if (a.tipo === 'escadaria') navegar(a.id); }} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelecionado(a.id); } }}>
       <title>{a.nome}</title>{a.formato === 'l' ? <polygon points={pontosL(a)}/> : <rect x={a.x} y={a.y} width={a.largura} height={a.altura} rx="8"/>}{rotulos.nome && <text x={a.x + 12} y={rotulos.nome.y} fontSize={tamanhoTexto}>{rotulos.nome.texto}</text>}{rotulos.contagem && <text x={a.x + 12} y={rotulos.contagem.y} fontSize={tamanhoTexto}>{rotulos.contagem.texto}</text>}
       {edicao && selecionado === a.id && <rect data-tamanho="true" className="mapa-alca" x={Math.max(0, a.x + a.largura - tamanhoAlca)} y={Math.max(0, a.y + a.altura - tamanhoAlca)} width={tamanhoAlca} height={tamanhoAlca}/>}
      </g>; })}

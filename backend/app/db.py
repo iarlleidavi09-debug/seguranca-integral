@@ -180,6 +180,8 @@ def init_db(config: Config) -> None:
         _migrar_codigo_acompanhamento(conn)
         _migrar_limpezas_implantacao(conn)
         _migrar_evidencias(conn)
+        from . import padroes
+        padroes.migrar(conn, config)
     finally:
         conn.close()
 
