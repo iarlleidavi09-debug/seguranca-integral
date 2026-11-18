@@ -96,9 +96,10 @@ def criar_caso(conn: sqlite3.Connection, config: Config, dados: dict,
                              (codigo, caso_id))
                 for a in anexos:
                     conn.execute(
-                        "INSERT INTO anexos (caso_id, nome_interno, tipo, tamanho) "
-                        "VALUES (?,?,?,?)",
-                        (caso_id, a.nome_interno, a.tipo, a.tamanho),
+                        "INSERT INTO anexos (caso_id, nome_interno, tipo, tamanho, "
+                        "sha256, recebido_em) VALUES (?,?,?,?,?,?)",
+                        (caso_id, a.nome_interno, a.tipo, a.tamanho,
+                         a.sha256, a.recebido_em),
                     )
                 conn.execute(
                     "INSERT INTO eventos (caso_id, tipo, usuario_id, detalhe, criado_em) "

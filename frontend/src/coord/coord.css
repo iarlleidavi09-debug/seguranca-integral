@@ -201,6 +201,12 @@ select:disabled { background: var(--desabilitado-fundo); color: var(--desabilita
 .aba-contagem { color: var(--texto-secundario); font-weight: 400; margin-left: var(--espaco-1); }
 .aba-ponto-novo { display: inline-block; width: 8px; height: 8px; margin-left: var(--espaco-2); border-radius: var(--raio-pill); background: var(--perigo-base); vertical-align: middle; }
 .vazio-compacto { margin: var(--espaco-2) 0; color: var(--texto-secundario); font-size: var(--texto-pequeno); }
+/* registro de integridade dos anexos (cadeia de custódia) */
+.integridade { margin-top: var(--espaco-3); }
+.integridade summary { cursor: pointer; font-weight: 600; }
+.integridade ul { margin: var(--espaco-2) 0; padding-left: var(--espaco-4); }
+.integridade-hash { display: block; font-size: var(--texto-pequeno); overflow-wrap: anywhere; color: var(--texto-secundario); }
+.integridade-alerta { color: var(--perigo-base); }
 .respostas-vazio { margin-top: var(--espaco-3); padding-block: 0; border-top: 0; }
 .painel-aba { margin-top: var(--espaco-2); }
 .texto-livre { white-space: pre-wrap; max-width: 75ch; overflow-wrap: anywhere; }

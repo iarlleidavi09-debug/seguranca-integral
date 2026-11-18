@@ -18,7 +18,7 @@ from flask import (
 )
 from flask.sessions import SecureCookieSessionInterface
 
-from . import auth, casos, implantacao, simulation
+from . import auth, casos, evidencias, implantacao, simulation
 from ._comum import registrar_rotas_finais
 from .db import connect
 from .questionario import QuestionarioInvalido, carregar
@@ -546,6 +546,8 @@ def anexo(caso_id: int, anexo_id: int):
         dados = caminho.read_bytes()
     except (AnexoInvalido, OSError):
         return _nao_encontrado()
+    # registro de acesso (cadeia de custódia); só depois de ler o arquivo
+    evidencias.registrar_acesso(_db(), caso_id, anexo_id, g.usuario["id"], "visualizar")
     mime, extensao = MIME_ANEXO[linha["tipo"]]
     resposta = Response(dados, mimetype=mime)
     resposta.headers["X-Content-Type-Options"] = "nosniff"
@@ -697,6 +699,8 @@ from .routes_mapa import registrar_coord
 from .autoria import registrar_rotas
 from .exportacao import registrar as registrar_exportacao
 registrar_exportacao(bp, _db, _nao_encontrado)
+from .routes_evidencias import registrar as registrar_evidencias
+registrar_evidencias(bp, _db, _nao_encontrado)
 registrar_coord(bp)
 registrar_rotas(bp)
 registrar_rotas_finais(bp)
