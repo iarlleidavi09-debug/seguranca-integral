@@ -4,11 +4,13 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import Acompanhar from './Acompanhar';
+import { limparRespostasRascunho } from './respostaRascunho';
 
 let respostas: Array<() => Promise<Response>> = [];
 let eventos: 'online' | 'conectando' | 'queda' | 'controlado' = 'online';
 let fluxo: ReadableStreamDefaultController<Uint8Array> | null = null;
 beforeEach(() => {
+  limparRespostasRascunho();
   respostas = [];
   eventos = 'online'; fluxo = null;
   localStorage.clear();

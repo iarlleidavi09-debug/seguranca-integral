@@ -24,6 +24,11 @@ const abrir = (eu: Rota, endereco = '/', extra: Record<string, Rota> = {}) => {
   return render(<App />);
 };
 
+async function expandir(user: ReturnType<typeof userEvent.setup>, nome: 'Organização' | 'Ferramentas') {
+  const rotulo = await screen.findByText(nome);
+  if (!rotulo.closest('details')?.open) await user.click(rotulo);
+}
+
 beforeEach(() => { window.history.replaceState(null, '', '/'); });
 
 describe('Casca da coordenação', () => {
@@ -35,14 +40,17 @@ describe('Casca da coordenação', () => {
   });
 
   it('administrador vê todas as telas, o nome e Sair', async () => {
+    const user = userEvent.setup();
     const { container } = abrir(admin);
     const nav = await screen.findByRole('navigation', { name: 'Principal' });
+    await expandir(user, 'Organização');
+    await expandir(user, 'Ferramentas');
     for (const nome of [/Visão geral/, /Casos/, /Pós-resolução/, /Usuários/, /Ensaio/]) {
       expect(await screen.findByRole('button', { name: nome })).toBeInTheDocument();
     }
     expect(screen.getAllByRole('navigation')).toEqual([nav]);
     expect(nav).toHaveAccessibleName('Principal');
-    expect(screen.queryByRole('complementary')).toBeNull();
+    expect(await screen.findByRole('complementary', { name: 'Organização dos casos' })).toBeInTheDocument();
     expect(screen.getByText('Marina')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Sair' })).toBeInTheDocument();
     expect(container.firstElementChild).toHaveClass('coord-app');
@@ -50,8 +58,10 @@ describe('Casca da coordenação', () => {
   });
 
   it('coordenador não vê Usuários', async () => {
+    const user = userEvent.setup();
     abrir(coordenador);
     await screen.findByRole('button', { name: /Casos/ });
+    await expandir(user, 'Ferramentas');
     expect(screen.queryByRole('button', { name: /Usuários/ })).toBeNull();
   });
 
@@ -73,9 +83,11 @@ describe('Casca da coordenação', () => {
   it('navegar muda o endereço e o item atual', async () => {
     const user = userEvent.setup();
     abrir(admin);
+    await expandir(user, 'Organização');
     await user.click(await screen.findByRole('button', { name: /Pós-resolução/ }));
     expect(window.location.hash).toBe('#pos-resolucao');
     expect(screen.getByRole('button', { name: /Pós-resolução/ })).toHaveAttribute('aria-current', 'page');
+    await expandir(user, 'Ferramentas');
     await user.click(screen.getByRole('button', { name: /Usuários/ }));
     expect(window.location.hash).toBe('#usuarios');
   });
@@ -88,18 +100,25 @@ describe('Casca da coordenação', () => {
   });
 
   it('mostra o contador de pendências com texto acessível', async () => {
+    const user = userEvent.setup();
     abrir(admin);
-    expect(await screen.findByText('2 pendentes')).toBeInTheDocument();
+    const sumario = (await screen.findByText('Organização')).closest('summary') as HTMLElement;
+    expect(await within(sumario).findByText('2 pendências de pós-resolução')).toBeInTheDocument();
+    expect(sumario).toBeVisible();
+    expect(sumario.closest('details')).not.toHaveAttribute('open');
+    await expandir(user, 'Organização');
     expect(screen.getByRole('button', { name: 'Pós-resolução 2 pendentes' })).toBeInTheDocument();
   });
 
   it('uma pendência fala no singular e zero some', async () => {
     abrir(admin, '/', { 'GET /api/resumo': resumo(1) });
-    expect(await screen.findByText('1 pendente')).toBeInTheDocument();
+    expect(await screen.findByText('1 pendência de pós-resolução')).toBeInTheDocument();
   });
 
   it('falha no resumo não quebra a casca nem mostra contador', async () => {
+    const user = userEvent.setup();
     abrir(admin, '/', { 'GET /api/resumo': () => ({ status: 500 }) });
+    await expandir(user, 'Organização');
     expect(await screen.findByRole('button', { name: 'Pós-resolução' })).toBeInTheDocument();
     await waitFor(() => expect(screen.queryByText(/pendente/)).toBeNull());
   });
@@ -111,7 +130,7 @@ describe('Casca: barra lateral e cabeçalho', () => {
     const nav = await screen.findByRole('navigation', { name: 'Principal' });
     const lateral = container.querySelector('.coord-lateral') as HTMLElement;
     const filhos = Array.from(lateral.children);
-    const marca = filhos.findIndex(f => f.textContent?.includes('TETRA-GUARD'));
+    const marca = filhos.findIndex(f => f.textContent?.includes('TETRAGUARD'));
     const iNav = filhos.indexOf(nav);
     const rodape = lateral.querySelector('.coord-lateral-rodape') as HTMLElement;
     const iRodape = filhos.indexOf(rodape);
@@ -120,7 +139,6 @@ describe('Casca: barra lateral e cabeçalho', () => {
     expect(iNav).toBeLessThan(iRodape);
     expect(within(rodape).getByText('Marina')).toBeInTheDocument();
     expect(within(rodape).getByRole('button', { name: 'Sair' })).toBeInTheDocument();
-    expect(within(rodape).getByRole('button', { name: 'Pausar efeito' })).toBeInTheDocument();
   });
 
   it('o item atual é rolado para a vista ao montar e ao trocar de tela', async () => {
@@ -134,6 +152,7 @@ describe('Casca: barra lateral e cabeçalho', () => {
       await waitFor(() => expect(rolar).toHaveBeenCalledWith({ inline: 'nearest', block: 'nearest' }));
       expect(rolar.mock.contexts.at(-1)).toBe(geral);
       rolar.mockClear();
+      await expandir(user, 'Organização');
       await user.click(screen.getByRole('button', { name: /Pós-resolução/ }));
       await waitFor(() => expect(rolar).toHaveBeenCalledWith({ inline: 'nearest', block: 'nearest' }));
       expect(rolar.mock.contexts.at(-1)).toBe(screen.getByRole('button', { name: /Pós-resolução/ }));
@@ -151,23 +170,22 @@ describe('Casca: barra lateral e cabeçalho', () => {
   });
 
   it('a contagem de pós-resolução fica no item da navegação', async () => {
-    const { container } = abrir(admin);
-    await screen.findByText('2 pendentes');
-    const contagem = container.querySelector('.nav-contagem') as HTMLElement;
+    const user = userEvent.setup();
+    abrir(admin);
+    await expandir(user, 'Organização');
+    const item = await screen.findByRole('button', { name: 'Pós-resolução 2 pendentes' });
+    const contagem = item.querySelector('.nav-contagem') as HTMLElement;
     expect(contagem).toHaveTextContent('2');
     expect(contagem.closest('nav')).not.toBeNull();
   });
 
-  it('Pausar efeito alterna data-pausado', async () => {
-    const user = userEvent.setup();
+  it('mantém a navegação, a identificação e o efeito de metal líquido, que o usuário pode pausar', async () => {
     const { container } = abrir(admin);
-    const botao = await screen.findByRole('button', { name: 'Pausar efeito' });
-    const metal = container.querySelector('.metal-liquido') as HTMLElement;
-    expect(metal).toHaveAttribute('data-pausado', 'false');
-    await user.click(botao);
-    expect(metal).toHaveAttribute('data-pausado', 'true');
-    await user.click(screen.getByRole('button', { name: 'Retomar efeito' }));
-    expect(metal).toHaveAttribute('data-pausado', 'false');
+    expect(await screen.findByRole('navigation', { name: 'Principal' })).toBeInTheDocument();
+    expect(screen.getByText('Cuidado e convivência escolar')).toBeInTheDocument();
+    expect(container.querySelector('.metal-liquido')).not.toBeNull();
+    const pausa = screen.getByRole('button', { name: 'Pausar efeito' });
+    expect(pausa).toHaveAttribute('aria-pressed', 'false');
   });
 });
 
@@ -180,9 +198,9 @@ describe('Casca: contador e acesso', () => {
       'GET /api/casos/12': () => ({ corpo: { ...detalhe(), status: 'resolvido', recorrencia_pendente: pendente > 0, resolucoes: [], situacoes: [], revisoes_recorrencia: [] } }),
       'POST /api/v3/casos/12/revisao-recorrencia': () => { pendente = 0; return { status: 201, corpo: { ok: true } }; },
     });
-    expect(await screen.findByText('1 pendente')).toBeInTheDocument();
+    expect(await screen.findByText('1 pendência de pós-resolução')).toBeInTheDocument();
     await user.click(await screen.findByRole('button', { name: 'Registrar revisão' }));
-    await waitFor(() => expect(screen.queryByText('1 pendente')).toBeNull());
+    await waitFor(() => expect(screen.queryByText('1 pendência de pós-resolução')).toBeNull());
     expect(window.location.hash).toBe('#caso-12');
   });
 

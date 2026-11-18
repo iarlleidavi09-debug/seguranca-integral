@@ -1,0 +1,11 @@
+{
+  "erros": [],
+  "verificacoes": [
+    "favoritos",
+    "código relacionado",
+    "anterior/próximo",
+    "rascunho por caso",
+    "retorno à origem",
+    "sem overflow 375/768px"
+  ]
+}

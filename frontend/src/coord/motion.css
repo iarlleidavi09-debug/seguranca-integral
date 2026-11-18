@@ -2,12 +2,7 @@
 .metal-liquido { position: absolute; inset: 0; overflow: hidden; z-index: -1; pointer-events: none; contain: paint; background: #e6ebf0; }
 .metal-liquido::after { content: ''; position: absolute; inset: 0; background: linear-gradient(110deg, #f7f9fc44, #ffffff08 55%, #e8eef544); }
 .metal-liquido svg { width: 100%; height: 100%; display: block; }
-.coord-app .coord-lateral .marca { color: #115ea3; }
-.coord-app .coord-nav .nav-item { background: #f8fafcd9; color: #303c4a; }
-.coord-app .coord-nav .nav-item:hover { background: #ffffffed; color: #0f6cbd; }
-.coord-app .coord-nav .nav-item[aria-current='page'] { background: #ffffff; color: #0f6cbd; }
-.coord-app .coord-lateral .sessao { background: #f8fafcde; padding: 16px; border: 1px solid #ffffffab; border-radius: 6px; margin-inline: 0; }
-.coord-app .metal-pausa { display: inline-flex; justify-content: center; align-items: center; gap: 7px; min-height: 44px; padding: 6px 12px; font-size: 12px; color: #424e5c; background: #f8fafcdb; border: 1px solid #c5ced8; border-radius: 4px; justify-self: start; }
+.coord-app .metal-pausa { display: inline-flex; justify-content: center; align-items: center; gap: 7px; min-height: 44px; padding: 6px 12px; font-size: 12px; color: var(--texto-secundario); background: var(--fundo-superficie); border: 1px solid var(--borda-suave); border-radius: 4px; justify-self: start; }
 .metal-bolha { transform-box: fill-box; transform-origin: center; }
 @media (prefers-reduced-motion: no-preference) {
   .metal-bolha-1 { animation: metal-fluir-1 19s ease-in-out infinite alternate; }
@@ -59,3 +54,6 @@
   .coord-app .metal-pausa-texto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 }
 @media print { .metal-liquido, .metal-pausa { display: none !important; } }
+@media (prefers-color-scheme: dark) {
+  .metal-liquido { background: #18221e; filter: brightness(.42) saturate(.55); }
+}

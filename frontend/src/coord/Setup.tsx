@@ -40,13 +40,13 @@ export default function Setup({ local, aoCriar }: { local: boolean; aoCriar: (us
 
   if (!local) {
     return <main id="conteudo" className="login" tabIndex={-1}>
-      <p className="marca">TETRA-GUARD</p>
+      <p className="marca">TETRAGUARD</p>
       <h1>Primeiro acesso</h1>
       <p>Ainda não existe nenhuma conta. Para criar a conta de administrador, abra este portal no computador onde o servidor está instalado.</p>
     </main>;
   }
   return <main id="conteudo" className="login" tabIndex={-1}>
-    <p className="marca">TETRA-GUARD</p>
+    <p className="marca">TETRAGUARD</p>
     <h1>Criar conta de administrador</h1>
     <p>Esta é a primeira conta do portal. Com ela você cria as contas das demais pessoas da coordenação.</p>
     <form onSubmit={enviar} noValidate>

@@ -74,6 +74,7 @@ export function descricaoEvento(evento: Evento): string {
     case 'mensagem_editada': return `Mensagem editada${quem}`;
     case 'mensagem_apagada': return `Mensagem apagada${quem}`;
     case 'mensagem_aluno': return 'O aluno enviou uma mensagem';
+    case 'anexos_aluno': return 'O aluno adicionou imagens ao caso';
     case 'nota_interna': return `Nota interna registrada${quem}`;
     case 'atendimento': return `Atendimento atualizado${quem}: ${evento.detalhe}`;
     case 'acao_concluida': return `${evento.detalhe}${quem}`;

@@ -4,6 +4,31 @@ import { afterEach, expect, it, vi } from 'vitest';
 import Relatorios from './Relatorios';
 import { servidor } from './testes/servidor';
 
+async function abrirExportacao() {
+  const resumo = await screen.findByText('Exportar relatório');
+  if (!resumo.closest('details')?.open) fireEvent.click(resumo);
+  return screen.findByRole('link', { name: 'Exportar CSV / Excel' });
+}
+
+function selecionarVisualizacao(valor: string) {
+  fireEvent.change(screen.getByRole('combobox', { name: 'Visualização do gráfico' }), { target: { value: valor } });
+}
+
+it('agrupa exportação e usa um seletor para alternar o gráfico', async () => {
+  relatorio([{ data: '2026-11-16', recebidos: 2, resolvidos: 1 }]);
+  render(<Relatorios />);
+  await screen.findByRole('img', { name: /Recebidos e resolvidos por dia/ });
+  expect(screen.getByRole('link', { name: 'Exportar CSV / Excel' })).not.toBeVisible();
+  fireEvent.click(screen.getByText('Exportar relatório'));
+  expect(screen.getByRole('link', { name: 'Exportar CSV / Excel' })).toBeVisible();
+  const seletor = screen.getByRole('combobox', { name: 'Visualização do gráfico' });
+  fireEvent.change(seletor, { target: { value: 'acumulado' } });
+  expect(screen.getByRole('img', { name: /Recebidos e resolvidos acumulados/ })).toBeVisible();
+  fireEvent.click(screen.getByText('Exportar relatório'));
+  expect(screen.getByRole('button', { name: 'Imprimir / PDF' })).not.toBeVisible();
+  expect(seletor).toHaveValue('acumulado');
+});
+
 it('aplica o período, mostra totais e mantém a exportação alinhada ao gráfico', async () => {
   servidor({ 'GET /api/relatorios': (_corpo, url) => ({ corpo: {
     inicio: url.searchParams.get('inicio'), fim: url.searchParams.get('fim'), recebidos: 7, resolvidos: 3,
@@ -11,11 +36,11 @@ it('aplica o período, mostra totais e mantém a exportação alinhada ao gráfi
     prioridades: [{ prioridade: 'alta', quantidade: 7 }],
   } }) });
   render(<Relatorios />);
-  expect(await screen.findByRole('link', { name: 'Exportar CSV / Excel' })).toBeInTheDocument();
+  expect(await abrirExportacao()).toBeInTheDocument();
   fireEvent.change(screen.getByLabelText('De'), { target: { value: '2026-10-01' } });
   fireEvent.change(screen.getByLabelText('Até'), { target: { value: '2026-10-03' } });
   fireEvent.click(screen.getByRole('button', { name: 'Aplicar período' }));
-  const link = await screen.findByRole('link', { name: 'Exportar CSV / Excel' });
+  const link = await abrirExportacao();
   expect(link.getAttribute('href')).toContain('inicio=2026-10-01&fim=2026-10-03&formato=csv');
   fireEvent.click(screen.getByText('Consultar os dados por dia'));
   expect(within(screen.getByRole('table')).getByText('01/10/2026')).toBeInTheDocument();
@@ -43,15 +68,15 @@ it('alterna entre dados diários, acumulados e distribuição por prioridade', a
     evolucao_prioridades: [{ data: '2026-10-01', critica: 0, alta: 2, media: 0, baixa: 0 }, { data: '2026-10-02', critica: 0, alta: 3, media: 0, baixa: 0 }],
   } }) });
   render(<Relatorios />);
-  await screen.findByRole('link', { name: 'Exportar CSV / Excel' });
+  await abrirExportacao();
   const exportacao = screen.getByRole('link', { name: 'Exportar CSV / Excel' }).getAttribute('href');
-  fireEvent.click(screen.getByRole('button', { name: 'Acumulado' }));
-  expect(screen.getByRole('button', { name: 'Acumulado' })).toHaveAttribute('aria-pressed', 'true');
+  selecionarVisualizacao('acumulado');
+  expect(screen.getByRole('combobox', { name: 'Visualização do gráfico' })).toHaveValue('acumulado');
   fireEvent.click(screen.getByText('Consultar os dados acumulados'));
   expect(within(screen.getByRole('table')).getByText('5')).toBeInTheDocument();
-  fireEvent.click(screen.getByRole('button', { name: 'Por dia' }));
+  selecionarVisualizacao('dia');
   expect(within(screen.getByRole('table')).getByText('3')).toBeInTheDocument();
-  fireEvent.click(screen.getByRole('button', { name: 'Por prioridade' }));
+  selecionarVisualizacao('prioridade');
   expect(screen.getByRole('img', { name: /Evolução diária por prioridade/ })).toBeInTheDocument();
   expect(within(screen.getByRole('table')).getByRole('columnheader', { name: 'Alta' })).toBeInTheDocument();
   expect(within(screen.getByRole('table')).getByText('3')).toBeInTheDocument();
@@ -114,7 +139,7 @@ it('usa o plural com 2 dias e esconde a nota com 3 ou mais dias de dados', async
   unmount();
   relatorio([1, 2, 3].map(n => ({ data: `2026-10-0${n}`, recebidos: n, resolvidos: 0 })));
   render(<Relatorios />);
-  await screen.findByRole('link', { name: 'Exportar CSV / Excel' });
+  await abrirExportacao();
   expect(screen.queryByText(/Ainda há pouco histórico/)).toBeNull();
 });
 
@@ -123,20 +148,20 @@ it('conta os dias da série diária bruta em qualquer visualização e não avis
   relatorio(dias([4]));
   const { unmount } = render(<Relatorios />);
   await screen.findByText(/só existem dados em 1 dia neste/);
-  fireEvent.click(screen.getByRole('button', { name: 'Acumulado' }));
+  selecionarVisualizacao('acumulado');
   expect(screen.getByText(/só existem dados em 1 dia neste/)).toBeInTheDocument();
-  fireEvent.click(screen.getByRole('button', { name: 'Por prioridade' }));
+  selecionarVisualizacao('prioridade');
   expect(screen.getByText(/só existem dados em 1 dia neste/)).toBeInTheDocument();
   unmount();
   relatorio(dias([2, 4, 6]));
   const outro = render(<Relatorios />);
-  await screen.findByRole('link', { name: 'Exportar CSV / Excel' });
-  fireEvent.click(screen.getByRole('button', { name: 'Acumulado' }));
+  await abrirExportacao();
+  selecionarVisualizacao('acumulado');
   expect(screen.queryByText(/Ainda há pouco histórico/)).toBeNull();
   outro.unmount();
   relatorio(dias([]));
   render(<Relatorios />);
-  await screen.findByRole('link', { name: 'Exportar CSV / Excel' });
+  await abrirExportacao();
   expect(screen.queryByText(/Ainda há pouco histórico/)).toBeNull();
 });
 
@@ -169,7 +194,7 @@ it.each([320, 768, 1280])('rótulos do eixo têm tamanho efetivo de pelo menos 1
   try {
     relatorio(dadosEsparsos);
     const { container } = render(<Relatorios />);
-    await screen.findByRole('link', { name: 'Exportar CSV / Excel' });
+    await abrirExportacao();
     const textos = () => [...container.querySelectorAll('.grafico-area svg text')];
     await waitFor(() => expect(Number(textos()[0]?.getAttribute('font-size')) * Math.min(1, largura / 900)).toBeGreaterThanOrEqual(12));
     expect(textos().length).toBeGreaterThan(0);
@@ -187,11 +212,11 @@ it('rola a área do gráfico até o último dia com dados ao montar e ao trocar 
   try {
     relatorio(dadosEsparsos);
     render(<Relatorios />);
-    await screen.findByRole('link', { name: 'Exportar CSV / Excel' });
+    await abrirExportacao();
     // dia 20 de 30: x = 48 + 20 * 800 / 29 = 599,7; rolagem = 599,7 + 24 - 300 = 323,7
     await waitFor(() => expect(m.rolagens.at(-1)).toBeCloseTo(323.7, 0));
     const antes = m.rolagens.length;
-    fireEvent.click(screen.getByRole('button', { name: 'Acumulado' }));
+    selecionarVisualizacao('acumulado');
     await waitFor(() => expect(m.rolagens.length).toBeGreaterThan(antes));
     expect(m.rolagens.at(-1)).toBeCloseTo(323.7, 0);
   } finally { m.restaurar(); }
@@ -200,14 +225,14 @@ it('rola a área do gráfico até o último dia com dados ao montar e ao trocar 
 it('sem medidas disponíveis (jsdom) o gráfico renderiza com 14 e não quebra', async () => {
   relatorio(dadosEsparsos);
   const { container } = render(<Relatorios />);
-  await screen.findByRole('link', { name: 'Exportar CSV / Excel' });
+  await abrirExportacao();
   expect(container.querySelector('.grafico-area svg text')).toHaveAttribute('font-size', '14');
 });
 
 it('o CSS não fixa o tamanho dos rótulos do gráfico, para valer o atributo font-size', () => {
   // Lê o CSS como texto (jsdom não aplica folhas de estilo). Uma declaração font/font-size na regra
   // `.relatorio-grafico svg text` sobreporia o atributo de apresentação SVG.
-  const css = readFileSync('src/coord/fluent.css', 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  const css = readFileSync('src/coord/identidade.css', 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
   const regras = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].filter(m => /\.relatorio-grafico\s+svg\s+text\s*$/.test(m[1].trim()));
   expect(regras.length).toBeGreaterThan(0);
   for (const m of regras) expect(m[2]).not.toMatch(/(^|[;\s])font(-size)?\s*:/);
@@ -215,14 +240,14 @@ it('o CSS não fixa o tamanho dos rótulos do gráfico, para valer o atributo fo
 });
 
 it('na impressão o gráfico cabe na página: sem largura mínima e sem rolagem', () => {
-  const css = readFileSync('src/coord/fluent.css', 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  const css = readFileSync('src/coord/identidade.css', 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
   const impressao = css.slice(css.search(/@media\s+print/));
   expect(impressao).toMatch(/\.relatorio-grafico svg\s*\{[^}]*min-width:\s*0[^}]*width:\s*100%/);
   expect(impressao).toMatch(/\.grafico-area\s*\{[^}]*overflow:\s*visible/);
 });
 
 it('o aviso de pouco histórico usa borda completa fina, sem acento lateral', () => {
-  const css = readFileSync('src/coord/fluent.css', 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  const css = readFileSync('src/coord/identidade.css', 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
   const regra = css.match(/\.relatorio-pouco-historico\s*\{([^}]*)\}/)![1];
   expect(regra).not.toMatch(/border-left/);
   expect(regra).toMatch(/border:\s*var\(--linha-fina\)\s+solid\s+var\(--borda-suave\)/);

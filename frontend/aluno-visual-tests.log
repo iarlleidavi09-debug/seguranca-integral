@@ -1,0 +1,9 @@
+
+ RUN  v5.0.4 D:/Prototipo segurança integral/frontend
+
+
+ Test Files  3 passed (3)
+      Tests  32 passed (32)
+   Start at  12:45:29
+   Duration  95.28s (environment 48%, tests 27%, setup 13%, transform 6%, import 5%)
+

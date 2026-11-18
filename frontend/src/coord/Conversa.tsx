@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { KeyboardEvent } from 'react';
+import type { KeyboardEvent, ReactNode } from 'react';
 import type { VersaoMensagem } from '../shared/api';
 import { dataLegivel } from './rotulos';
 import MenuMensagem from './MenuMensagem';
@@ -134,8 +134,9 @@ function useTelaEstreita() {
   return estreita;
 }
 
-export default function Conversa({ titulo, campo, rotulo, ajuda, botao, itens, texto, aoMudar, aoEnviar, enviando, aoEditar, aoExcluir, aoVerVersoes }: {
+export default function Conversa({ titulo, campo, rotulo, ajuda, botao, itens, texto, aoMudar, aoEnviar, enviando, aoEditar, aoExcluir, aoVerVersoes, ferramenta }: {
   titulo: string; campo: string; rotulo: string; ajuda: string; botao: string; texto: string; enviando: boolean; itens: Item[];
+  ferramenta?: ReactNode;
   aoMudar: (valor: string) => void; aoEnviar: () => void;
 } & Acoes) {
   const estreita = useTelaEstreita();
@@ -147,11 +148,14 @@ export default function Conversa({ titulo, campo, rotulo, ajuda, botao, itens, t
     antes.current = enviando;
   }, [enviando]);
   const linhas = estreita ? Math.min(6, Math.max(2, texto.split('\n').length)) : 4;
-  return <div>
+  return <div className="conversa-coord" data-visibilidade={botao === 'Salvar nota' ? 'interna' : 'aluno'}>
     <h2 className="titulo-painel">{titulo}</h2>
+    <p className="conversa-visibilidade">{botao === 'Salvar nota' ? 'Somente a equipe pode consultar estas notas.' : 'As mensagens desta conversa são visíveis para o aluno.'}</p>
     {itens.length === 0 ? <p className="vazio">Nada por aqui ainda.</p> : <ul className="mensagens">
       {itens.map(i => <ItemMensagem key={i.chave} item={i} aoEditar={aoEditar} aoExcluir={aoExcluir} aoVerVersoes={aoVerVersoes} />)}
     </ul>}
+    {ferramenta}
+    {texto && <p className="rascunho-conversa-aviso">Rascunho preservado ao trocar de caso nesta sessão. {botao === 'Salvar nota' ? 'Salve' : 'Envie'} para registrar.</p>}
     <form className={estreita ? 'resposta resposta-fixa-coord' : 'resposta'} onSubmit={e => { e.preventDefault(); if (!enviando) aoEnviar(); }}>
       <label htmlFor={campo}>{rotulo}</label>
       <p id={`${campo}-ajuda`} className="texto-pequeno resposta-ajuda">{ajuda}</p>

@@ -5,16 +5,20 @@ import { guardarAcesso, lerAcessos, normalizarCodigo } from './acessos';
 import PosResolucao from './PosResolucao';
 import { dataLegivel, rotuloStatus } from './rotulos';
 import { useTempoReal } from '../shared/tempoReal';
+import AnexarImagens from './AnexarImagens';
+import { guardarRespostaRascunho, lerRespostaRascunho, limparRespostaEnviada, observarRespostasRascunho } from './respostaRascunho';
 
 const etapas = ['Recebido', 'Em investigação', 'Resolvido'];
 
 export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: string }) {
   const [codigo, setCodigo] = useState(codigoInicial);
   const [codigoAtivo, setCodigoAtivo] = useState(codigoInicial);
-  const [caso, setCaso] = useState<Caso | null>(null);
+  const [caso, setCaso] = useState<(Caso & { anexos_total?: number }) | null>(null);
   const [erro, setErro] = useState('');
   const [carregando, setCarregando] = useState(false);
-  const [texto, setTexto] = useState('');
+  const [texto, setTexto] = useState(() => lerRespostaRascunho(codigoInicial));
+  const codigoAtual = useRef(codigoAtivo);
+  codigoAtual.current = codigoAtivo;
   const [enviando, setEnviando] = useState(false);
   const [aviso, setAviso] = useState('');
   const [confirmada, setConfirmada] = useState(false); // "Resposta enviada." no lugar do contador: não aumenta o campo fixo
@@ -34,6 +38,7 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
   const montado = useRef(true);
   const consultado = useRef<string | null>(null);
   useEffect(() => { montado.current = true; return () => { montado.current = false; }; }, []);
+  useEffect(() => observarRespostasRascunho(() => setTexto(lerRespostaRascunho(codigoAtivo))), [codigoAtivo]);
   async function buscar(codigoConsulta: string): Promise<boolean> {
     const atual = ++consulta.current;
     const dados = await acompanhar(codigoConsulta);
@@ -52,6 +57,9 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
     // no StrictMode o efeito roda duas vezes; a consulta inicial sai uma só vez por código
     if (!codigoInicial || consultado.current === codigoInicial) return;
     consultado.current = codigoInicial;
+    setCodigoAtivo(codigoInicial);
+    setTexto(lerRespostaRascunho(codigoInicial));
+    setCaso(null);
     setCarregando(true);
     buscar(codigoInicial)
       .catch(falha => { if (montado.current) setErro(mensagemErro(falha)); })
@@ -62,7 +70,7 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
     const atual = consulta.current + 1;
     setCarregando(true); setErro(''); setErroSituacao(''); setCaso(null); setAviso(''); setConfirmada(false); baseLida.current = null;
     try {
-      if (await buscar(codigo)) { setCodigoAtivo(codigo); setCodigo(''); }
+      if (await buscar(codigo)) { setCodigoAtivo(codigo); setTexto(lerRespostaRascunho(codigo)); setCodigo(''); }
     } catch (falha) { if (atual === consulta.current) setErro(mensagemErro(falha)); }
     finally { if (atual === consulta.current) setCarregando(false); }
   }
@@ -71,8 +79,12 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
     setConfirmada(false);
     if (!texto.trim() || texto.trim().length > 2000) { setErro('Escreva uma resposta de 1 a 2000 caracteres.'); return; }
     responder.current = true; setEnviando(true); setErro(''); setAviso(''); setConfirmada(false);
+    const codigoEnvio = codigoAtivo;
+    const textoEnvio = texto;
     try {
-      await enviarMensagem(codigoAtivo, texto.trim());
+      await enviarMensagem(codigoEnvio, textoEnvio.trim());
+      limparRespostaEnviada(codigoEnvio, textoEnvio);
+      if (!montado.current || normalizarCodigo(codigoAtual.current) !== normalizarCodigo(codigoEnvio)) return;
       setTexto(''); setConfirmada(true);
       // responder equivale a ter lido tudo: o separador some, e só o que chegar depois volta a ser nova
       if (caso && baseLida.current) baseLida.current = { ...baseLida.current, valor: Math.max(baseLida.current.valor, ...caso.mensagens.filter(m => m.autor === 'coordenacao').map(m => m.id || 0)) };
@@ -80,8 +92,8 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
       deveRolar.current = true;
       try { if (!(await buscar(codigoAtivo))) deveRolar.current = false; }
       catch (falha) { deveRolar.current = false; if (leitura === consulta.current) setFalhaAtualizar(true); setAviso(`${mensagemErro(falha)} Use Atualizar conversa para ver as mensagens.`); }
-    } catch (falha) { setErro(mensagemErro(falha)); }
-    finally { setEnviando(false); responder.current = false; }
+    } catch (falha) { if (montado.current && codigoAtual.current === codigoEnvio) setErro(mensagemErro(falha)); }
+    finally { if (montado.current) setEnviando(false); responder.current = false; }
   }
   async function atualizar() {
     const atual = consulta.current + 1;
@@ -158,6 +170,7 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
     {carregando && <p role="status">Buscando seu caso…</p>}
     {erro && !caso && <p role="alert" className="erro">{erro}</p>}
     {caso && <>
+      <p className="codigo-acompanhamento">Código de acompanhamento: <strong>{normalizarCodigo(codigoAtivo) || codigoAtivo}</strong></p>
       <ol className="etapas" aria-label="Etapas do caso">
         {etapas.map((nome, i) => <li key={nome} className="etapa" data-estado={i < atual ? 'feita' : i === atual ? 'atual' : 'proxima'} aria-current={i === atual ? 'step' : undefined}>
           <span className="etapa-marca" aria-hidden="true">{i < atual ? '✓' : i + 1}</span>
@@ -172,6 +185,8 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
         <summary>Seu código</summary>
         <p>Código para voltar: <strong>{normalizarCodigo(codigoAtivo) || codigoAtivo}</strong>. Anote em um lugar seguro.</p>
       </details>
+      <AnexarImagens key={normalizarCodigo(codigoAtivo) || codigoAtivo} codigo={codigoAtivo} totalInicial={caso.anexos_total || 0}
+        aoEnviar={total => setCaso(atual => atual ? { ...atual, anexos_total: total } : atual)} />
       <h2 ref={tituloConversa} tabIndex={-1}>Conversa com a coordenação</h2>
       {novas.length > 0 && <p role="status">{novas.length === 1 ? "Uma mensagem nova da coordenação." : `${novas.length} mensagens novas da coordenação.`}</p>}
       {avisoStorage && <p role="status">{avisoStorage}</p>}
@@ -201,7 +216,7 @@ export default function Acompanhar({ codigoInicial = '' }: { codigoInicial?: str
         </div>
         <p role="status" className="so-leitor">{confirmada ? 'Resposta enviada.' : ''}</p>
         <label htmlFor="resposta" className="so-leitor">Sua resposta</label>
-        <textarea id="resposta" ref={areaResposta} rows={2} maxLength={2000} value={texto} disabled={enviando} onChange={e => { setTexto(e.target.value); setConfirmada(false); }} aria-describedby="limite-resposta" />
+        <textarea id="resposta" ref={areaResposta} rows={2} maxLength={2000} value={texto} disabled={enviando} onChange={e => { setTexto(e.target.value); guardarRespostaRascunho(codigoAtivo, e.target.value); setConfirmada(false); }} aria-describedby="limite-resposta" />
         <div className="resposta-rodape">
           <p id="limite-resposta" className="texto-pequeno">{confirmada && !texto ? 'Resposta enviada.' : `${texto.length} de 2000 caracteres`}</p>
           <button className="botao principal" disabled={enviando || carregando}>{enviando ? 'Enviando resposta…' : 'Enviar resposta'}</button>

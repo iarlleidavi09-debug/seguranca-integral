@@ -380,6 +380,7 @@ describe('Primeiro acesso', () => {
     await user.type(screen.getByLabelText('Senha'), 'senha-forte-123');
     await user.type(screen.getByLabelText('Repita a senha'), 'senha-forte-123');
     await user.click(screen.getByRole('button', { name: 'Criar conta e entrar' }));
+    await user.click(await screen.findByText('Ferramentas'));
     expect(await screen.findByRole('button', { name: 'Usuários' })).toBeInTheDocument();
     expect(chamadasA('POST', '/api/setup')[0].corpo).toEqual({ nome: 'Diretora', senha: 'senha-forte-123' });
   });
@@ -425,9 +426,11 @@ describe('Primeiro acesso', () => {
   });
 
   it('coordenador sem papel de admin não vê a aba Usuários', async () => {
+    const user = userEvent.setup();
     servidor({ 'GET /api/eu': () => ({ corpo: { id: 2, nome: 'Paulo', papel: 'coordenador' } }), 'GET /api/casos': () => ({ corpo: { casos: [] } }) });
     render(<App />);
     expect(await screen.findByRole('button', { name: 'Casos' })).toBeInTheDocument();
+    await user.click(screen.getByText('Ferramentas'));
     expect(screen.queryByRole('button', { name: 'Usuários' })).toBeNull();
   });
 });

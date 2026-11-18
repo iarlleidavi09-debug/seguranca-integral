@@ -1,0 +1,9 @@
+{
+  "erros": [],
+  "verificacoes": [
+    "código visível",
+    "anexo no caso existente",
+    "rascunho ao sair e voltar",
+    "mobile sem overflow"
+  ]
+}

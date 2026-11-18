@@ -235,7 +235,7 @@ export default function Pedido({ onEnviado, onEnviando }: { onEnviado: (resultad
     <ol className="passos" aria-label="Etapas do pedido">{['Situação', 'Detalhes', 'Relato', 'Revisão e provas'].map((nome, i) =>
       <li key={nome} aria-current={passo === i + 1 ? 'step' : undefined}><span>{i + 1}</span>{nome}</li>)}</ol>
     <h1 ref={titulo} tabIndex={-1}>{titulos[passo - 1]}</h1>
-    {temRascunho && <button type="button" className="botao-texto limpar-rascunho" disabled={enviando} onClick={limpar}>Limpar rascunho</button>}
+    <button type="button" className="botao-texto limpar-rascunho" disabled={enviando || !temRascunho} onClick={limpar}>Limpar rascunho</button>
     <form noValidate aria-busy={enviando} onSubmit={e => { e.preventDefault(); continuar(); }}>
       <fieldset className="sem-borda" disabled={enviando}>
         {passo === 1 && <>
@@ -317,7 +317,7 @@ export default function Pedido({ onEnviado, onEnviando }: { onEnviado: (resultad
           </fieldset>
           {!dados.anonimo && <div><label htmlFor="nome">Seu nome</label><input id="nome" autoComplete="off" maxLength={200} value={dados.nome} onChange={e => alterar('nome', e.target.value)} /></div>}
           <p className="texto-pequeno">Mesmo sem seu nome, o ano, a sala e o conteúdo podem permitir que a equipe reconheça você. Essas informações ficam disponíveis à coordenação.</p>
-          <p className="texto-pequeno">Ao enviar, a escola guarda seu pedido para cuidar do caso. A rede escolar pode registrar os horários de acesso.</p>
+          <p className="texto-pequeno">Ao enviar, a escola guarda seu pedido para cuidar do caso. O serviço ou a rede podem registrar os horários de acesso.</p>
         </div>}
       </fieldset>
       {definicao === null && <p className="aviso" role="status">Não foi possível carregar as perguntas agora. Você pode continuar só com o relato.</p>}

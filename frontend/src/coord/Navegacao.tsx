@@ -17,10 +17,17 @@ const ICONES: Record<Destino, string> = {
   relatorios: 'M4 3v18h17 M8 16v-4 M13 16V8 M18 16V5',
 };
 
-const ITENS: { nome: Destino; rotulo: string }[] = [
-  { nome: 'geral', rotulo: 'Visão geral' }, { nome: 'atendimento', rotulo: 'Meu atendimento' }, { nome: 'casos', rotulo: 'Casos' }, { nome: 'pos', rotulo: 'Pós-resolução' },
+type Item = { nome: Destino; rotulo: string };
+
+const PRINCIPAIS: Item[] = [
+  { nome: 'geral', rotulo: 'Visão geral' }, { nome: 'atendimento', rotulo: 'Meu atendimento' }, { nome: 'casos', rotulo: 'Casos' },
+];
+const ORGANIZACAO: Item[] = [
+  { nome: 'pos', rotulo: 'Pós-resolução' },
   { nome: 'mapa', rotulo: 'Mapa da escola' },
   { nome: 'relatorios', rotulo: 'Relatórios' },
+];
+const FERRAMENTAS: Item[] = [
   { nome: 'usuarios', rotulo: 'Usuários' }, { nome: 'ensaio', rotulo: 'Ensaio' },
 ];
 
@@ -29,29 +36,56 @@ export default function Navegacao({ tela, admin, pendencias, aoIr }: {
   tela: Tela; admin: boolean; pendencias: number; aoIr: (tela: Tela) => void;
 }) {
   const atual = useRef<HTMLButtonElement>(null);
+  const organizacao = useRef<HTMLDetailsElement>(null);
+  const ferramentas = useRef<HTMLDetailsElement>(null);
+  const naOrganizacao = ORGANIZACAO.some(i => i.nome === tela.nome);
+  const nasFerramentas = FERRAMENTAS.some(i => i.nome === tela.nome && (admin || i.nome !== 'usuarios'));
+  useEffect(() => {
+    if (naOrganizacao && organizacao.current) organizacao.current.open = true;
+    if (nasFerramentas && ferramentas.current) ferramentas.current.open = true;
+  }, [tela.nome, naOrganizacao, nasFerramentas]);
   // na barra rolável do celular, o item atual precisa estar à vista
   // o selo da contagem chega depois e desloca os itens: rola de novo quando ele muda e depois que o layout assenta
   useEffect(() => {
-    const rolar = () => atual.current?.scrollIntoView?.({ inline: 'nearest', block: 'nearest' });
+    const rolar = () => {
+      const grupo = atual.current?.closest('details');
+      const alvo = grupo && !grupo.open ? grupo.querySelector('summary') : atual.current;
+      alvo?.scrollIntoView?.({ inline: 'nearest', block: 'nearest' });
+    };
     rolar();
     let segundo = 0;
     const primeiro = requestAnimationFrame(() => { segundo = requestAnimationFrame(rolar); });
     return () => { cancelAnimationFrame(primeiro); cancelAnimationFrame(segundo); };
   }, [tela.nome, pendencias]);
+  const item = (i: Item) => {
+    // o detalhe de um caso pertence ao item Casos
+    const aqui = tela.nome === i.nome || (i.nome === 'casos' && tela.nome === 'caso');
+    return <button key={i.nome} ref={aqui ? atual : undefined} type="button" className="nav-item" aria-current={aqui ? 'page' : undefined}
+      onClick={() => aoIr({ nome: i.nome })}>
+      <svg className="nav-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={ICONES[i.nome]} /></svg>
+      {i.rotulo}
+      {i.nome === 'pos' && pendencias > 0 && <>
+        {' '}
+        <span className="nav-contagem" aria-hidden="true">{pendencias}</span>
+        <span className="so-leitor">{pendencias === 1 ? '1 pendente' : `${pendencias} pendentes`}</span>
+      </>}
+    </button>;
+  };
   return <nav aria-label="Principal" className="coord-nav">
-    {ITENS.filter(i => admin || i.nome !== 'usuarios').map(i => {
-      // o detalhe de um caso pertence ao item Casos
-      const aqui = tela.nome === i.nome || (i.nome === 'casos' && tela.nome === 'caso');
-      return <button key={i.nome} ref={aqui ? atual : undefined} type="button" className="nav-item" aria-current={aqui ? 'page' : undefined}
-        onClick={() => aoIr({ nome: i.nome })}>
-        <svg className="nav-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={ICONES[i.nome]} /></svg>
-        {i.rotulo}
-        {i.nome === 'pos' && pendencias > 0 && <>
-          {' '}
+    {PRINCIPAIS.map(item)}
+    <details className="coord-nav-grupo" ref={organizacao} data-atual={naOrganizacao || undefined}>
+      <summary>
+        <span className="coord-nav-grupo-nome">Organização</span>
+        {pendencias > 0 && <>
           <span className="nav-contagem" aria-hidden="true">{pendencias}</span>
-          <span className="so-leitor">{pendencias === 1 ? '1 pendente' : `${pendencias} pendentes`}</span>
+          <span className="so-leitor">{pendencias === 1 ? '1 pendência de pós-resolução' : `${pendencias} pendências de pós-resolução`}</span>
         </>}
-      </button>;
-    })}
+      </summary>
+      <div className="coord-nav-subitens">{ORGANIZACAO.map(item)}</div>
+    </details>
+    <details className="coord-nav-grupo" ref={ferramentas} data-atual={nasFerramentas || undefined}>
+      <summary><span className="coord-nav-grupo-nome">Ferramentas</span></summary>
+      <div className="coord-nav-subitens">{FERRAMENTAS.filter(i => admin || i.nome !== 'usuarios').map(item)}</div>
+    </details>
   </nav>;
 }

@@ -8,10 +8,10 @@ function dataLocal(d: Date) {
 }
 const rotulo = (d: string) => d.split('-').reverse().slice(0, 2).join('/');
 const LINHAS_PRIORIDADE = [
-  { campo: 'critica', nome: 'Crítica', cor: '#a4262c', traco: undefined },
-  { campo: 'alta', nome: 'Alta', cor: '#8a3707', traco: '10 4' },
-  { campo: 'media', nome: 'Média', cor: '#785800', traco: '3 4' },
-  { campo: 'baixa', nome: 'Baixa', cor: '#115ea3', traco: '12 4 3 4' },
+  { campo: 'critica', nome: 'Crítica', cor: 'var(--prioridade-critica-texto)', traco: undefined },
+  { campo: 'alta', nome: 'Alta', cor: 'var(--gravidade-alta-texto)', traco: '10 4' },
+  { campo: 'media', nome: 'Média', cor: 'var(--gravidade-media-texto)', traco: '3 4' },
+  { campo: 'baixa', nome: 'Baixa', cor: 'var(--gravidade-baixa-texto)', traco: '12 4 3 4' },
 ] as const;
 
 const CONSULTA_ESTREITA = '(max-width: 599px)';
@@ -91,10 +91,11 @@ export default function Relatorios() {
   return <section className="relatorios" aria-labelledby="titulo-relatorios">
     <div className="relatorio-cabecalho"><div><h1 id="titulo-relatorios">Evolução do atendimento</h1>
       <p className="texto-secundario">Acompanhe a entrada de pedidos e a primeira resolução de cada caso.</p></div>
-      <div className="relatorio-exportar">{pronto && !erro && <>
+      <div className="relatorio-exportar">{pronto && !erro && <details className="acoes-recolhidas">
+        <summary>Exportar relatório</summary><div className="acoes-recolhidas-conteudo">
         <a className="botao secundario" href={`/api/relatorios?${new URLSearchParams({ ...periodo, formato: 'csv' })}`} download>Exportar CSV / Excel</a>
         <button className="botao secundario" onClick={() => window.print()}>Imprimir / PDF</button>
-      </>}</div></div>
+      </div></details>}</div></div>
     <form className="relatorio-filtros" onSubmit={e => {
       e.preventDefault();
       if (filtro.fim < filtro.inicio || (Date.parse(filtro.fim) - Date.parse(filtro.inicio)) / 86400000 > 365) {
@@ -113,9 +114,12 @@ export default function Relatorios() {
         <div><span>Casos com primeira resolução no período</span><strong>{dados.resolvidos}</strong></div></div>
       <section className="relatorio-grafico" aria-labelledby="titulo-evolucao">
         <div className="grafico-cabecalho"><h2 id="titulo-evolucao">{tituloGrafico}</h2>
-          <div className="grafico-visualizacoes" role="group" aria-label="Visualização do gráfico">
+          <div className="grafico-visualizacoes">
+            <label htmlFor="relatorio-visualizacao">Visualização do gráfico
+            <select id="relatorio-visualizacao" value={visualizacao} onChange={e => setVisualizacao(e.target.value as typeof visualizacao)}>
             {([{ valor: 'dia', nome: 'Por dia' }, { valor: 'acumulado', nome: 'Acumulado' }, { valor: 'prioridade', nome: 'Por prioridade' }] as const).map(v =>
-              <button key={v.valor} type="button" aria-pressed={visualizacao === v.valor} onClick={() => setVisualizacao(v.valor)}>{v.nome}</button>)}
+              <option key={v.valor} value={v.valor}>{v.nome}</option>)}
+            </select></label>
           </div>
         </div>
         <p className="grafico-explicacao" role="status">{visualizacao === 'acumulado' ? 'Soma progressiva a partir do início do período selecionado.' : visualizacao === 'prioridade' ? 'Pedidos recebidos no período, agrupados pela prioridade atual.' : 'Quantidade registrada em cada dia, sem somar os dias anteriores.'}</p>

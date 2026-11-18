@@ -17,7 +17,9 @@ npm run build:aluno
 
 O build gera `../backend/app/static/aluno/index.html` e `assets/`. Sirva essa pasta na raiz da origem do portal, como faz a rota SPA do backend. O desenvolvimento com `npm run dev` encaminha `/api` para `127.0.0.1:3000`.
 
-O tema segue `docs/design/tokens.md` e `prefers-color-scheme`. A fonte é empacotada por `@fontsource/atkinson-hyperlegible`, conforme o brief específico desta tarefa. O pacote tem pesos 400 e 700; a interface usa esses dois pesos.
+O portal do aluno segue a direção neobrutalista aprovada em 16/11/2026, em `src/aluno/aluno.css`, e respeita `prefers-color-scheme`. A coordenação usa a identidade verde/neutra de `src/coord/identidade.css`, com 16 px de espaçamento interno no painel. A fonte é empacotada por `@fontsource/atkinson-hyperlegible`, nos pesos 400 e 700. A referência de integração é `../docs/superpowers/specs/2026-11-16-interface-aprovada-tetraguard.md`.
+
+A coordenação mantém três destinos principais e agrupa as demais áreas em Organização e Ferramentas. Ações secundárias de fila, caso, mapa e exportação são recolhíveis sem desmontar os formulários. A especificação está em `../docs/superpowers/specs/2026-11-16-coordenacao-acoes-recolhidas.md`.
 
 **Divergência com `docs/design/tokens.md`:** o documento pede "Atkinson Hyperlegible Next" nos pesos 400, 600 e 700. Usamos "Atkinson Hyperlegible" (pacote `@fontsource/atkinson-hyperlegible`, que não traz o peso 600 nem a família Next), então todo texto que o design marca com 600 sai em 700. Se a Next for empacotada depois, basta trocar a dependência e o `--fonte` em `tema.css`. Não depende de Google Fonts, CDN, estilos inline ou scripts inline.
 
@@ -59,6 +61,8 @@ A finalização usa `POST /api/v4/casos/<id>/resolucao` multipart, com `X-SI-Coo
 Os módulos v2 continuam em `Denuncia.tsx`, `fluxo.ts` e `rascunho.ts`, com a casca `src/preview/AppV2.tsx` para suas prévias e testes. Eles não são importados pelo App principal v3.
 
 ## Verificação em navegador
+
+Para verificar a estabilidade visual do relato, deixe `npm run dev` aberto e rode `node verificacao/relato-estavel.mjs` em outro terminal. Exige Google Chrome e substitui a API por respostas de teste. Verifica a posição dos campos durante a edição, a estabilidade dos controles e a preservação do conteúdo entre etapas nas larguras de 375, 768 e 1280 px. Para outra origem, defina `ALUNO_URL`.
 
 Rode os builds sequencialmente e depois a suíte: a checagem CSP lê os arquivos gerados e não deve disputar o `emptyOutDir` do Vite.
 

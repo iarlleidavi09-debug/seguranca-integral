@@ -73,8 +73,9 @@ export default function Atendimento({ caso, ocupado, aoSalvar, aoConcluir }: {
       <p>{`Responsável: ${caso.responsavel?.nome ?? 'Sem responsável'}${caso.responsavel && !caso.responsavel.ativo ? ' (conta desativada)' : ''} · Próxima ação: ${caso.proxima_acao || 'Nenhuma pendente'}${caso.proxima_acao && caso.prazo_acao ? ` até ${prazoCurto(caso.prazo_acao)}` : ''}`}</p>
       {caso.proxima_acao && <button type="button" className="botao secundario" disabled={bloqueado || editando} onClick={() => { void aoConcluir(caso.revisao_estado ?? 0); }}>Concluir ação</button>}
     </div>
-    <details className="atendimento-editor" open={aberto} onToggle={e => setAberto(e.currentTarget.open)}>
+    <details className="atendimento-editor acoes-recolhidas" open={aberto} onToggle={e => setAberto(e.currentTarget.open)}>
       <summary className="botao secundario">Editar responsável e ação</summary>
+      <div className="acoes-recolhidas-conteudo">
       <p className="texto-pequeno">Uso interno da equipe. O aluno não vê estes dados.</p>
     <form onSubmit={e => { e.preventDefault(); void salvar(); }}>
       <fieldset disabled={bloqueado}>
@@ -101,6 +102,7 @@ export default function Atendimento({ caso, ocupado, aoSalvar, aoConcluir }: {
         </div>
       </fieldset>
     </form>
+      </div>
     </details>
   </section>;
 }

@@ -14,7 +14,7 @@ describe('Casca do portal do aluno', () => {
     const { container } = render(<App />);
     expect(container.firstElementChild).toHaveClass('aluno-app');
     const cabecalho = screen.getByRole('banner');
-    expect(within(cabecalho).getByRole('button', { name: 'TETRA-GUARD' })).toBeInTheDocument();
+    expect(within(cabecalho).getByRole('button', { name: 'TETRAGUARD' })).toBeInTheDocument();
     expect(screen.getByRole('contentinfo')).toHaveTextContent('Um canal da escola para ouvir e cuidar.');
   });
   it('a navegação tem os três itens e marca o atual com aria-current', async () => {
@@ -58,7 +58,7 @@ describe('Casca do portal do aluno', () => {
     const user = userEvent.setup();
     render(<App />);
     await user.click(navegacao().getByRole('button', { name: 'Acompanhar' }));
-    await user.click(screen.getByRole('button', { name: 'TETRA-GUARD' }));
+    await user.click(screen.getByRole('button', { name: 'TETRAGUARD' }));
     expect(screen.getByRole('heading', { name: 'Você não precisa lidar com isso sozinho.' })).toBeInTheDocument();
   });
   it('desabilita a navegação enquanto o pedido é enviado e a reabilita depois', async () => {
@@ -77,7 +77,7 @@ describe('Casca do portal do aluno', () => {
     vi.mocked(fetch).mockImplementationOnce(() => new Promise(resolve => { concluir = resolve; }));
     await user.click(screen.getByRole('button', { name: 'Enviar pedido de ajuda' }));
     for (const nome of ['Início', 'Pedir ajuda', 'Acompanhar']) expect(navegacao().getByRole('button', { name: nome })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'TETRA-GUARD' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'TETRAGUARD' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Voltar ao início' })).toBeDisabled();
     const sair = new Event('beforeunload', { cancelable: true });
     window.dispatchEvent(sair);

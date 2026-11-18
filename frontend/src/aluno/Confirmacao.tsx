@@ -1,21 +1,28 @@
 import { useState } from 'react';
 import type { ResultadoDenuncia } from '../shared/api';
 import { TEXTO_ORIENTACAO } from './situacoes';
+import { copiarTexto } from '../shared/copiarTexto';
+import './comprovante.css';
 
 export default function Confirmacao({ resultado, onAcompanhar, orientacao = false, respostasNaoEnviadas = false }: { resultado: ResultadoDenuncia; onAcompanhar: () => void; orientacao?: boolean; respostasNaoEnviadas?: boolean }) {
   const [aviso, setAviso] = useState('');
   async function copiar() {
-    try { await navigator.clipboard.writeText(resultado.codigo); setAviso('Código copiado. Guarde em um lugar seguro.'); }
-    catch { setAviso('Não foi possível copiar. Anote o código ou selecione o texto para copiar.'); }
+    setAviso(await copiarTexto(resultado.codigo)
+      ? 'Código copiado. Guarde em um lugar seguro.'
+      : 'Não foi possível copiar. Anote o código ou selecione o texto para copiar.');
   }
   return <section className="confirmacao">
     <h1>Você deu o primeiro passo.</h1>
-    <p>Seu pedido chegou à coordenação. Na rede local da escola, use o código abaixo para acompanhar e conversar com a equipe.</p>
-    <div className="codigo-bloco">
+    <p>Seu pedido chegou à coordenação. Use o código abaixo neste portal para acompanhar e conversar com a equipe.</p>
+    <div className="codigo-bloco comprovante-codigo" role="region" aria-label="Comprovante de acompanhamento">
       <h2>Seu código de acompanhamento</h2>
       <p className="codigo">{resultado.codigo}</p>
-      <button className="botao secundario" onClick={() => void copiar()}>Copiar código</button>
+      <div className="comprovante-acoes">
+        <button className="botao secundario" onClick={() => void copiar()}>Copiar código</button>
+        <button className="botao secundario" onClick={() => window.print()}>Imprimir ou salvar comprovante</button>
+      </div>
       <p className="texto-pequeno" role="status">{aviso}</p>
+      <p className="comprovante-instrucoes">Abra o portal TETRAGUARD da sua escola, escolha acompanhar um caso e informe este código. Guarde este comprovante em um lugar seguro.</p>
     </div>
     {orientacao && <div className="aviso orientacao" role="status"><p>{TEXTO_ORIENTACAO}</p></div>}
     <p className="aviso">Anote e guarde seu código. Tentamos salvar o acesso neste navegador para você voltar pelo início. Se usar um aparelho compartilhado, apague o acesso salvo ao terminar.</p>

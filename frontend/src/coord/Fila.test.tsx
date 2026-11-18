@@ -39,6 +39,15 @@ const montar = async (rotas: Record<string, Rota> = {}, props: PropsHarness = {}
 const digitar = (campo: HTMLElement, texto: string) => { fireEvent.change(campo, { target: { value: texto } }); };
 const linhas = () => screen.getAllByRole('row').slice(1);
 
+function organizarFila(comFiltros = false) {
+  const resumo = screen.getByText('Organizar fila');
+  if (!resumo.closest('details')?.open) fireEvent.click(resumo);
+  if (comFiltros) {
+    const filtros = screen.getByText(/^Filtros detalhados/);
+    if (!filtros.closest('details')?.open) fireEvent.click(filtros);
+  }
+}
+
 it('filtra conversas com mensagem nova, mostra prévia e limpa o filtro', async () => {
   servidor({ 'GET /api/casos': () => ({ corpo: { casos: [
     caso(1, { conversa_estado: 'sem_mensagem' }),
@@ -59,6 +68,24 @@ it('filtra conversas com mensagem nova, mostra prévia e limpa o filtro', async 
 afterEach(() => { vi.useRealTimers(); });
 
 describe('Fila de Casos', () => {
+  it('ações recolhidas: mantém busca e contexto visíveis e preserva filtros ao fechar a organização', async () => {
+    await montar({}, { inicial: { ...VAZIOS, prioridade: 'alta' } });
+    const user = userEvent.setup();
+    const resumo = screen.getByText('Organizar fila');
+    const grupo = resumo.closest('details')!;
+    expect(grupo).not.toHaveAttribute('open');
+    expect(screen.getByRole('searchbox')).toBeVisible();
+    expect(screen.getByText('Visão: Todos · 1 filtro ativo')).toBeVisible();
+    expect(screen.getByRole('button', { name: /^Todos \(/ })).not.toBeVisible();
+    await user.click(resumo);
+    await user.click(screen.getByText(/Filtros detalhados/));
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Prioridade' }), 'critica');
+    await user.click(resumo);
+    expect(grupo).not.toHaveAttribute('open');
+    await user.click(resumo);
+    expect(screen.getByRole('combobox', { name: 'Prioridade' })).toHaveValue('critica');
+  });
+
   it('Meu atendimento mostra apenas os casos atribuídos e separa ações vencidas', async () => {
     servidor({ 'GET /api/casos': () => ({ corpo: { casos: [
       caso(1, { resumo: 'Minha ação vencida', responsavel: { id: 7, nome: 'Ana', ativo: true }, proxima_acao: 'Conversar', prazo_acao: '2000-01-01' }),
@@ -68,8 +95,10 @@ describe('Fila de Casos', () => {
     render(<Harness meuId={7} />);
     await screen.findByText('Minha ação vencida');
     expect(screen.queryByText('Caso de outra pessoa')).toBeNull();
+    organizarFila();
     fireEvent.click(screen.getByRole('button', { name: 'Ações vencidas (1)' }));
     expect(screen.queryByText('Meu caso sem ação')).toBeNull();
+    organizarFila();
     fireEvent.click(screen.getByRole('button', { name: 'Sem ação planejada (1)' }));
     expect(screen.getByText('Meu caso sem ação')).toBeInTheDocument();
     expect(screen.queryByText('Minha ação vencida')).toBeNull();
@@ -84,17 +113,23 @@ describe('Fila de Casos', () => {
     ] } }) });
     render(<Harness />);
     await screen.findByText('Ainda por abrir');
+    organizarFila();
     await user.click(screen.getByRole('button', { name: 'Precisam de atenção (2)' }));
     expect(screen.queryByText('Resolvido tranquilo')).not.toBeInTheDocument();
     expect(screen.getByText('Resolvido precisa retorno')).toBeInTheDocument();
+    organizarFila();
     await user.click(screen.getByRole('button', { name: 'Ainda não abertos (1)' }));
     expect(screen.getByText('Ainda por abrir')).toBeInTheDocument();
     expect(screen.queryByText('Resolvido precisa retorno')).not.toBeInTheDocument();
+    organizarFila();
     await user.click(screen.getByRole('button', { name: 'Resolvidos (2)' }));
     expect(screen.getByText('Resolvido tranquilo')).toBeInTheDocument();
     expect(screen.getByText('Resolvido precisa retorno')).toBeInTheDocument();
+    organizarFila(true);
     await user.selectOptions(screen.getByLabelText('Motivo de atenção'), 'mensagem_pendente');
+    organizarFila();
     expect(screen.getByRole('button', { name: 'Todos (1)' })).toBeInTheDocument();
+    organizarFila();
     expect(screen.getByRole('button', { name: 'Precisam de atenção (1)' })).toBeInTheDocument();
   });
   it('mostra assuntos v3 e filtra por grupo e opção com IDs canônicos', async () => {
@@ -106,7 +141,9 @@ describe('Fila de Casos', () => {
     render(<Harness />);
     expect(await screen.findByText('Texto histórico do pedido', { selector: 'button' })).toBeInTheDocument();
     await screen.findByRole('option', { name: 'Grupo customizado' });
+    organizarFila(true);
     await user.selectOptions(screen.getByLabelText('Grupo de situações'), 'customizado');
+    organizarFila(true);
     await user.selectOptions(screen.getByLabelText('Situação relatada'), 'nova-opcao');
     await waitFor(() => expect(consultas().at(-1)).toContain('grupo=customizado'));
     expect(consultas().at(-1)).toContain('opcao=nova-opcao');
@@ -167,9 +204,9 @@ describe('Fila de Casos', () => {
     const botao = screen.getByRole('button', { name: 'Caso 3. Abrir.' });
     botao.focus();
     await user.keyboard('{Enter}');
-    expect(aoAbrir).toHaveBeenCalledWith(3);
+    expect(aoAbrir).toHaveBeenCalledWith(3, [5, 3, 2, 1, 4]);
     await user.click(screen.getByRole('button', { name: 'Caso 1. Abrir.' }));
-    expect(aoAbrir).toHaveBeenLastCalledWith(1);
+    expect(aoAbrir).toHaveBeenLastCalledWith(1, [5, 3, 2, 1, 4]);
   });
 
   it('busca só consulta 300 ms depois de parar de digitar, com o texto completo e codificado', async () => {
@@ -207,15 +244,21 @@ describe('Fila de Casos', () => {
   it('filtros de status, prioridade e tipo enviam a query certa e Limpar filtros restaura tudo', async () => {
     const user = userEvent.setup();
     await montar({ 'GET /api/casos': (_c, url) => ({ corpo: { casos: url.searchParams.get('status') === 'resolvido' ? [] : filaMista } }) });
+    organizarFila(true);
     await user.selectOptions(screen.getByLabelText('Status'), 'resolvido');
     expect(await screen.findByText('Nenhum caso com esses filtros.')).toBeInTheDocument();
+    organizarFila(true);
     await user.selectOptions(screen.getByLabelText('Prioridade'), 'alta');
+    organizarFila(true);
     await user.selectOptions(screen.getByLabelText('Tipo'), 'golpe');
     await waitFor(() => expect(consultas()).toContain('/api/casos?status=resolvido&prioridade=alta&tipo=golpe'));
     await user.click(screen.getByRole('button', { name: 'Limpar filtros' }));
     expect(await screen.findByText('Caso alto')).toBeInTheDocument();
+    organizarFila(true);
     expect(screen.getByLabelText('Status')).toHaveValue('');
+    organizarFila(true);
     expect(screen.getByLabelText('Prioridade')).toHaveValue('');
+    organizarFila(true);
     expect(screen.getByLabelText('Tipo')).toHaveValue('');
     expect(screen.getByLabelText('Buscar por assunto ou número do caso')).toHaveValue('');
     expect(screen.queryByRole('button', { name: 'Limpar filtros' })).toBeNull();
@@ -310,7 +353,7 @@ describe('Fila compacta', () => {
     expect(botao).toHaveTextContent('Ameaça');
     await userEvent.setup().click(botao);
     expect(aoAbrir).toHaveBeenCalledTimes(1);
-    expect(aoAbrir).toHaveBeenCalledWith(3);
+    expect(aoAbrir).toHaveBeenCalledWith(3, [5, 3, 2, 1, 4]);
     expect(screen.getAllByRole('button', { name: /^Caso \d+\. Abrir\.$/ })).toHaveLength(5);
   });
 
@@ -319,7 +362,7 @@ describe('Fila compacta', () => {
     await montar({}, { aoAbrir });
     fireEvent.click(within(linhas()[1]).getByText('Caso alto'));
     expect(aoAbrir).toHaveBeenCalledTimes(1);
-    expect(aoAbrir).toHaveBeenLastCalledWith(3);
+    expect(aoAbrir).toHaveBeenLastCalledWith(3, [5, 3, 2, 1, 4]);
     const selecao = vi.spyOn(window, 'getSelection').mockReturnValue({ toString: () => 'Caso' } as Selection);
     fireEvent.click(within(linhas()[1]).getByText('Caso alto'));
     expect(aoAbrir).toHaveBeenCalledTimes(1);
@@ -422,8 +465,10 @@ describe('Fila compacta', () => {
     const detalhes = document.querySelector('details.filtros-detalhados')!;
     expect(detalhes).toContainElement(document.querySelector('.filtros-ajuda') as HTMLElement);
     expect(detalhes.querySelector('summary')).toHaveTextContent('Filtros detalhados');
+    organizarFila(true);
     fireEvent.change(screen.getByLabelText('Prioridade'), { target: { value: 'alta' } });
     expect(detalhes.querySelector('summary')).toHaveTextContent('Filtros detalhados (1 ativo)');
+    organizarFila(true);
     fireEvent.change(screen.getByLabelText('Tipo'), { target: { value: 'golpe' } });
     expect(detalhes.querySelector('summary')).toHaveTextContent('Filtros detalhados (2 ativos)');
   });
@@ -464,6 +509,7 @@ describe('Fila de Pós-resolução', () => {
     render(<Harness modo="pos" />);
     await screen.findByText('Resolvido alto');
     const user = userEvent.setup();
+    organizarFila(true);
     await user.selectOptions(screen.getByLabelText('Prioridade'), 'alta');
     await waitFor(() => expect(consultas()).toContain('/api/casos?prioridade=alta'));
     await user.click(screen.getByRole('button', { name: 'Limpar filtros' }));
