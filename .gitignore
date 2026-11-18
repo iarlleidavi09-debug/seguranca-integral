@@ -22,3 +22,29 @@ frontend/verificacao/resultado-aluno.json
 # rascunhos e relatorios dos agentes (skills do superpowers)
 .superpowers/
 frontend/verificacao/resultado-*.json
+
+# segredos e dados locais: nunca versionar
+.env
+.env.*
+*.pem
+*.key
+*.pfx
+*.p12
+*secret*
+*.bak
+*.db.pre-*
+config.json
+chave_*
+*.sqlite
+*.sqlite3
+
+# saídas locais, ferramentas e material de apoio
+tmp/
+output/
+.tmp-*
+.playwright-cli/
+.claude/worktrees/
+.impeccable/
+anti-slop/
+docs/mapa-codigo/
+Vault Obsidian*/
