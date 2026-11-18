@@ -33,6 +33,7 @@ def create_student_app(config: Config, limites: dict | None = None, *, central: 
     """Portal do aluno (porta 3000)."""
     from .routes_student import bp
     from .routes_v3 import bp as bp_v3
+    from .routes_orientacoes import bp as bp_orientacoes
     from .routes_realtime import aluno as realtime
 
     init_db(config)
@@ -46,6 +47,7 @@ def create_student_app(config: Config, limites: dict | None = None, *, central: 
         LIMITES_PADRAO, config.limites if limites is None else limites)
     app.register_blueprint(bp)
     app.register_blueprint(bp_v3)
+    app.register_blueprint(bp_orientacoes)
     app.register_blueprint(realtime)
     configurar_app(app)
     return app

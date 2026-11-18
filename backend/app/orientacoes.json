@@ -1,0 +1,246 @@
+{
+  "versao": 1,
+  "geral": {
+    "titulo": "Enquanto você espera",
+    "passos": [
+      "Guarde prints e mensagens, sem apagar as conversas.",
+      "Bloqueie quem te incomoda e evite responder.",
+      "Fale com um adulto de confiança, na escola ou em casa.",
+      "Cuide de você: dormir, comer e conversar com alguém ajudam."
+    ]
+  },
+  "situacoes": {
+    "bullying": {
+      "titulo": "Se estão te humilhando ou excluindo",
+      "passos": [
+        "Você não tem culpa do que estão fazendo.",
+        "Anote datas e o que aconteceu, sem responder à provocação.",
+        "Procure um adulto de confiança na escola, mesmo que seja só para desabafar."
+      ]
+    },
+    "cyber": {
+      "titulo": "Se estão te atacando na internet",
+      "passos": [
+        "Tire prints das mensagens e dos perfis antes de qualquer coisa, e não apague as conversas.",
+        "Bloqueie e não responda: reagir costuma alimentar o ataque.",
+        "Denuncie o conteúdo na própria rede social."
+      ]
+    },
+    "discriminacao": {
+      "titulo": "Se te trataram mal por quem você é",
+      "passos": [
+        "O que aconteceu não é culpa sua e não é aceitável.",
+        "Anote quem estava presente, o dia e o que foi dito.",
+        "Converse com alguém de confiança na escola sobre o que houve."
+      ]
+    },
+    "ameaca": {
+      "titulo": "Se te ameaçaram",
+      "passos": [
+        "Guarde as mensagens ou anote as palavras exatas, com data e lugar.",
+        "Evite ficar sozinho com quem ameaçou e fique perto de pessoas de confiança.",
+        "Se achar que corre perigo, avise um adulto hoje."
+      ]
+    },
+    "perseguicao": {
+      "titulo": "Se alguém insiste em te seguir ou procurar",
+      "passos": [
+        "Você tem direito de dizer não e de ser deixado em paz.",
+        "Guarde as mensagens e anote os horários e os lugares.",
+        "Bloqueie o contato e evite combinar encontros sozinho."
+      ]
+    },
+    "chantagem": {
+      "titulo": "Se estão te pressionando ou chantageando",
+      "passos": [
+        "Não ceda nem envie o que pedem: isso costuma levar a mais pedidos.",
+        "Guarde as mensagens e não apague a conversa.",
+        "Conte para um adulto de confiança. Você não está em falta por ter sido pressionado."
+      ]
+    },
+    "extorsao": {
+      "titulo": "Se exigem dinheiro ou algo seu",
+      "passos": [
+        "Não pague nem entregue nada.",
+        "Guarde prints, números de conta e perfis, sem apagar a conversa.",
+        "Avise um adulto de confiança ainda hoje."
+      ]
+    },
+    "assedio": {
+      "titulo": "Se te mandaram algo sexual que você não quis",
+      "passos": [
+        "Não é culpa sua, mesmo que você tenha conversado antes.",
+        "Tire prints e guarde, sem apagar a conversa.",
+        "Bloqueie e conte para um adulto de confiança."
+      ]
+    },
+    "contato": {
+      "titulo": "Se houve contato que você não quis",
+      "passos": [
+        "O que aconteceu não é culpa sua.",
+        "Fale com um adulto de confiança o quanto antes; você não precisa contar tudo de uma vez.",
+        "Se precisar de atendimento de saúde, procure uma unidade de saúde com a ajuda de um adulto."
+      ]
+    },
+    "aliciamento": {
+      "titulo": "Se alguém pede segredo, fotos íntimas ou encontros",
+      "passos": [
+        "Não envie fotos nem combine encontros, mesmo que a pessoa pareça de confiança.",
+        "Guarde prints e o nome do perfil, sem apagar a conversa.",
+        "Bloqueie e conte para um adulto de confiança hoje."
+      ]
+    },
+    "intimidade": {
+      "titulo": "Se gravaram ou compartilharam sua intimidade",
+      "passos": [
+        "A culpa é de quem espalhou, não sua.",
+        "Guarde prints de onde o conteúdo está e peça a remoção na plataforma.",
+        "Não compartilhe nem encaminhe o conteúdo, nem para mostrar a alguém."
+      ]
+    },
+    "exploracao": {
+      "titulo": "Se há pressão ou troca de favores",
+      "passos": [
+        "Você pode dizer não, e isso não muda se alguém te protege ou não.",
+        "Anote o que foi pedido, por quem e quando.",
+        "Conte para um adulto de confiança fora dessa situação."
+      ]
+    },
+    "agressao": {
+      "titulo": "Se houve agressão ou briga",
+      "passos": [
+        "Se estiver ferido, procure atendimento e avise um adulto agora.",
+        "Afaste-se de quem agrediu e fique perto de pessoas de confiança.",
+        "Anote o que aconteceu e quem viu."
+      ]
+    },
+    "violencia": {
+      "titulo": "Se alguém foi machucado ou impedido de sair",
+      "passos": [
+        "Se alguém está em perigo agora, avise um adulto na hora.",
+        "Anote o que aconteceu, quando e quem viu.",
+        "Procure a coordenação sem demora."
+      ]
+    },
+    "ataque": {
+      "titulo": "Se houve tentativa de matar ou uma morte",
+      "passos": [
+        "Se alguém corre perigo agora, avise um adulto e procure ajuda imediata.",
+        "Cuide de você: converse com alguém de confiança.",
+        "Você não precisa carregar isso sozinho."
+      ]
+    },
+    "dados": {
+      "titulo": "Se divulgaram dados ou conversas suas",
+      "passos": [
+        "Tire prints de onde o conteúdo aparece, com o endereço da página.",
+        "Peça a remoção na plataforma e avise quem pode ajudar a denunciar.",
+        "Mude suas senhas e revise a privacidade das suas contas."
+      ]
+    },
+    "conta": {
+      "titulo": "Se invadiram sua conta ou aparelho",
+      "passos": [
+        "Troque a senha agora, de outro aparelho se puder, e ative a verificação em duas etapas.",
+        "Saia de todos os aparelhos conectados.",
+        "Avise seus contatos de que podem receber mensagens estranhas em seu nome."
+      ]
+    },
+    "perfil": {
+      "titulo": "Se criaram um perfil falso",
+      "passos": [
+        "Tire prints do perfil e guarde o endereço dele.",
+        "Denuncie o perfil na própria rede social.",
+        "Avise amigos para não interagirem com ele."
+      ]
+    },
+    "golpe": {
+      "titulo": "Se te pediram algo suspeito",
+      "passos": [
+        "Não clique em links nem envie dinheiro, senhas ou códigos.",
+        "Guarde prints, sem apagar a conversa.",
+        "Se já passou algo, troque as senhas e conte para um adulto de confiança."
+      ]
+    },
+    "pertences": {
+      "titulo": "Se levaram pertences",
+      "passos": [
+        "Anote o que sumiu, onde e quando.",
+        "Não confronte ninguém sozinho.",
+        "Avise a coordenação para ajudar a procurar."
+      ]
+    },
+    "patrimonio": {
+      "titulo": "Se danificaram o espaço ou equipamentos",
+      "passos": [
+        "Anote o local, o dia e o que foi danificado.",
+        "Não mexa no que foi danificado.",
+        "A coordenação cuida do restante."
+      ]
+    },
+    "arma": {
+      "titulo": "Se há arma ou objeto usado para intimidar",
+      "passos": [
+        "Não enfrente a pessoa nem tente pegar o objeto.",
+        "Afaste-se e avise um adulto agora, se houver risco.",
+        "Anote o que viu e onde."
+      ]
+    },
+    "ataque-escola": {
+      "titulo": "Se há ameaça de ataque, bomba ou incêndio",
+      "passos": [
+        "Em risco imediato, avise um adulto da escola agora.",
+        "Guarde prints da ameaça, sem apagar a conversa.",
+        "Não repasse a mensagem em grupos; mostre só a um adulto responsável."
+      ]
+    },
+    "substancias": {
+      "titulo": "Se há droga ou pressão para usar",
+      "passos": [
+        "Você pode dizer não, mesmo que insistam.",
+        "Anote quem, onde e quando, sem se expor.",
+        "Se alguém passar mal, chame um adulto na hora."
+      ]
+    },
+    "adulteracao": {
+      "titulo": "Se há suspeita de algo na comida ou bebida",
+      "passos": [
+        "Não consuma o que parece alterado e guarde, se puder.",
+        "Se alguém passou mal, avise um adulto e procure atendimento.",
+        "Anote onde e quando aconteceu."
+      ]
+    },
+    "casa": {
+      "titulo": "Se há violência ou falta de cuidado em casa",
+      "passos": [
+        "Você merece estar seguro, e a culpa não é sua.",
+        "Conte para um adulto de confiança, na escola ou fora dela.",
+        "Se houver perigo agora, peça ajuda imediata a um adulto."
+      ]
+    },
+    "adulto": {
+      "titulo": "Se um adulto da escola te machuca ou constrange",
+      "passos": [
+        "O que aconteceu não é culpa sua.",
+        "Anote datas e o que foi dito ou feito.",
+        "Converse com outro adulto de confiança: coordenação, família ou outra pessoa da escola."
+      ]
+    },
+    "omissao": {
+      "titulo": "Se pediu ajuda e continua sem proteção",
+      "passos": [
+        "Você fez a coisa certa em pedir ajuda.",
+        "Insista com outro adulto de confiança, na escola ou na família.",
+        "Guarde registros do que você já contou e para quem."
+      ]
+    },
+    "recrutamento": {
+      "titulo": "Se há pressão para atividades criminosas",
+      "passos": [
+        "Você pode dizer não e se afastar.",
+        "Não aceite nada de quem pressiona.",
+        "Conte para um adulto de confiança o quanto antes."
+      ]
+    }
+  }
+}
