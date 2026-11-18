@@ -2,19 +2,33 @@
 
 Contexto confirmado pelo usuário em 16/10/2026, consolidado da especificação v3 aprovada. Não é uma nova entrevista nem altera o escopo aprovado.
 
+## Contexto atual de hospedagem
+
+Em 16/11/2026 o usuário informou que o sistema não funciona mais em rede local. O contexto atual é um sistema hospedado para uma única escola. Não há suporte informado a várias escolas; não presumir isso.
+
+Provedor, domínio, infraestrutura, backups e mecanismo de e-mail ou notificação não foram informados. Ver "Pontos desconhecidos" abaixo.
+
+## Pontos desconhecidos
+
+- Provedor de hospedagem.
+- Domínio de acesso.
+- Infraestrutura (servidor, banco, armazenamento de anexos e fotos).
+- Backups: frequência, local e restauração.
+- E-mail ou outro mecanismo de notificação.
+
 ## Uso
 
 Canal escolar de pedidos de ajuda e acompanhamento. Alunos relatam situações vividas ou observadas sem precisar classificá-las juridicamente. A equipe da coordenação acolhe, investiga, conversa, registra providências e acompanha recorrências.
 
 ## Superfícies
 
-- Portal do aluno: celular e desktop; situação, perguntas opcionais, relato, provas/revisão, confirmação e conversa pelo código.
+- Portal do aluno: celular e desktop; situação, perguntas opcionais, relato, provas/revisão, confirmação e conversa pelo código. Na implantação anterior, o acesso era pela rede local da escola.
 - Coordenação: visão geral, casos, detalhe, conversa, notas internas, histórico, resolução, pós-resolução, usuários e ensaio.
-- Operação vigente: sistema hospedado para uma escola. O instalador Windows, os recursos LAN e o monitor CLI presentes nesta base registram a distribuição anterior.
+- Operação: a implantação anterior em rede local usava servidor Windows com dois portais, instalador LAN e monitor CLI somente leitura (histórico em `docs/operacao-lan.md`). A operação atual de hospedagem ainda não está descrita.
 
 ## Objetivos confirmados
 
-Categorias colapsáveis com descrições simples, perguntas sem repetição, cada opção e resposta com peso, coordenação trabalhando simultaneamente com atualização automática. Em 16/11/2026, o usuário confirmou a operação hospedada para uma escola e identificou esta pasta como a base principal a atualizar.
+Categorias colapsáveis com descrições simples, perguntas sem repetição, cada opção e resposta com peso, coordenação trabalhando simultaneamente com atualização automática. O requisito de funcionamento sem serviços externos vinha da implantação em rede local (histórico); a exigência atual de hospedagem está em aberto. Em 16/11/2026, o usuário confirmou a operação hospedada para uma escola e identificou esta pasta como a base principal a atualizar.
 
 ## Compromissos
 

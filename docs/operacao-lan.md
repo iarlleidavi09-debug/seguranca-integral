@@ -1,4 +1,8 @@
-# Operação LAN — Segurança Integral 3.1.0
+# Operação LAN: implantação anterior em rede local (histórico)
+
+> **Histórico.** Em 16/11/2026 o usuário informou que o sistema não funciona mais em rede local. O contexto atual é hospedado para uma única escola. O conteúdo abaixo descreve somente a implantação anterior em rede local, Segurança Integral 3.1.0, e não vale para a operação atual.
+>
+> **Desconhecido:** provedor de hospedagem, domínio, infraestrutura, backups e e-mail ou outro mecanismo de notificação ainda não foram informados. Não há procedimento de hospedagem documentado aqui.
 
 O instalador padrão é `dist/SegurancaIntegral-Setup-LAN.exe`. O programa atende dois portais em um processo gevent e usa SQLite local. Não precisa de internet, túnel ou serviços externos para operar. Uma instalação nova escuta `0.0.0.0`, nas portas 3000 (aluno) e 4000 (coordenação). O instalador libera essas portas somente nos perfis Privada e Domínio do Windows, preserva portas, dados e regras locais durante atualização e renova os endereços permitidos pelo helper LAN.
 

@@ -8,7 +8,7 @@ Portal do aluno com oito categorias recolhíveis, 29 opções e 20 perguntas com
 
 Colaboração por SSE com presença temporária, atualização de conversa/estado, revisão de concorrência e preservação de formulários em conflitos. Reiniciar o servidor requer novo login da equipe; o acompanhamento do aluno reconecta com seu código mantido apenas em memória.
 
-Operação LAN com instalador padrão, diagnóstico local e CLI somente leitura. Consulte [Operação LAN](operacao-lan.md) para configuração, backup, recuperação e comandos.
+Operação LAN com instalador padrão, diagnóstico local e CLI somente leitura (registro da implantação anterior em rede local, 16/10/2026). Consulte [Operação LAN (histórico)](operacao-lan.md) para configuração, backup, recuperação e comandos daquela implantação; o contexto atual é hospedado para uma única escola, sem procedimento documentado ainda.
 
 ## Evidência
 
